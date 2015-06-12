@@ -1,0 +1,603 @@
+/*
+ * Cppcheck - A tool for static C/C++ code analysis
+ * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
+ * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
+ */
+
+#include "errorlogger.h"
+#include "path.h"
+#include "cppcheck.h"
+#include "tokenlist.h"
+
+#include <cassert>
+#include <sstream>
+#include <vector>
+
+#include <iostream>
+using namespace std;
+#define TSC_ADD_CODEFRAGMENT
+
+//读取配置，是否保留出错行上下文信息 --TSC 0502
+void ErrorLogger::ErrorMessage::read_cfg()
+{
+	fstream cfgFile("checklist.ini");
+	if(!cfgFile)
+	{
+		cout<<"没有找到checklist.ini配置文件，请检查配置文件是否存在！"<<endl;
+		return;
+	}
+	char tmp[1000];  
+	while(!cfgFile.eof())
+	{
+		cfgFile.getline(tmp,1000);//每行读取前1000个字符，1000个足够了
+		//去掉注释
+		if(tmp[0]=='#')
+		{
+			continue;
+		}
+		string line(tmp);
+		//去掉空行
+		if(line.length()==0)
+		{
+			continue;
+		}
+		size_t pos = line.find('=');//找到每行的“=”号位置，之前是key之后是value   
+		if(pos==string::npos) return ;  
+		string tmpKey = line.substr(0,pos);//取=号之前  
+		string value;//对应变量值
+		if("code_trace"==tmpKey)  
+		{  
+			value = line.substr(pos+1);//取=号之后   
+			if(atoi(value.c_str())==0)  
+				code_trace=false;
+		}
+	}
+	 cfgFile.close();
+}
+
+//读取xml配置，是否保留出错行上下文信息 --TSC 0715
+bool ErrorLogger::ErrorMessage::read_cfg_xml()
+{
+	 TiXmlDocument doc;
+            if (doc.LoadFile("checklist.xml")) 
+			{
+                TiXmlElement *node = doc.FirstChildElement();
+				if(!node)
+					return false;
+				TiXmlElement *nullpointer_conf = node->FirstChildElement("code_trace");
+				if(!nullpointer_conf)
+					return false;
+				if(strcmp(nullpointer_conf->Attribute("isopen"),"0")==0)
+				{
+					code_trace=false;
+				}
+			}
+	 return true;
+}
+
+
+InternalError::InternalError(const Token *tok, const std::string &errorMsg) :
+    token(tok), errorMessage(errorMsg)
+{
+}
+
+ErrorLogger::ErrorMessage::ErrorMessage()
+    : _severity(Severity::none), _inconclusive(false)
+{
+     code_trace=true;
+	//读取配置，是否保留出错行上下文信息 --TSC 0502
+	 read_cfg_xml();
+}
+
+ErrorLogger::ErrorMessage::ErrorMessage(const std::list<FileLocation> &callStack, Severity::SeverityType severity, const std::string &msg, const std::string &id, bool inconclusive) :
+_callStack(callStack), // locations for this error message
+	_id(id),               // set the message id
+	_severity(severity),   // severity for this error message
+	_inconclusive(inconclusive)
+{
+	// set the summary and verbose messages
+	setmsg(msg);
+}
+
+ErrorLogger::ErrorMessage::ErrorMessage(const std::list<const Token*>& callstack, const TokenList* list, Severity::SeverityType severity, const std::string& id, const std::string& msg, bool inconclusive)
+	: _id(id), _severity(severity), _inconclusive(inconclusive)
+{
+	// Format callstack
+	for (std::list<const Token *>::const_iterator it = callstack.begin(); it != callstack.end(); ++it) {
+		// --errorlist can provide null values here
+		if (!(*it))
+			continue;
+
+		_callStack.push_back(ErrorLogger::ErrorMessage::FileLocation(*it, list));
+	}
+
+	if (list && !list->getFiles().empty())
+		file0 = list->getFiles()[0];
+
+	setmsg(msg);
+}
+
+
+ErrorLogger::ErrorMessage::ErrorMessage(const std::list<FileLocation> &callStack, Severity::SeverityType severity, const std::string &msg, const std::string &id,const std::string &subid, bool inconclusive) :
+    _callStack(callStack), // locations for this error message
+    _id(id),               // set the message id
+	_subid(subid),         //set subid from TSC 20130617
+    _severity(severity),   // severity for this error message
+    _inconclusive(inconclusive)
+{
+	code_trace=true;
+	read_cfg_xml();
+    // set the summary and verbose messages
+    setmsg(msg);
+}
+
+ErrorLogger::ErrorMessage::ErrorMessage(const std::list<const Token*>& callstack, const TokenList* list, Severity::SeverityType severity, const std::string& id, const std::string& subid,const std::string& msg, bool inconclusive)
+    : _id(id), _subid(subid),_severity(severity), _inconclusive(inconclusive)
+{
+    code_trace=true;
+	read_cfg_xml();
+    // Format callstack
+    for (std::list<const Token *>::const_iterator it = callstack.begin(); it != callstack.end(); ++it) {
+        // --errorlist can provide null values here
+        if (!(*it))
+            continue;
+
+        _callStack.push_back(ErrorLogger::ErrorMessage::FileLocation(*it, list));
+    }
+
+    if (list && !list->getFiles().empty())
+        file0 = list->getFiles()[0];
+    setmsg(msg);
+}
+
+void ErrorLogger::ErrorMessage::setmsg(const std::string &msg)
+{
+    // If a message ends to a '\n' and contains only a one '\n'
+    // it will cause the _verboseMessage to be empty which will show
+    // as an empty message to the user if --verbose is used.
+    // Even this doesn't cause problems with messages that have multiple
+    // lines, none of the the error messages should end into it.
+    assert(!(msg[msg.size()-1]=='\n'));
+
+    // The summary and verbose message are separated by a newline
+    // If there is no newline then both the summary and verbose messages
+    // are the given message
+    const std::string::size_type pos = msg.find("\n");
+    if (pos == std::string::npos) {
+        _shortMessage = msg;
+        _verboseMessage = msg;
+    } else {
+        _shortMessage = msg.substr(0, pos);
+        _verboseMessage = msg.substr(pos + 1);
+    }
+}
+
+std::string ErrorLogger::ErrorMessage::serialize() const
+{
+    // Serialize this message into a simple string
+    std::ostringstream oss;
+    oss << _id.length() << " " << _id;
+    oss << Severity::toString(_severity).length() << " " << Severity::toString(_severity);
+    if (_inconclusive) {
+        const std::string inconclusive("inconclusive");
+        oss << inconclusive.length() << " " << inconclusive;
+    }
+    oss << _shortMessage.length() << " " << _shortMessage;
+    oss << _verboseMessage.length() << " " << _verboseMessage;
+    oss << _callStack.size() << " ";
+
+    for (std::list<ErrorLogger::ErrorMessage::FileLocation>::const_iterator tok = _callStack.begin(); tok != _callStack.end(); ++tok) {
+        std::ostringstream smallStream;
+        smallStream << (*tok).line << ":" << (*tok).getfile();
+        oss << smallStream.str().length() << " " << smallStream.str();
+    }
+
+    return oss.str();
+}
+
+bool ErrorLogger::ErrorMessage::deserialize(const std::string &data)
+{
+    _inconclusive = false;
+    _callStack.clear();
+    std::istringstream iss(data);
+    std::vector<std::string> results;
+    while (iss.good()) {
+        unsigned int len = 0;
+        if (!(iss >> len))
+            return false;
+
+        iss.get();
+        std::string temp;
+        for (unsigned int i = 0; i < len && iss.good(); ++i) {
+            char c = static_cast<char>(iss.get());
+            temp.append(1, c);
+        }
+
+        if (temp == "inconclusive") {
+            _inconclusive = true;
+            continue;
+        }
+
+        results.push_back(temp);
+        if (results.size() == 4)
+            break;
+    }
+
+    _id = results[0];
+    _severity = Severity::fromString(results[1]);
+    _shortMessage = results[2];
+    _verboseMessage = results[3];
+
+    unsigned int stackSize = 0;
+    if (!(iss >> stackSize))
+        return false;
+
+    while (iss.good()) {
+        unsigned int len = 0;
+        if (!(iss >> len))
+            return false;
+
+        iss.get();
+        std::string temp;
+        for (unsigned int i = 0; i < len && iss.good(); ++i) {
+            char c = static_cast<char>(iss.get());
+            temp.append(1, c);
+        }
+
+        ErrorLogger::ErrorMessage::FileLocation loc;
+        loc.setfile(temp.substr(temp.find(':') + 1));
+        temp = temp.substr(0, temp.find(':'));
+        std::istringstream fiss(temp);
+        fiss >> loc.line;
+
+        _callStack.push_back(loc);
+
+        if (_callStack.size() >= stackSize)
+            break;
+    }
+
+    return true;
+}
+
+std::string ErrorLogger::ErrorMessage::getXMLHeader(int xml_version)
+{
+    // xml_version 1 is the default xml format
+
+    // standard xml header
+    std::ostringstream ostr;
+#ifdef WIN32
+		ostr << "<?xml version=\"1.0\" encoding=\"GB2312\"?>\n";
+#else
+		ostr << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+#endif
+    // version 1 header
+    if (xml_version <= 1) {
+        ostr << "<results>";
+    }
+
+    // version 2 header
+    else {
+        ostr << "<results version=\"" << xml_version << "\">\n";
+        ostr << "  <TscanCode version=\"" << CppCheck::version() << "\"/>\n";
+        ostr << "  <errors>";
+    }
+
+    return ostr.str();
+}
+
+std::string ErrorLogger::ErrorMessage::getXMLFooter(int xml_version)
+{
+    return (xml_version<=1) ? "</results>" : "  </errors>\n</results>";
+}
+
+static std::string stringToXml(std::string s)
+{
+    // convert a string so it can be save as xml attribute data
+    std::string::size_type pos = 0;
+    while ((pos = s.find_first_of("<>&\"\n", pos)) != std::string::npos) {
+        if (s[pos] == '<')
+            s.insert(pos + 1, "&lt;");
+        else if (s[pos] == '>')
+            s.insert(pos + 1, "&gt;");
+        else if (s[pos] == '&')
+            s.insert(pos + 1, "&amp;");
+        else if (s[pos] == '"')
+            s.insert(pos + 1, "&quot;");
+        else if (s[pos] == '\n')
+            s.insert(pos + 1, "&#xa;");
+        s.erase(pos, 1);
+        ++pos;
+    }
+    return s;
+}
+#ifdef  TSC_ADD_CODEFRAGMENT
+std::string ErrorLogger::ErrorMessage::toXML(bool verbose, int version) const
+{
+    // Save this ErrorMessage as an XML element
+    std::ostringstream xml;
+
+    // The default xml format
+    if (version == 1) {
+        xml << "<error";
+        if (!_callStack.empty()) {
+			   xml << " file=\"" << stringToXml(_callStack.back().getfile()) << "\"";		
+		       xml << " line=\"" << _callStack.back().line << "\"";
+			   xml << " id=\"" << _id << "\"";
+		
+		xml <<" subid=\""<<_subid<<"\"";
+	    xml << " severity=\"" << (_severity == Severity::error ? "error" : "style") << "\"";
+        xml << " msg=\"" << stringToXml(verbose ? _verboseMessage : _shortMessage) << "\"";
+
+		//读取配置，是否保留出错行上下文信息。配置读取在构造函数中完成，初始化code_trace的值
+		if(code_trace)
+			{
+			string filename=stringToXml(_callStack.back().getfile());
+			unsigned int fline =_callStack.back().line;
+			
+			fstream fFile(filename.c_str(),ios::in|ios::out);
+
+			// TSC:from TSC 20131128 console xml meiyou xieru jieguo bug fixed open file failed can not return
+			string strTextLine="",tmp="";
+			if(fFile.is_open())
+			{
+			   int i = 1;
+			int startline=0,endline=0;
+			while(getline(fFile, strTextLine, '\n'))
+			  {
+				if(fline>10)
+					startline=fline-10;
+				else
+					startline=1;
+				endline=10+fline;
+				char sline[20];
+				sprintf(sline,"%d",i);
+				if(i>=startline && i<=endline)
+				{
+                      tmp+=string(sline)+": "+strTextLine+"\n";
+				}
+				i++;
+			  }
+			 fFile.close();
+			
+			}
+			 xml<<" content=\""<<stringToXml(tmp)<<"\"";
+			}
+		}
+        xml << "/>";
+	
+    }
+
+    // The xml format you get when you use --xml-version=2
+    else if (version == 2) {
+        xml << "  <error";
+        xml << " id=\"" << _id << "\"";
+		// TSC:from  20130619
+		xml <<" subid=\""<<_subid<<"\"";
+        xml << " severity=\"" << Severity::toString(_severity) << "\"";
+        xml << " msg=\"" << stringToXml(_shortMessage) << "\"";
+        xml << " verbose=\"" << stringToXml(_verboseMessage) << "\"";
+        if (_inconclusive)
+            xml << " inconclusive=\"true\"";
+        xml << ">" << std::endl;
+
+        for (std::list<FileLocation>::const_reverse_iterator it = _callStack.rbegin(); it != _callStack.rend(); ++it) {
+            xml << "    <location";
+            xml << " file=\"" << stringToXml((*it).getfile()) << "\"";
+            xml << " line=\"" << (*it).line << "\"";
+			//读取配置，是否保留出错行上下文信息。配置读取在构造函数中完成，初始化code_trace的值--TSC 0502
+			if(code_trace)
+			{ 
+			string filename= stringToXml((*it).getfile());
+			unsigned int fline = (*it).line;
+			fstream fFile(filename.c_str(),ios::in|ios::out);
+			// TSC:from  20131128 console xml meiyou xieru jieguo bug fixed open file failed can not return
+			string strTextLine="",tmp="";
+			if(fFile.is_open())
+			{
+			   int i = 1;
+			int startline=0,endline=0;
+			while(getline(fFile, strTextLine, '\n'))
+			  {
+				if(fline>10)
+					startline=fline-10;
+				else
+					startline=1;
+				endline=10+fline;
+				char sline[20];
+				sprintf(sline,"%d",i);
+				if(i>=startline && i<=endline)
+				{
+					  tmp+=string(sline)+": "+strTextLine+"\n";
+				}
+				i++;
+			  }
+			 fFile.close();
+			}
+			 xml<<" content=\""<<stringToXml(tmp)<<"\"";
+			}
+            xml << "/>" << std::endl;
+        }
+
+        xml << "  </error>";
+    }
+
+    return xml.str();
+}
+#else
+std::string ErrorLogger::ErrorMessage::toXML(bool verbose, int version) const
+{
+    // Save this ErrorMessage as an XML element
+    std::ostringstream xml;
+
+    // The default xml format
+    if (version == 1) {
+        // No inconclusive messages in the xml version 1
+        if (_inconclusive)
+            return "";
+
+        xml << "<error";
+        if (!_callStack.empty()) {
+            xml << " file=\"" << stringToXml(_callStack.back().getfile()) << "\"";
+            xml << " line=\"" << _callStack.back().line << "\"";
+        }
+        xml << " id=\"" << _id << "\"";
+        xml << " severity=\"" << (_severity == Severity::error ? "error" : "style") << "\"";
+        xml << " msg=\"" << stringToXml(verbose ? _verboseMessage : _shortMessage) << "\"";
+        xml << "/>";
+    }
+
+    // The xml format you get when you use --xml-version=2
+    else if (version == 2) {
+        xml << "  <error";
+        xml << " id=\"" << _id << "\"";
+        xml << " severity=\"" << Severity::toString(_severity) << "\"";
+        xml << " msg=\"" << stringToXml(_shortMessage) << "\"";
+        xml << " verbose=\"" << stringToXml(_verboseMessage) << "\"";
+        if (_inconclusive)
+            xml << " inconclusive=\"true\"";
+        xml << ">" << std::endl;
+
+        for (std::list<FileLocation>::const_reverse_iterator it = _callStack.rbegin(); it != _callStack.rend(); ++it) {
+            xml << "    <location";
+            xml << " file=\"" << stringToXml((*it).getfile()) << "\"";
+            xml << " line=\"" << (*it).line << "\"";
+            xml << "/>" << std::endl;
+        }
+
+        xml << "  </error>";
+    }
+
+    return xml.str();
+}
+#endif
+
+void ErrorLogger::ErrorMessage::findAndReplace(std::string &source, const std::string &searchFor, const std::string &replaceWith)
+{
+    std::string::size_type index = 0;
+    while ((index = source.find(searchFor, index)) != std::string::npos) {
+        source.replace(index, searchFor.length(), replaceWith);
+        index += replaceWith.length() - searchFor.length() + 1;
+    }
+}
+
+std::string ErrorLogger::ErrorMessage::toString(bool verbose, const std::string &outputFormat) const
+{
+    // Save this ErrorMessage in plain text.
+
+    // No template is given
+    if (outputFormat.length() == 0) {
+        std::ostringstream text;
+        if (!_callStack.empty())
+            text << callStackToString(_callStack) << ": ";
+        if (_severity != Severity::none) {
+            text << '(' << Severity::toString(_severity);
+            if (_inconclusive)
+                text << ", inconclusive";
+            text << ") ";
+        }
+		text << "(" << _subid << ") ";
+        text << (verbose ? _verboseMessage : _shortMessage);
+        return text.str();
+    }
+
+    // template is given. Reformat the output according to it
+    else {
+        std::string result = outputFormat;
+        findAndReplace(result, "{id}", _id);
+		findAndReplace(result,"{subid}",_subid); // TSC:from 20130617
+        findAndReplace(result, "{severity}", Severity::toString(_severity));
+        findAndReplace(result, "{message}", verbose ? _verboseMessage : _shortMessage);
+
+        if (!_callStack.empty()) {
+            std::ostringstream oss;
+            oss << _callStack.back().line;
+            findAndReplace(result, "{line}", oss.str());
+            findAndReplace(result, "{file}", _callStack.back().getfile());
+        } else {
+            findAndReplace(result, "{file}", "");
+            findAndReplace(result, "{line}", "");
+        }
+
+        return result;
+    }
+}
+
+void ErrorLogger::reportUnmatchedSuppressions(const std::list<Suppressions::SuppressionEntry> &unmatched)
+{
+    // Report unmatched suppressions
+    for (std::list<Suppressions::SuppressionEntry>::const_iterator i = unmatched.begin(); i != unmatched.end(); ++i) {
+        // don't report "unmatchedSuppression" as unmatched
+        if (i->id == "unmatchedSuppression")
+            continue;
+
+        // check if this unmatched suppression is suppressed
+        bool suppressed = false;
+        for (std::list<Suppressions::SuppressionEntry>::const_iterator i2 = unmatched.begin(); i2 != unmatched.end(); ++i2) {
+            if (i2->id == "unmatchedSuppression") {
+                if ((i2->file == "*" || i2->file == i->file) &&
+                    (i2->line == 0 || i2->line == i->line))
+                    suppressed = true;
+            }
+        }
+
+        if (suppressed)
+            continue;
+
+        std::list<ErrorLogger::ErrorMessage::FileLocation> callStack;
+        callStack.push_back(ErrorLogger::ErrorMessage::FileLocation(i->file, i->line));
+        reportErr(ErrorLogger::ErrorMessage(callStack, Severity::information, "Unmatched suppression: " + i->id,"unmatchedSuppression", "unmatchedSuppression", false));
+    }
+}
+
+std::string ErrorLogger::callStackToString(const std::list<ErrorLogger::ErrorMessage::FileLocation> &callStack)
+{
+    std::ostringstream ostr;
+    for (std::list<ErrorLogger::ErrorMessage::FileLocation>::const_iterator tok = callStack.begin(); tok != callStack.end(); ++tok) {
+        ostr << (tok == callStack.begin() ? "" : " -> ") << tok->stringify();
+    }
+    return ostr.str();
+}
+
+
+ErrorLogger::ErrorMessage::FileLocation::FileLocation(const Token* tok, const TokenList* list)
+    : line(tok->linenr()), _file(list->file(tok))
+{
+}
+
+std::string ErrorLogger::ErrorMessage::FileLocation::getfile(bool convert) const
+{
+    if (convert)
+        return Path::toNativeSeparators(_file);
+    return _file;
+}
+
+void ErrorLogger::ErrorMessage::FileLocation::setfile(const std::string &file)
+{
+    _file = file;
+    _file = Path::fromNativeSeparators(_file);
+    _file = Path::simplifyPath(_file.c_str());
+}
+
+std::string ErrorLogger::ErrorMessage::FileLocation::stringify() const
+{
+    std::ostringstream oss;
+    oss << '[' << Path::toNativeSeparators(_file);
+    if (line != 0)
+        oss << ':' << line;
+    oss << ']';
+    return oss.str();
+}
