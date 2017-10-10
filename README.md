@@ -24,5 +24,5 @@ TscanCode支持以下类型规则扫描：
 * 跨语言交互(3): 检查Lua和C++、C#交互相关的问题
 * 逻辑错误(17): 除以上三种错误以外的其他问题，如函数参数匹配，变量重名，变量类型混用等
 
-[用户手册](./document/TscanCode用户手册.pdf)
+[用户手册](./document/TscanCode_Manual.pdf)
 
