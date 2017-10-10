@@ -28,5 +28,5 @@ TscanCode支持以下类型规则扫描：
 [用户手册](./document/TscanCode_Manual.pdf)
 
 ## FAQ
-[TscanCode FAQ](https://github.com/Tencent/TscanCode/wiki/FAQ)
+[TscanCode常见问题](https://github.com/Tencent/TscanCode/wiki/TscanCode常见问题)
 
