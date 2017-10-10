@@ -25,10 +25,10 @@ TscanCode支持以下类型规则扫描：
 * 逻辑错误(17): 除以上三种错误以外的其他问题，如函数参数匹配，变量重名，变量类型混用等
 
 ## Docs
-[用户手册](./document/TscanCode_Manual.pdf)
-[安装系统说明](./document/TscanCode_Setup.txt)
-[现有功能&未来规划](./document/TscanCode_Plan.txt)
-[已知故障](./document/TscanCode_Bug.txt)
+* [用户手册](./document/TscanCode_Manual.pdf)
+* [安装系统说明](./document/TscanCode_Setup.txt)
+* [现有功能&未来规划](./document/TscanCode_Plan.txt)
+* [已知故障](./document/TscanCode_Bug.txt)
 
 ## FAQ
 [TscanCode常见问题](https://github.com/Tencent/TscanCode/wiki/TscanCode常见问题)
