@@ -1,5 +1,6 @@
 ## TscanCode十月版本发布
 [TscanCodeV1.10.1027.windows.exe](./release/windows/TscanCodeV1.10.1027.windows.exe)
+
 更新列表：
 1. 新增基于统计的函数返回值判空检查项；
 2. 空指针、越界、未初始化误报、漏报修复；
