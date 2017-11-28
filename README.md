@@ -8,7 +8,7 @@ Tencent is pleased to support the open source community by making TscanCode avai
 
 Copyright (C) 2017 THL A29 Limited, a Tencent company, and TscanCode Team. All rights reserved.
 
-##Introduction
+## Introduction
 
 TscanCode is devoted to help programmers to find out code defects at the very beginning.  
 * TscanCode supports multi-language: `C/C++`, `C#` and `Lua` codes;
@@ -16,7 +16,7 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 * TscanCode is `easy to use`, It doesn't require strict compiling enviroment and one single command can make it work; 
 * TscanCode is `extensible`, you can implement your own checks with TscanCode.
 
-#Highlights in v2.11.27 (2017-12-01)
+## Highlights in v2.11.27 (2017-12-01)
 * Add new check `CS_UnityMessgeSpellWrong`, check typo errors of Unity message functions;
 * Add new check `lua_VarSpellWrongError` and `lua_KeywordSpellWrongError`, check typo errors of Lua variable and keyword;
 
@@ -74,6 +74,5 @@ Error list, result.xml:
 </results>
 ~~~~~~~~~~
 
-
-
+There are more [examples](trunk).
 
