@@ -69,7 +69,8 @@ Error list, result.xml:
 ~~~~~~~~~~xml
 <?xml version="1.0" encoding="UTF-8"?>
 <results>
-    <error file="func.cpp" line="7" id="nullpointer" subid="dereferenceAfterCheck" severity="error" msg="Comparing [p] to null at line 3 implies that [p] might be null. Dereferencing null pointer [p]." />
+    <error file="func.cpp" line="7" id="nullpointer" subid="dereferenceAfterCheck" severity="error" 
+           msg="Comparing [p] to null at line 3 implies that [p] might be null. Dereferencing null pointer [p]." />
 </results>
 ~~~~~~~~~~
 
