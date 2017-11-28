@@ -51,11 +51,11 @@ This simple example contains a potential null pointer defect. Checking if p is n
 
 ~~~~~~~~~~cpp
 void func(int* p) {
-	if(p == NULL) {
-		printf("p is null!");
-	}
+    if(p == NULL) {
+        printf("p is null!");
+    }
 
-	printf("p is %d", *p);
+    printf("p is %d", *p);
 }
 ~~~~~~~~~~
 
