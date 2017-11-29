@@ -1,35 +1,38 @@
 /*
-* Tencent is pleased to support the open source community by making TscanCode available.
-* Copyright (C) 2015 THL A29 Limited, a Tencent company. All rights reserved.
-* Licensed under the GNU General Public License as published by the Free Software Foundation, version 3 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-* http://www.gnu.org/licenses/gpl.html
-* TscanCode is free software: you can redistribute it and/or modify it under the terms of License.    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR * A PARTICULAR PURPOSE.  See the GNU General Public License for more details. 
+* TscanCode - A tool for static C/C++ code analysis
+* Copyright (C) 2017 TscanCode team.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-
-
 //---------------------------------------------------------------------------
-#include "checkTSCSuspicious.h"
+#include "checktscsuspicious.h"
 #include "symboldatabase.h"
 #include <string>
-
-  //from TSC 20140623
-struct  FUNCINFO
-{
-	std::string filename;
-	std::string functionname;
-	int startline;
-	int endline;
-};
-
-std::vector<FUNCINFO> FuncInfoList;
+#include <cassert>
 //---------------------------------------------------------------------------
 
 namespace {
 	CheckTSCSuspicious instance;
 }
-//add by TSC 20140507 only for 4 args ( variable args to do) 
+
+
+using namespace std;
+
+
+//only for 4 args ( variable args to do) 
 void CheckTSCSuspicious::formatbufoverrun()
 {
 	for (const Token* tok = _tokenizer->tokens(); tok; tok = tok->next()) {
@@ -57,7 +60,7 @@ void CheckTSCSuspicious::formatbufoverrun()
 							if(toktmp && toktmp->next()->str()=="[")
 							{
 								toktmp=toktmp->next();
-								if(toktmp && toktmp->next() && toktmp->next()->type()==Token::eNumber)
+								if(toktmp && toktmp->next() && toktmp->next()->tokType()==Token::eNumber)
 								{
 									arg1len=atoi(toktmp->next()->str().c_str());
 								}
@@ -68,7 +71,7 @@ void CheckTSCSuspicious::formatbufoverrun()
 					if(argcnt==3)
 					{
 						Token* arg2tok=tok->previous();
-						if(arg2tok && arg2tok->type()==Token::eNumber)
+						if(arg2tok && arg2tok->tokType()==Token::eNumber)
 						{
 							arg2=atoi(arg2tok->str().c_str());
 						}
@@ -105,10 +108,11 @@ void CheckTSCSuspicious::formatbufoverrun()
 void CheckTSCSuspicious::formatbufoverrunError(const Token *tok)
 {
 	reportError(tok, Severity::warning,
-		"bufoverrun", "formatbufoverrun","Array index "+tok->str()+" may be out of range.");
+		ErrorType::BufferOverrun, "formatbufoverrun", "Array index " + tok->str() + " may be out of range.",
+		ErrorLogger::GenWebIdentity(tok->str()));
 }
 
-//add by TSC for nested loop check
+//add for nested loop check
 void CheckTSCSuspicious::checkNestedLoop()
 {
 	const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
@@ -144,7 +148,7 @@ void CheckTSCSuspicious::checkNestedLoop()
 			tok = (Token*)scope->classDef;
 			for ( ; tok != NULL &&tok != scope->classStart; tok = tok->next())
 			{
-				if (tok && Token::Match(tok,"%any% <|>|<=|>=|!= %any%"))
+				if (Token::Match(tok,"%name% <|>|<=|>=|!= %any%") || Token::Match(tok, "%name% ++|-- <|>|<=|>=|!= %any%"))
 				{
 					LoopVars.push_back(tok->str());
 				}
@@ -164,9 +168,9 @@ void CheckTSCSuspicious::checkNestedLoop()
 					if(temptok1==NULL)
 						continue;
 					Token *temptok2 = temptok1->next()->link();		//find "}",the for or while end
-					while (tok!=temptok1)
+					while (tok!=temptok1)//ignore TSC
 					{
-						if (Token::Match(tok,"%any% <|>|<=|>=|!= %any%"))
+						if (Token::Match(tok,"%name% <|>|<=|>=|!= %any%") || Token::Match(tok, "%name% ++|-- <|>|<=|>=|!= %any%"))
 						{
 							for (it=LoopVars.begin();it!=LoopVars.end();it++)
 							{
@@ -197,7 +201,7 @@ void CheckTSCSuspicious::checkNestedLoop()
 					if(temptok1)
 					{
 					Token *temptok2 = temptok1->next()->link();		//find "}",the for or while end
-					while (tok && tok!=temptok1)
+					while (tok && tok!=temptok1)//ignore TSC
 					{
 						if (tok->str() == ";")
 						{
@@ -234,14 +238,18 @@ void CheckTSCSuspicious::checkNestedLoop()
 		}
 	}
 }
-//add by TSC 2014/4/4 to be modified!!!
 void CheckTSCSuspicious::NestedLoopError(const Token *tok)
 {
-	reportError(tok, Severity::portability,
-		"Suspicious", "NestedLoop","Suspicious nested loop!\n"
-		"Finding suspicious nested loop,using the same loop_variable and changed by inner loop!");
+	//not report error in macro
+	if (!tok || tok->isExpandedMacro())
+	{
+		return;
+	}
+	reportError(tok, Severity::style,
+		ErrorType::Suspicious, "NestedLoop",
+		"Using  same loop index variable [" + tok->str() + "]  in a nested loop can cause loop confusion or an infinite loop.", 
+		ErrorLogger::GenWebIdentity(tok->str()));
 }
-// TSC:from  20140408
 void CheckTSCSuspicious::suspiciousArrayIndex()
 {
 	const SymbolDatabase* const symbolDatabase = _tokenizer->getSymbolDatabase();
@@ -281,16 +289,65 @@ void CheckTSCSuspicious::suspiciousArrayIndex()
 							wrongindex_varid=tok->tokAt(3)->varId();
 							break;
 						}
-					}	
+
+					}
 			}
+
+			//
 			for (Token *tok = (Token*)i->classStart; tok&&tok != i->classEnd; tok = tok->next())
 			{
+
+				if (wrongindex_varid && 
+					(Token::Match(tok, "%varid% --", wrongindex_varid) || Token::Match(tok, "%varid% =", wrongindex_varid)))
+				{
+					break;
+				}
 				if ( Token::Match(tok,"[ %var% ]"))
 				{
+					// ignore "static int array[i];"
+					const Token* tokR = tok->previous();
+					bool isStatic = false;
+					while (tokR && !Token::Match(tokR, ";|}|)"))
+					{
+						if (tokR->str() == "static")
+						{
+							isStatic = true;
+							break;
+						}
+						tokR = tokR->previous();
+					}
+
+					if (isStatic)
+					{
+						continue;
+					}
+
+
 					tok=tok->tokAt(1);
 					if(tok->varId()==wrongindex_varid && wrongindex_varid!=0 )
 					{
-						suspiciousArrayIndexError(tok);
+						//eg.arry[list_num]=atoi(sztemp); for(int i=0;i<list_num;i++)    arry[i]=arry[list_num];
+						const Token* tokBack=_tokenizer->list.back();
+						Token* pTok=tok;
+						bool flag=true;
+						if(tokBack->str()=="}" && tokBack->link())
+						{
+							while(pTok && pTok!=tokBack->link())
+							{
+								if(pTok->linenr()!=tok->linenr() && Token::Match(pTok,"%var% ++|--|=") && pTok->varId()==wrongindex_varid)
+								{
+									break;
+								}
+								if(pTok->linenr()!=tok->linenr() && Token::Match(pTok,"[ %var% ]") && pTok->tokAt(1)->varId()==wrongindex_varid)
+								{
+									flag=false;
+									break;
+								}
+								pTok=pTok->previous();
+							}
+						}
+						if(flag)
+							suspiciousArrayIndexError(tok);
 					}
 				}
 			}
@@ -300,9 +357,9 @@ void CheckTSCSuspicious::suspiciousArrayIndex()
 }
 void CheckTSCSuspicious::suspiciousArrayIndexError(const Token *tok)
 {
-	
-		reportError(tok, Severity::portability,
-		"suspicious", "suspiciousArrayIndex","Array index "+tok->str()+" may be out of range.");
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, "suspiciousArrayIndex", "Array index " + tok->str() + " may be out of range.",
+		ErrorLogger::GenWebIdentity(tok->str()));
 }
 
 typedef std::map<std::string,std::string>::value_type valType;
@@ -346,21 +403,22 @@ void CheckTSCSuspicious::unsafeFunctionUsage()
 
 void CheckTSCSuspicious::unsafeFunctionUsageError(const Token *tok, const std::string& unsafefuncname,const std::string& safefuncname)
 {
-	reportError(tok, Severity::information, "unsafeFunc", "unsafeFunctionUsage","High Risk to  use " + unsafefuncname + "(). It must be replaced by " + safefuncname);
+	reportError(tok, Severity::information, ErrorType::UnsafeFunc, "unsafeFunctionUsage", "High Risk to  use " + unsafefuncname + "(). It must be replaced by " + safefuncname, ErrorLogger::GenWebIdentity(unsafefuncname));
 }
 
 
-//TSC 20130708
 void CheckTSCSuspicious::checkUnconditionalBreakinLoop()
 {
     const SymbolDatabase* symbolDatabase = _tokenizer->getSymbolDatabase();
+
 	  for (std::list<Scope>::const_iterator scope = symbolDatabase->scopeList.begin(); scope != symbolDatabase->scopeList.end(); ++scope)
 	  {
         const Token* const toke = scope->classDef;
+		
 
 		if (toke && (scope->type == Scope::eFor || scope->type == Scope::eWhile || scope->type == Scope::eDo))
 		{
-			//from TSC 20141208 except for(;;){xxx;break;}
+			//except for(;;){xxx;break;}
 			if(Token::Match(toke,"for ( ; ; )"))
 			{
 				continue;
@@ -368,15 +426,20 @@ void CheckTSCSuspicious::checkUnconditionalBreakinLoop()
 			bool flag=true;
 			for (Token *tok = (Token*)scope->classStart; tok != scope->classEnd && tok; tok = tok->next())
 			{
-
-				 if (Token::Match(tok, "break")||Token::Match(tok, "continue")||Token::Match(tok, "return")||Token::Match(tok, "goto"))
+				if (Token::Match(tok, "switch (") && tok->next()->link())
+				{
+					if (Token::Match(tok->next()->link(), ") {"))
+					{
+						tok = tok->next()->link()->next()->link();
+					}
+				}
+				 if (Token::Match(tok, "break|continue|return|goto"))
 				 {
 					 if(tok->scope()->type==Scope::eFor|| tok->scope()->type==Scope::eWhile|| tok->scope()->type==Scope::eDo)
 					{
 			
 						if(flag && !Token::Match(tok, "continue"))
 						{
-							//from TSC 20140811
 							//fix bug:ignore the "return" without condition in do{...}while(0)
 							const Token* toke_end = tok->scope()->classEnd;
 							if(tok->scope()->type==Scope::eDo)
@@ -388,7 +451,6 @@ void CheckTSCSuspicious::checkUnconditionalBreakinLoop()
 								UnconditionalBreakinLoopError(tok->next());
 						}
 					}
-					
 					 else
 					 {
 						 flag=false;
@@ -396,52 +458,58 @@ void CheckTSCSuspicious::checkUnconditionalBreakinLoop()
 				 }
 			}
 		}
-	  }
+	 }
 }
 void CheckTSCSuspicious::UnconditionalBreakinLoopError(const Token *tok)
 {
-	reportError(tok, Severity::portability, "Suspicious","unConditionalBreakinLoop","An unconditional 'break/return/goto' within a loop.It may be a mistake.");
+	//not report error in macro
+	if (!tok || tok->isExpandedMacro())
+	{
+		return;
+	}
+	reportError(tok, Severity::warning, ErrorType::Suspicious,
+		"unConditionalBreakinLoop", "An unconditional 'break/return/goto' within a loop.It may be a mistake.",
+		ErrorLogger::GenWebIdentity(tok->str()));
 }
 
-// TSC:from  20130709 
 void CheckTSCSuspicious::checkSuspiciousPriority()
 {
-    int flag=0;
-    for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
+	int flag = 0;
+	for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
 	{
-		if(tok && Token::Match(tok,"(") )
+		if (tok && Token::Match(tok, "("))
 		{
-			 flag=1;
-			 continue;
+			flag = 1;
+			continue;
 		}
-		if(tok && Token::Match(tok,")") )
+		if (tok && Token::Match(tok, ")"))
 		{
-			 flag=0;
-			 continue;
+			flag = 0;
+			continue;
 		}
-		if(tok && Token::Match(tok,"||") )
+		if (tok && tok->str() == "||")
 		{
-			if(flag==1)
-			 {
-				 flag=2;
-			 continue;
+			if (flag == 1)
+			{
+				flag = 2;
+				continue;
 			}
 		}
-			if(tok && Token::Match(tok,"||") )
+		if (tok && tok->str() == "||")
 		{
-			if(flag==1)
-			 {
-				 flag=2;
-			 continue;
+			if (flag == 1)
+			{
+				flag = 2;
+				continue;
 			}
 		}
-		if(tok && Token::Match(tok,"&&") )
+		if (tok && Token::Match(tok, "&&"))
 		{
-			if(flag==2)
-			 {
-				 SuspiciousPriorityError(tok);
-				 flag=0;
-				 continue;
+			if (flag == 2)
+			{
+				SuspiciousPriorityError(tok);
+				flag = 0;
+				continue;
 			}
 		}
 
@@ -451,17 +519,19 @@ void CheckTSCSuspicious::checkSuspiciousPriority()
 void CheckTSCSuspicious::SuspiciousPriorityError(const Token *tok)
 {
 
-	reportError(tok, Severity::portability, "Suspicious","SuspiciousPriority","Priority of the '&&' operation is higher than that of the '||' operation.It's possible that parentheses should be used in the expression.");
+	reportError(tok, Severity::style, ErrorType::Suspicious, 
+		"SuspiciousPriority", 
+		"Priority of the '&&' operation is higher than that of the '||' operation.It's possible that parentheses should be used in the expression.",
+		0U, "&&,||", ErrorLogger::GenWebIdentity(tok->str()));
 }
 
-// TSC:from  20130709 
 void CheckTSCSuspicious::checkSuspiciousPriority2()
 {
     int flag=0;
     int count=0;
     for (const Token *tok = _tokenizer->tokens(); tok; tok = tok->next())
 	{
-		//from TSC 20141113 bug fixed.eg.dst[j++] = _base64_decode_map[src[i]] << 2 | _base64_decode_map[src[i + 1]] >> 4;
+		//eg.dst[j++] = _base64_decode_map[src[i]] << 2 | _base64_decode_map[src[i + 1]] >> 4;
 		if(Token::Match(tok,"[") && tok->link())
 		{
 			tok=tok->link();
@@ -470,32 +540,40 @@ void CheckTSCSuspicious::checkSuspiciousPriority2()
 		{
 			 for (; tok; tok = tok->next())
 			 {
-				 if(tok && Token::Match(tok,";") )
+				 if(Token::Match(tok,";") )
 				 {
 					 break;
 				 }
 			 }
-			 continue;
+			 if (tok)
+				 continue;
+			 else
+				 return;
 		}
 
 		if(tok && Token::Match(tok,"<<") )
 		{
-			//from TSC 20140123 False Positive fixed  std::stringstream ss; ss << "\n" + _title << " ---\n";
+			//False Positive fixed  std::stringstream ss; ss << "\n" + _title << " ---\n";
 			count=count+1;
-			if(tok && tok->previous() && tok->previous()->previous()->str()==";")
+			if(tok->tokAt(-2) && Token::Match(tok->tokAt(-2),";|{|}|,"))
 			{
 				const Token* tok1=tok->previous();
-				  const Variable * var = _tokenizer->getSymbolDatabase()->getVariableFromVarId(tok1->varId());
+				const Variable * var = _tokenizer->getSymbolDatabase()->getVariableFromVarId(tok1->varId());
 		
 				if(var)
 				{
-				
-				const Token* myToken=var->nameToken();
-				if(myToken && myToken->tokAt(-1) && Token::Match(myToken->tokAt(-1),"ostringstream|std::ostringstream|istringstream|std::istringstream|stringstream|std::stringstream"))
-				{
-					flag=0;
-					continue;
-				}
+					const Token* myToken=var->nameToken();
+
+					if (myToken && myToken->previous() && myToken->previous()->str() == "&")
+					{
+						myToken = myToken->previous();
+					}
+					if(myToken && myToken->tokAt(-1) 
+						&& Token::Match(myToken->tokAt(-1),"ofstream|std::ofstream|ifstream|std::ifstream|fstream|std::fstream|ostringstream|std::ostringstream|istringstream|std::istringstream|stringstream|std::stringstream"))
+					{
+						flag=0;
+						continue;
+					}
 				}
 			}
 			if(count<2)
@@ -504,7 +582,7 @@ void CheckTSCSuspicious::checkSuspiciousPriority2()
 			 continue;
 			}
 		}
-		if(tok && (Token::Match(tok,")")  || Token::Match(tok,"(") || Token::Match(tok,";") ))
+		if(tok && (Token::Match(tok,")")  || Token::Match(tok,"(") || Token::Match(tok,";")|| Token::Match(tok,",") ))
 		{
 			if(Token::Match(tok,";"))
 			{
@@ -513,7 +591,7 @@ void CheckTSCSuspicious::checkSuspiciousPriority2()
 			 flag=0;
 			 continue;
 		}
-		if(tok && tok->type()==5 )//eString=5
+		if(tok && tok->tokType()== Token::Type::eString)
 		{
 			 flag=0;
 			 continue;
@@ -532,8 +610,9 @@ void CheckTSCSuspicious::checkSuspiciousPriority2()
 
 void CheckTSCSuspicious::SuspiciousPriorityError2(const Token *tok)
 {
-
-	reportError(tok, Severity::portability, "Suspicious","SuspiciousPriority","The priority of the '+' operation is higher than that of the '<<' operation. It's possible that parentheses should be used in the expression.");
+	reportError(tok, Severity::style, ErrorType::Suspicious,
+		"SuspiciousPriority","The priority of the '+' operation is higher than that of the '<<' operation. It's possible that parentheses should be used in the expression.",\
+		0U, "+,<<");
 }
 
 
@@ -544,6 +623,66 @@ struct forinfo
 	std::string onestrs;
 	std::string twostrs;
 };
+
+//Loop StrStream buf.str();
+void CheckTSCSuspicious::checksuspiciousStrErrorInLoop()
+{
+	const SymbolDatabase* const symbolDatabase = _tokenizer->getSymbolDatabase();
+
+	for (std::list<Scope>::const_iterator i = symbolDatabase->scopeList.begin(); i != symbolDatabase->scopeList.end(); ++i) 
+	{
+		if ( i->type == Scope::eWhile )
+		{
+			std::set<const Token* > vars;
+			std::set<unsigned int> protectedvars;
+			for (Token *tok = (Token*)i->classStart; tok&&tok != i->classEnd; tok = tok->next())
+			{
+				if (tok&&tok->varId()>0)
+				{
+					 const Variable *var = symbolDatabase->getVariableFromVarId(tok->varId());
+					 if (var==NULL)
+					 {
+						 continue;
+					 }
+					 const Token* myToken=var->nameToken();
+
+					 if (myToken && myToken->previous() && myToken->previous()->str() == "&")
+					 {
+						 myToken = myToken->previous();
+					 }
+					 if(myToken &&myToken->varId()&&myToken->varId()>0&& myToken->tokAt(-1) 
+						 && Token::Match(myToken->tokAt(-1),"ofstream|std::ofstream|ifstream|std::ifstream|fstream|std::fstream|ostringstream|std::ostringstream|istringstream|std::istringstream|stringstream|std::stringstream"))
+					 {
+						 if (protectedvars.find(myToken->varId())==protectedvars.end()) // not in protected
+						 {
+							 	vars.insert(myToken);
+						 }
+						 if (Token::Match(tok,"%var% . str"))
+						 {
+							protectedvars.insert(myToken->varId());
+						 }
+					 }
+				}
+			}
+			//Find Error and report
+			set<const Token *>::iterator tempitor; //定义前向迭代器 
+
+			for(tempitor=vars.begin();tempitor!=vars.end();tempitor++) 
+			{
+				if (*tempitor)
+				{
+					const Token *tCompre=*tempitor;
+					if ( tCompre&&tCompre->varId()>0&& (protectedvars.find(tCompre->varId())==protectedvars.end()  ) )
+					{
+						suspiciousWhileStrError(tCompre);
+					}
+				}
+			}
+		}
+	}
+}
+
+
 void CheckTSCSuspicious::checksuspiciousfor()
 {
 	const SymbolDatabase* const symbolDatabase = _tokenizer->getSymbolDatabase();
@@ -594,7 +733,21 @@ void CheckTSCSuspicious::checksuspiciousfor()
 					{
 						if (infoitr1->forid==tok->varId())
 						{
-							suspiciousforError(tok);
+							//(p=Macro(p,ss))!=null
+							if  ( tok->tokAt(3)&&(tok->strAt(3)=="(")&&tok->tokAt(2)->isExpandedMacro() )
+							{
+								continue;
+							}
+							//eg.for(i=1,c=z[0];c!=']' && c=z[i]!=0;i++) or for (string::size_type pos = 0; (pos = ans.find("&", pos)) != string::npos; )   assign and check
+							//eg. for (i = 0, unit_str = unit_words_table[i].word;        unit_str = unit_words_table[i].word, unit_str != NULL; i++)
+							else if ((tok->tokAt(1)->astOperand2() && tok->tokAt(1)->astOperand2()->tokType() == Token::eComparisonOp) || (tok->tokAt(1)->astParent() && (tok->tokAt(1)->astParent()->tokType() == Token::eComparisonOp || tok->tokAt(1)->astParent()->str() == ",")))
+							{
+								continue;
+							}
+							else
+							{
+								suspiciousforError(tok);
+							}
 						}					
 					}		
 				}
@@ -705,12 +858,17 @@ void CheckTSCSuspicious::checksuspiciousfor()
 
 void CheckTSCSuspicious::suspiciousforError( const Token *tok )
 {
-	reportError(tok, Severity::portability,
-		"Suspicious", "suspiciousfor","suspicious this 'for' has error.");
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, "suspiciousfor", "suspicious this 'for' has error.", ErrorLogger::GenWebIdentity(tok->str()));
 }
 
 
-// TSC:from 20131024
+void CheckTSCSuspicious::suspiciousWhileStrError( const Token *tok )
+{
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, "suspiciouswhilestrerror", "suspicious string error in loop;Do you forget to set string empty?", ErrorLogger::GenWebIdentity(tok->str()));
+}
+
 void CheckTSCSuspicious::checkwrongvarinfor()
 {
 	const SymbolDatabase* const symbolDatabase = _tokenizer->getSymbolDatabase();
@@ -720,18 +878,22 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 		if ( i->type == Scope::eFor )
 		{
 			std::set<unsigned int> vars;
-			vars.insert(0);
 			int denum=0;
+			//bool nofirst=false;
 			bool ischeck=false;
 			bool isdef=false;
 			unsigned int tmpvarid=0;
 			Token *errortok = (Token*)i->classDef;
-			for (Token *tok = (Token*)i->classDef; tok&&tok != i->classStart; tok = tok->next())
+			for (Token *tok = (Token*)i->classDef; tok && tok != i->classStart; tok = tok->next())
 			{
 				if(tok->str() == ";")
 				{
 					denum++;
 				}	
+				if(Token::Match(tok,"for ( ;"))
+				{
+					//nofirst=true;
+				}
 				if ( Token::Match(tok,"%var% ;|(") && denum == 0 )
 				{
 					vars.insert(tok->varId());
@@ -746,9 +908,11 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 				}	
 				if (Token::Match(tok,"%any% ;|&&|OR") && denum == 1)
 				{
-					if(tok->type()==Token::eVariable)
+					
+					if(tok->tokType()==Token::eVariable)
 					{  
 						vars.insert(tok->varId());
+						errortok = tok;
 						isdef =true;
 					}
 				}
@@ -757,39 +921,69 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 					if(tok->previous()->str()==";")
 					{
 						vars.insert(tok->next()->next()->varId());
+						errortok = tok->next()->next();
 						isdef =true;
 					}
+
+					//  }
 				}
+				//*p==null;
+
 				if (Token::Match(tok,"%any% +|- <|>|<=|>=|!=|== %any%") && denum == 1)
 				{
-					if(tok->type()==Token::eVariable)
+					// if(nofirst)    //maybe for(i=0;buf;buf++),so buf insert
+					//  {
+					if(tok->tokType()==Token::eVariable)
 					{  
 						vars.insert(tok->varId());
+						errortok = tok;
 						isdef =true;
 					}
+					//  }
 				}
+				//eg: for (; l->name; l++) 
+				//eg:  for (; (node = cache_obj_pool_.GetNextNode(node)) != NULL; ++i)
+				if (Token::Match(tok, "%var% .") && tok->tokAt(-1)->str()!="=" && denum == 1)
+				{
+					
+					if (tok->tokType() == Token::eVariable)
+					{
+						vars.insert(tok->varId());
+						errortok = tok;
+						isdef = true;
+					}
+			
+				}
+		
 				if (Token::Match(tok,"%any% <|>|<=|>=|!=|== %any%") && denum == 1)
 				{
+					//  if(nofirst)
+					//   {
+					//for(;i>0;i--) ->tokenize for(;0<i;i00(
+
 					if (Token::Match(tok,"%any% != * %any%") )
 					{
-						if(tok->tokAt(3)->type()==Token::eVariable)
+						if(tok->tokAt(3)->tokType()==Token::eVariable)
 						{  
 							vars.insert(tok->tokAt(3)->varId());
+							errortok = tok->tokAt(3);
 							isdef =true;
 						}
 					}
 					else
 					{
-						if(tok->type()==Token::eVariable)
+						if(tok->tokType()==Token::eVariable)
 						{  
 							vars.insert(tok->varId());
+							errortok = tok;
 							isdef =true;
 						}
-						//from TSC 20141022 false positive bug fixed eg. for (; section_ir_end != section_ir; ++ section_ir)
+						//false positive bug fixed eg. for (; section_ir_end != section_ir; ++ section_ir)
 						//else if (tok->next()->next()->type() == Token::eVariable)
-						if(tok->tokAt(2)->type()== Token::eVariable)
+						if(tok->tokAt(2)->tokType()== Token::eVariable)
 						{	
 							vars.insert(tok->tokAt(2)->varId());
+							errortok = tok->tokAt(2);
 							isdef =true;
 						}
 					}
@@ -798,41 +992,127 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 					tok=tok->tokAt(2);
 					while(tok && tok->str()!=";" && tok->str() !="&&" && tok->str() !="||")
 					{
-						if(tok->type() == Token::eVariable && tok->varId()==tmpvarid && (vars.find(tok->varId())!=vars.end()))
+						if (tok->str() == "?")
+						{
+							break;
+						}
+						if(tok->tokType() == Token::eVariable && tok->varId()==tmpvarid && (vars.find(tok->varId())!=vars.end()))
 						{
 							wrongvarinforError2(tok);
 						}
 						tok=tok->next();
 					}
-					if(tok->str()==";")
+					if(tok && tok->str()==";")
 					{
 						denum++;
 					}
+					if (!tok)
+						break;
 
 				}
-				if (denum == 2 &&tok->str() == ";"&& tok->tokAt(2) && tok->tokAt(2)==i->classStart )
+
+				if (Token::Match(tok, "%var% ++|+=|--|-=|=") && denum == 1)//for (n = info->dlpi_phnum; --n >= 0; phdr++) the second term varies
+				{
+					if (tok->varId() != 0 && vars.find(tok->varId()) != vars.end())
+					{
+						ischeck = true;
+						break;
+					}
+			
+					//for(; (p=p->m_next)!=NULL;);   p=p->next means p is changed
+					if ((Token::Match(tok, "%var% = %var% . %var%"))
+						&& (tok->tokAt(2))
+						&& (tok->varId() == tok->tokAt(2)->varId()))
+					{
+						Token *checkTok = tok->tokAt(4);
+						if (checkTok && ((checkTok->str() == "next") || (checkTok->str() == "Next")))
+						{
+							ischeck = true;
+							break;
+						}
+					}
+
+				}
+
+				if (Token::Match(tok, "++|-- %var%") && denum == 1)//for (n = info->dlpi_phnum; --n >= 0; phdr++) the second term varies
+				{
+					if (tok->next()->varId() != 0 && vars.find(tok->next()->varId()) != vars.end())
+					{
+						ischeck = true;
+						break;
+					}
+
+				}
+
+				//eg: for (it->SeekToFirst(); it->Valid(); it->Next())
+				if (Token::Match(tok, "%var% .") && denum == 2)
+				{
+					if (tok->varId() != 0 && vars.find(tok->varId()) != vars.end())
+					{
+						ischeck = true;
+						break;
+					}
+
+				}
+
+				if (denum == 2 && tok && tok->str() == ";"&& tok->tokAt(2) && tok->tokAt(2)==i->classStart )
 				{
 					ischeck=true;
 					break;
 				}
 				if ( denum == 2 )
 				{
-					for (Token* tempTok=tok;tempTok&&tempTok != i->classStart;tempTok=tempTok->next())
+					int flagScopeInFunction=0;
+					for (Token* tempTok=tok;tempTok&&tempTok != i->classEnd;tempTok=tempTok->next())
 					{
-						//from TSC 20141022 false positive bug fixed eg.for (int i = 0; i <= iLen - 3; i += 3) because += is changed to i=i+3 after tokenizer
+						//eg.for (int i = 0; i <= iLen - 3; i += 3) because += is changed to i=i+3 after tokenizer
 						//if (Token::Match(tempTok,"%var% ++|+=|--|-="))
-						if (Token::Match(tempTok,"%var% ++|+=|--|-=|="))
+						//Debug ++i match
+						if (tempTok==i->classStart)
+						{
+							flagScopeInFunction=1;
+						}
+
+						 if (tempTok->tokAt(-1)&&(Token::Match(tempTok->tokAt(-1),"++ %name%")))
+						 {
+							 if(tempTok->varId()!=0 && vars.find(tempTok->varId())!=vars.end())
+							 {
+								 ischeck=true;
+								 break;
+							 }
+							 //solve varid=0 because of syntax error like register i;
+							 if ((tempTok->varId() == 0) && (flagScopeInFunction == 0))
+							 {
+								 ischeck = true;
+								 break;
+							 }
+						 }
+						if (Token::Match(tempTok,"%name% )| ++|+=|--|-=|=" ))
 						{
 							if(tempTok->varId()!=0 && vars.find(tempTok->varId())!=vars.end())
 							{
 								ischeck=true;
+								break;
 							}
-							//from TSC 20141022solve varid=0 because of syntax error like register i;
-							if(tempTok->varId()==0)
+							//solve varid=0 because of syntax error like register i;
+							if ((tempTok->varId()==0)&&(flagScopeInFunction==0))
 							{
 								ischeck=true;
+								break;
 							}
-							
+							//20151022  Debug 误报:for(; NULL != p->m_next; p=p->m_next);   p=p->next means p is changed
+							if (  (Token::Match (tempTok,"%var% = %var% . %var%") ) 
+								&& (tempTok->tokAt(2))
+								&&( tempTok->varId() ==tempTok->tokAt(2)->varId() ) ) 
+							{
+								Token *checkTok=tempTok->tokAt(4);
+								if  ( checkTok && ( (checkTok->str() =="next") || ( checkTok->str() =="Next") ) )
+								{
+										ischeck=true;
+										break;
+								}
+							}
+
 						}
 					}
 				}
@@ -842,16 +1122,21 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 				}
 				if ( denum == 2 )
 				{
-					for (Token* tempTok=tok;tempTok&&tempTok != i->classStart;tempTok=tempTok->next())
+					int flagScopeInFunction=0;
+					for (Token* tempTok=tok;tempTok&&tempTok != i->classEnd;tempTok=tempTok->next())
 					{
+						if (tempTok==i->classStart)
+						{
+							flagScopeInFunction=1; 
+						}
 						if (Token::Match(tempTok,"++|-- %var%"))
 						{
 							if(tempTok->tokAt(1)->varId()!=0 && vars.find(tempTok->tokAt(1)->varId())!=vars.end())
 							{
 								ischeck=true;
 							}
-							//from TSC 20141022 solve varid=0 because of syntax error like register i;
-							if(tempTok->tokAt(1)->varId()==0)
+							//solve varid=0 because of syntax error like register i;
+							if( ( tempTok->tokAt(1)->varId()==0)&&(flagScopeInFunction==0))
 							{
 								ischeck=true;
 							}
@@ -872,7 +1157,7 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 							{
 								ischeck=true;
 							}
-							//from TSC 20141022	solve varid=0 because of syntax error like register i;
+							//solve varid=0 because of syntax error like register i;
 							if(tempTok->varId()==0)
 							{
 								ischeck=true;
@@ -898,15 +1183,18 @@ void CheckTSCSuspicious::checkwrongvarinfor()
 
 void CheckTSCSuspicious::wrongvarinforError( const Token *tok )
 {
-	reportError(tok, Severity::portability,
-		"Suspicious", "wrongvarinfor","Use wrong variable "+tok->str()+" in 'for statement'.");
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, "wrongvarinfor", 
+		"Invalid use of index["+tok->str()+"] in 'for' statement leads to dead loop.", ErrorLogger::GenWebIdentity(tok->str()));
 
 }
 
 void CheckTSCSuspicious::wrongvarinforError2( const Token *tok )
 {
-	reportError(tok, Severity::portability,
-		"Suspicious", "wrongvarinfor","Use wrong variable "+tok->str()+" in 'for statement'. The condition in 'for statement' like 'i<i+2' or 'i<a[i].length' may be an error. ");
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, 
+		"wrongvarinfor", "Invalid use of index[" + tok->str() + "] in 'for' statement leads to dead loop. The condition in 'for statement' like 'i<i+2' or 'i<a[i].length' may be an error. ", 
+		ErrorLogger::GenWebIdentity(tok->str()));
 
 }
 
@@ -952,11 +1240,18 @@ void CheckTSCSuspicious::checkFuncReturn()
 								hasreturn=true;
 							}	
 						}
-						else
+						else if (nametok->tokAt(-3) != NULL && nametok->tokAt(-3)->str() == "::")
 						{
-							if (nametok->tokAt(-3)!=NULL&&nametok->tokAt(-3)->str() != "void")
+							if (nametok->tokAt(-5) != NULL&&nametok->tokAt(-5)->str() != "::"&& nametok->tokAt(-5)->str() != "void")
 							{
 								hasreturn=true;
+							}
+						}
+						else
+						{
+							if (nametok->tokAt(-3) != NULL&&nametok->tokAt(-3)->str() != "void")
+							{
+								hasreturn = true;
 							}
 						}
 
@@ -1040,17 +1335,27 @@ void CheckTSCSuspicious::checkFuncReturn()
 		{
 			if (tok && Token::Match(tok,"%any% (") )
 			{
-	
 				if (tok->next()->link()->next() != NULL &&Token::Match(tok->next()->link()->next(),"."))
 				{
 					continue;
 				}
-				if (tok->type()==Token::eName&&!Token::Match(tok,"return|printf|assert"))
+				//----------
+				//if (!Token::Match(tok,"if|while|switch|=|for|return"))
+				if (tok->tokType()==Token::eFunction&&!Token::Match(tok,"return|printf|assert"))
 				{
+					if (tok->next()->link() && Token::simpleMatch(tok->next()->link()->next(), "{") && Token::Match(tok->previous(), ";|{|public:|private:|protected:"))
+					{
+						continue;
+					}
 					bool isfind=false;
+					Token* tmp = tok->next()->link()->next();
+					if (Token::Match(tmp, "=|[|+|-|++|--|<|>|==|!=|<=|>=|!|<<|&&|%oror%"))
+					{
+						isfind = true;
+					}
 					for(const Token* temp=tok;temp!=NULL&&!Token::Match(temp,";|}|{");temp=temp->previous())
 					{
-						if (Token::Match(temp,"=|if|while|for|switch|return|(|[|+|-|++|--|<|>|==|<=|>=|!"))
+						if (Token::Match(temp,"=|if|while|for|switch|return|(|[|+|-|++|--|<|>|==|!=|<=|>=|!|<<|&&|%oror%"))
 						{
 							isfind=true;
 							break;
@@ -1133,16 +1438,16 @@ void CheckTSCSuspicious::checkFuncReturn()
 							if (itrfunlist->argNum==nowfunc.argNum&&itrfunlist->funcname==nowfunc.funcname)
 							{
 								std::vector<string>::iterator itrtype;
-								int i=0;
+								int i2=0;
 								bool isok=true;
 								for ( itrtype= itrfunlist->argType.begin();itrtype != itrfunlist->argType.end();itrtype++)
 								{
-									if (*itrtype != nowfunc.argType[i]&&nowfunc.argType[i] !="UNKOWN")
+									if (*itrtype != nowfunc.argType[i2]&&nowfunc.argType[i2] !="UNKOWN")
 									{
 										isok=false;
 										break;
 									}
-									i++;
+									i2++;
 								}
 								if (isok)
 								{
@@ -1160,9 +1465,11 @@ void CheckTSCSuspicious::checkFuncReturn()
 
 void CheckTSCSuspicious::FuncReturnError( const Token* tok )
 {
-	reportError(tok, Severity::portability,
-		"Suspicious", "FuncReturn","Function return value is not being used");
+	reportError(tok, Severity::style,
+		ErrorType::Suspicious, "FuncReturn", "The return value of function [" + tok->str() + "] is not used.", ErrorLogger::GenWebIdentity(tok->str()));
 }
+
+
 void CheckTSCSuspicious::checkboolFuncReturn()
 {
 	bool hasreturn;
@@ -1207,24 +1514,34 @@ void CheckTSCSuspicious::checkboolFuncReturn()
 void CheckTSCSuspicious::boolFuncReturnError( const Token *tok )
 {
 	if(tok)
-	reportError(tok, Severity::portability,"Suspicious", "BoolFuncReturn",tok->str()+"'s type is not bool, But this function need return bool");
+		reportError(tok, Severity::style,
+			ErrorType::Suspicious, "BoolFuncReturn", "Returning type of this function is expected to be bool,but non-bool variable [" + tok->str() + "] is returned.",
+			ErrorLogger::GenWebIdentity(tok->str()));
 }
 
 void CheckTSCSuspicious::checkIfCondition()
 {
 	const SymbolDatabase* const symbolDatabase = _tokenizer->getSymbolDatabase();
 	int isNum;
+
 	for (std::list<Scope>::const_iterator i = symbolDatabase->scopeList.begin(); i != symbolDatabase->scopeList.end(); ++i) 
 	{
 		isNum=0;
-		if ( i->type == Scope::eIf || i->type == Scope::eElseIf || i->type == Scope::eWhile )
+		//Todo: checkif "else if {" is treated as Scope::eIf
+		if ( i->type == Scope::eIf /*|| i->type == Scope::eElseIf*/ || i->type == Scope::eWhile )
 		{
-			for (Token *tok3 = (Token*)i->classDef; tok3 != i->classStart && tok3; tok3 = tok3->next())
+			for (Token *tok3 = (Token*)i->classDef->tokAt(2); tok3 != i->classStart && tok3; tok3 = tok3->next())
 			{
-				if ( Token::Match(tok3,"%any% = %any%"))
+				
+				if (tok3->str() == "(")
+				{
+					tok3 = tok3->link();
+				}
+				//comma expression if (vbits=0, bitbuf & 255) dcr_derror(p);
+				if (Token::Match(tok3, "%any% = %any%") && tok3->tokAt(3) && tok3->tokAt(3)->str() != ",")
 				{
 					Token *valueTok = tok3->tokAt(2);				
-					if ( valueTok && valueTok->isNumber())
+					if ( valueTok && valueTok->isNumber() && valueTok->next()->tokType()!=Token::eArithmeticalOp)
 					{
 						isNum = 1;
 					}
@@ -1240,6 +1557,7 @@ void CheckTSCSuspicious::checkIfCondition()
 					Token *downtok1 =tok3->tokAt(1);
 					Token *uptok2 =tok3->tokAt(1);
 					bool bLogicalOp = true;
+					//bool bDeng = false;
 					while(!Token::Match(downtok1,"||")&&!Token::Match(downtok1,"&&")&&downtok1 != i->classStart)
 					{
 						if ( Token::Match(downtok1,"!=|==|>|<|>=|<=") )
@@ -1270,56 +1588,53 @@ void CheckTSCSuspicious::checkIfCondition()
 
 void CheckTSCSuspicious::IfConditionError(const Token *tok)
 {
-	reportError(tok, Severity::portability,
-		"Suspicious", "IfCondition","this Condition Contain '=' and Condition is not boolean ?");
+	if (!tok || tok->isExpandedMacro())
+	{
+		return;
+	}
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, "IfCondition", "this Condition Contain '=' and Condition is not boolean ?", 
+		ErrorLogger::GenWebIdentity(tok->str()));
 
 }
 
-///This is not a check rule,but to record the code functions and the scope of them.
-//Format: "filename#TSC#functionname#TSC#startline#TSC#endline"; 
-//from TSC 20140623 
-void CheckTSCSuspicious::recordfuncinfo()
+void CheckTSCSuspicious::checkRenameLocalVariable()
 {
-	ofstream myFuncinfo("funcinfo.txt",ios::app);
-	std::vector<FUNCINFO>::iterator it1; 
-	const SymbolDatabase * const symbolDatabase = _tokenizer->getSymbolDatabase();
-
+	// only check functions
+	const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
 	const std::size_t functions = symbolDatabase->functionScopes.size();
 	for (std::size_t i = 0; i < functions; ++i) {
 		const Scope * scope = symbolDatabase->functionScopes[i];
-		if(!scope)
-			return;
-		Token* tok = (Token*)scope->classStart;
-		int startline=0;
-		int endline=0;
-		if(tok)
-		{
-			startline=tok->linenr();
-			if(tok->link())
+
+		std::map<int, std::string> varnameMap;
+		for (const Token *tok = scope->classDef->next(); tok != scope->classEnd; tok = tok->next()) {
+			int varid = tok->varId();
+			std::string varname = tok->str();
+			if (varid>0 && tok->tokAt(1)->str() != "."&& tok->tokAt(-1)->str() != ".")
 			{
-				endline=tok->link()->linenr();
-			}
-			string msg=tok->getfuncinfo();
-			int fileindex=-1;
-			fileindex=tok->fileIndex();
-			if(fileindex==0 && startline>0 && endline>0)
-			{
-				FUNCINFO temp;
-				temp.filename=_tokenizer->getSourceFilePath();
-				temp.functionname=msg;
-				temp.startline=startline;
-				temp.endline=endline;
-				FuncInfoList.push_back(temp);
+				std::map<int, std::string>::iterator iter, iter2;
+				iter = varnameMap.find(varid);
+				if (iter == varnameMap.end())//not find the variable with the same id
+				{
+					for (iter2 = varnameMap.begin(); iter2 != varnameMap.end(); ++iter2)
+					{
+						if (iter2->second == varname)
+						{
+							RenameLocalVariableError(tok);
+						}
+					}
+					varnameMap[varid] = varname;
+				}
 			}
 		}
 	}
-	
-	std::vector<FUNCINFO>::iterator it; 
-	for(it=FuncInfoList.begin();it!=FuncInfoList.end();++it)
-	{
-		myFuncinfo<<(*it).filename<<"#TSC#"<<(*it).functionname<<"#TSC#"<<(*it).startline<<"#TSC#"<<(*it).endline<<endl;
-	}
-	FuncInfoList.clear();
-		
 }
+
+void CheckTSCSuspicious::RenameLocalVariableError(const Token *tok)
+{
+	reportError(tok, Severity::warning,
+		ErrorType::Suspicious, "RenameLocalVariable", "Local variable ["+tok->str()+"] is renamed in current function.",
+		ErrorLogger::GenWebIdentity(tok->str()));
+}
+
 

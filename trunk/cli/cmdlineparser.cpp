@@ -1,20 +1,11 @@
-/*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+#include "cmdlineparser.h"
+#include "tscancode.h"
+#include "tscexecutor.h"
+#include "filelister.h"
+#include "path.h"
+#include "settings.h"
+#include "timer.h"
+#include "check.h"
 
 #include <algorithm>
 #include <iostream>
@@ -22,17 +13,11 @@
 #include <fstream>
 #include <string>
 #include <cstring>
-#include <stdlib.h> // EXIT_FAILURE
-#include "cppcheck.h"
-#include "timer.h"
-#include "settings.h"
-#include "cmdlineparser.h"
-#include "path.h"
-#include "filelister.h"
+#include <cstdlib> // EXIT_FAILURE
 
 #ifdef HAVE_RULES
 // xml is used in rules
-#include <tinyxml.h>
+#include <tinyxml2.h>
 #endif
 
 static void AddFilesToList(const std::string& FileList, std::vector<std::string>& PathNames)
@@ -64,7 +49,7 @@ static void AddFilesToList(const std::string& FileList, std::vector<std::string>
     }
 }
 
-static void AddInclPathsToList(const std::string& FileList, std::list<std::string>& PathNames)
+static void AddInclPathsToList(const std::string& FileList, std::list<std::string>* PathNames)
 {
     // to keep things initially simple, if the file can't be opened, just be
     // silent and move on
@@ -77,13 +62,20 @@ static void AddInclPathsToList(const std::string& FileList, std::list<std::strin
                 PathName = Path::removeQuotationMarks(PathName);
 
                 // If path doesn't end with / or \, add it
-                if (PathName[PathName.length()-1] != '/')
+                if (*PathName.rbegin() != '/')
                     PathName += '/';
 
-                PathNames.push_back(PathName);
+                PathNames->push_back(PathName);
             }
         }
     }
+}
+
+static void AddPathsToSet(const std::string& FileName, std::set<std::string>* set)
+{
+    std::list<std::string> templist;
+    AddInclPathsToList(FileName, &templist);
+    set->insert(templist.begin(), templist.end());
 }
 
 CmdLineParser::CmdLineParser(Settings *settings)
@@ -92,6 +84,8 @@ CmdLineParser::CmdLineParser(Settings *settings)
     , _showVersion(false)
     , _showErrorMessages(false)
     , _exitAfterPrint(false)
+	, _mergecfg(false)
+	
 {
 }
 
@@ -102,35 +96,61 @@ void CmdLineParser::PrintMessage(const std::string &message)
 
 bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
 {
-    if(	_settings == NULL )
-	{
-		return false;
-	}
+    bool def = false;
+    bool maxconfigs = false;
+
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--version") == 0) {
+        if (std::strcmp(argv[i], "--version") == 0) {
             _showVersion = true;
             _exitAfterPrint = true;
             return true;
         }
-
+		else if (std::strcmp(argv[i], "--no-analyze") == 0)
+		{
+			_settings->_no_analyze = true;
+		}
+		else if (std::strcmp(argv[i], "--no-check") == 0)
+		{
+			_settings->_no_check = true;
+		}
         // Flag used for various purposes during debugging
-        else if (strcmp(argv[i], "--debug") == 0)
-            _settings->debug = _settings->debugwarnings = true;
-
+        else if (std::strcmp(argv[i], "--debug") == 0)
+            _settings->debug = true;
+        // Show --debug output after the first simplifications
+        else if (std::strcmp(argv[i], "--debug-normal") == 0)
+            _settings->debugnormal = true;
         // Show debug warnings
-        else if (strcmp(argv[i], "--debug-warnings") == 0)
+        else if (std::strcmp(argv[i], "--debug-warnings") == 0)
             _settings->debugwarnings = true;
 
         // Print out code that triggers false positive
-        else if (strcmp(argv[i], "--debug-fp") == 0)
-            _settings->debugFalsePositive = true;
+		else if (std::strcmp(argv[i], "--debug-fp") == 0)
+			_settings->debugFalsePositive = true;
+		else if (std::strcmp(argv[i], "--dump-global") == 0)
+			_settings->debugDumpGlobal = true;
+		else if (std::strcmp(argv[i], "--dump-np") == 0)
+			_settings->debugDumpNP = true;
+		else if (std::strcmp(argv[i], "--dump-simp1") == 0)
+			_settings->debugDumpSimp1 = true;
+		else if (std::strcmp(argv[i], "--dump-simp2") == 0)
+			_settings->debugDumpSimp2 = true;
+        else if (std::strcmp(argv[i], "--dump") == 0)
+            _settings->dump = true;
 
-        // Inconclusive checking (still in testing phase)
-        else if (strcmp(argv[i], "--inconclusive") == 0)
+        else if (std::strcmp(argv[i], "--exception-handling") == 0)
+            _settings->exceptionHandling = true;
+        else if (std::strncmp(argv[i], "--exception-handling=", 21) == 0) {
+            _settings->exceptionHandling = true;
+            const std::string exceptionOutfilename=&(argv[i][21]);
+            TscanCodeExecutor::setExceptionOutput(exceptionOutfilename);
+        }
+
+        // Inconclusive checking
+        else if (std::strcmp(argv[i], "--inconclusive") == 0)
             _settings->inconclusive = true;
 
         // Enforce language (--language=, -x)
-        else if (strncmp(argv[i], "--language=", 11) == 0 || strcmp(argv[i], "-x") == 0) {
+        else if (std::strncmp(argv[i], "--language=", 11) == 0 || std::strcmp(argv[i], "-x") == 0) {
             std::string str;
             if (argv[i][2]) {
                 str = argv[i]+11;
@@ -146,7 +166,7 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             if (str == "c")
                 _settings->enforcedLang = Settings::C;
             else if (str == "c++")
-                _settings->enforcedLang = Settings::CPP;      
+                _settings->enforcedLang = Settings::CPP;
             else {
                 PrintMessage("TscanCode: Unknown language '" + str + "' enforced.");
                 return false;
@@ -154,25 +174,18 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // Filter errors
-        else if (strncmp(argv[i], "--exitcode-suppressions", 23) == 0) {
+        else if (std::strncmp(argv[i], "--exitcode-suppressions", 23) == 0) {
             std::string filename;
 
             // exitcode-suppressions filename.txt
-            // Deprecated
-            if (strcmp(argv[i], "--exitcode-suppressions") == 0) {
-                ++i;
+            if (std::strcmp(argv[i], "--exitcode-suppressions") == 0) {
+                // Error message to be removed in 1.72
+                PrintMessage("TscanCode: '--exitcode-suppressions <file>' has been removed, use '--exitcode-suppressions=<file>' instead.");
+                return false;
+            }
 
-                if (i >= argc || strncmp(argv[i], "-", 1) == 0 ||
-                    strncmp(argv[i], "--", 2) == 0) {
-                    PrintMessage("TscanCode: No filename specified for the '--exitcode-suppressions' option.");
-                    return false;
-                }
-                filename = argv[i];
-            }
             // exitcode-suppressions=filename.txt
-            else {
-                filename = 24 + argv[i];
-            }
+            filename = 24 + argv[i];
 
             std::ifstream f(filename.c_str());
             if (!f.is_open()) {
@@ -187,15 +200,15 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // Filter errors
-        else if (strncmp(argv[i], "--suppressions-list=", 20) == 0) {
+        else if (std::strncmp(argv[i], "--suppressions-list=", 20) == 0) {
             std::string filename = argv[i]+20;
             std::ifstream f(filename.c_str());
             if (!f.is_open()) {
                 std::string message("TscanCode: Couldn't open the file: \"");
                 message += filename;
                 message += "\".";
-                if (count(filename.begin(), filename.end(), ',') > 0 ||
-                    count(filename.begin(), filename.end(), '.') > 1) {
+                if (std::count(filename.begin(), filename.end(), ',') > 0 ||
+                    std::count(filename.begin(), filename.end(), '.') > 1) {
                     // If user tried to pass multiple files (we can only guess that)
                     // e.g. like this: --suppressions-list=a.txt,b.txt
                     // print more detailed error message to tell user how he can solve the problem
@@ -213,32 +226,13 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             }
         }
 
-        // Filter errors
-        // This is deprecated, see --supressions-list above
-        else if (strcmp(argv[i], "--suppressions") == 0) {
-            ++i;
-
-            if (i >= argc) {
-                PrintMessage("TscanCode: No file specified for the '--suppressions' option.");
-                return false;
-            }
-
-            std::ifstream f(argv[i]);
-            if (!f.is_open()) {
-                std::string message("TscanCode: Couldn't open the file: \"");
-                message += std::string(argv[i]);
-                message += "\".";
-                PrintMessage(message);
-                return false;
-            }
-            const std::string errmsg(_settings->nomsg.parseFile(f));
-            if (!errmsg.empty()) {
-                PrintMessage(errmsg);
-                return false;
-            }
+        else if (std::strcmp(argv[i], "--suppressions") == 0) {
+            // Error message to be removed in 1.72
+            PrintMessage("TscanCode: '--suppressions' has been removed, use '--suppressions-list=<file>' instead.");
+            return false;
         }
 
-        else if (strncmp(argv[i], "--suppress=", 11) == 0) {
+        else if (std::strncmp(argv[i], "--suppress=", 11) == 0) {
             std::string suppression = argv[i]+11;
             const std::string errmsg(_settings->nomsg.addSuppressionLine(suppression));
             if (!errmsg.empty()) {
@@ -248,42 +242,34 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // Enables inline suppressions.
-        else if (strcmp(argv[i], "--inline-suppr") == 0)
+        else if (std::strcmp(argv[i], "--inline-suppr") == 0)
             _settings->_inlineSuppressions = true;
 
         // Verbose error messages (configuration info)
-        else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0)
+        else if (std::strcmp(argv[i], "-v") == 0 || std::strcmp(argv[i], "--verbose") == 0)
             _settings->_verbose = true;
 
-        // Force checking of files that have "too many" configurations 
-		
-        else if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--force") == 0)
-		{
-			std::string message("TscanCode: warning: deprecated command: \"");
-			message += argv[i];
-			message +=  "\".";
-			PrintMessage(message);
-		}
-		//from TSC 20141017 use to auto filter
-		else if (strcmp(argv[i], "-nf") == 0 || strcmp(argv[i], "--nofilter") == 0)
-            _settings->_force = false;
-		//from TSC 2014114 write funcinfo.txt to qoc
-		else if (strcmp(argv[i], "-rf") == 0 || strcmp(argv[i], "--recordfuncinfo") == 0)
-            _settings->_recordFuncinfo = true;
+        // Force checking of files that have "too many" configurations
+        else if (std::strcmp(argv[i], "-f") == 0 || std::strcmp(argv[i], "--force") == 0)
+            _settings->_force = true;
 
         // Output relative paths
-        else if (strcmp(argv[i], "-rp") == 0 || strcmp(argv[i], "--relative-paths") == 0)
+        else if (std::strcmp(argv[i], "-rp") == 0 || std::strcmp(argv[i], "--relative-paths") == 0)
             _settings->_relativePaths = true;
-        else if (strncmp(argv[i], "-rp=", 4) == 0 || strncmp(argv[i], "--relative-paths=", 17) == 0) {
+        else if (std::strncmp(argv[i], "-rp=", 4) == 0 || std::strncmp(argv[i], "--relative-paths=", 17) == 0) {
             _settings->_relativePaths = true;
             if (argv[i][argv[i][3]=='='?4:17] != 0) {
                 std::string paths = argv[i]+(argv[i][3]=='='?4:17);
-                std::string::size_type pos;
-                do {
-                    pos = paths.find(';');
-                    _settings->_basePaths.push_back(Path::fromNativeSeparators(paths.substr(0, pos)));
-                    paths.erase(0, pos+1);
-                } while (pos != std::string::npos);
+                for (;;) {
+                    std::string::size_type pos = paths.find(';');
+                    if (pos == std::string::npos) {
+                        _settings->_basePaths.push_back(Path::fromNativeSeparators(paths));
+                        break;
+                    } else {
+                        _settings->_basePaths.push_back(Path::fromNativeSeparators(paths.substr(0, pos)));
+                        paths.erase(0, pos + 1);
+                    }
+                }
             } else {
                 PrintMessage("TscanCode: No paths specified for the '" + std::string(argv[i]) + "' option.");
                 return false;
@@ -291,11 +277,11 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // Write results in results.xml
-        else if (strcmp(argv[i], "--xml") == 0)
+        else if (std::strcmp(argv[i], "--xml") == 0)
             _settings->_xml = true;
 
         // Define the XML file version (and enable XML output)
-        else if (strncmp(argv[i], "--xml-version=", 14) == 0) {
+        else if (std::strncmp(argv[i], "--xml-version=", 14) == 0) {
             std::string numberString(argv[i]+14);
 
             std::istringstream iss(numberString);
@@ -313,45 +299,13 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             // Enable also XML if version is set
             _settings->_xml = true;
         }
-		else if (strncmp(argv[i], "--writefile=", 12) == 0)
-		{
-			_settings->_xmlfilename=argv[i] + 12;
-			if(_settings->_xmlfilename!="")
-			{
-				_settings->_xmlfilename = Path::fromNativeSeparators(_settings->_xmlfilename);
-				_settings->_xmlfilename = Path::removeQuotationMarks(_settings->_xmlfilename);
-				if(_settings->_xmlfilename[_settings->_xmlfilename.size()-1]=='/')
-				{
-					_settings->_xmlfilename=_settings->_xmlfilename+"myresult.xml";
-				}
-			}
-			else
-			{
-				_settings->_xmlfilename="myresult.xml";
-			}
-			FILE* fd=fopen(_settings->_xmlfilename.c_str(),"w+");
-			if(fd)
-			{
-				fclose(fd);
-			}
-			_settings->_writexmlfile=true;
-		}
-		else if (strncmp(argv[i], "--configpath=", 13) == 0)
-		{
-			_settings->_configpath=argv[i] + 13;
-			if(_settings->_xmlfilename!="")
-			{
-				_settings->_configpath = Path::fromNativeSeparators(_settings->_configpath);
-				_settings->_configpath = Path::removeQuotationMarks(_settings->_configpath);
-				_settings->_configpath=_settings->_configpath+"/";
-			}
-		}
-        // Only print something when there are errors
-        else if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0)
-            _settings->_errorsOnly = true;
 
-        // Append userdefined code to checked source code
-        else if (strncmp(argv[i], "--append=", 9) == 0) {
+        // Only print something when there are errors
+        else if (std::strcmp(argv[i], "-q") == 0 || std::strcmp(argv[i], "--quiet") == 0)
+            _settings->quiet = true;
+
+        // Append user-defined code to checked source code
+        else if (std::strncmp(argv[i], "--append=", 9) == 0) {
             const std::string filename = 9 + argv[i];
             if (!_settings->append(filename)) {
                 PrintMessage("TscanCode: Couldn't open the file: \"" + filename + "\".");
@@ -359,21 +313,34 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             }
         }
 
-        else if (strncmp(argv[i], "--enable=", 9) == 0) {
-            const std::string errmsg = _settings->addEnabled(argv[i] + 9);
-            if (!errmsg.empty()) {
-                PrintMessage(errmsg);
-                return false;
-            }
-            // when "style" is enabled, also enable "performance" and "portability"
-            if (_settings->isEnabled("style")) {
-                _settings->addEnabled("performance");
-                _settings->addEnabled("portability");
-            }
+		// Append user-defined code to checked source code
+		else if (std::strncmp(argv[i], "--lua", 5) == 0) {
+			++i;
+			if (i >= argc || argv[i][0] == '-') {
+				PrintMessage("TscanCode: missing --lua filePath");
+				return false;
+			}
+			_settings->luaPath = argv[i];
+			_settings->_checkLua = true;
+
+		}
+
+        // Check configuration
+        else if (std::strcmp(argv[i], "--check-config") == 0) {
+            _settings->checkConfiguration = true;
+        }
+
+        // Check library definitions
+        else if (std::strcmp(argv[i], "--check-library") == 0) {
+            _settings->checkLibrary = true;
+        }
+
+        else if (std::strncmp(argv[i], "--enable=", 9) == 0) {
+			//do nothing, for compatibility only
         }
 
         // --error-exitcode=1
-        else if (strncmp(argv[i], "--error-exitcode=", 17) == 0) {
+        else if (std::strncmp(argv[i], "--error-exitcode=", 17) == 0) {
             std::string temp = argv[i]+17;
             std::istringstream iss(temp);
             if (!(iss >> _settings->_exitCode)) {
@@ -384,11 +351,11 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // User define
-        else if (strncmp(argv[i], "-D", 2) == 0) {
+        else if (std::strncmp(argv[i], "-D", 2) == 0) {
             std::string define;
 
             // "-D define"
-            if (strcmp(argv[i], "-D") == 0) {
+            if (std::strcmp(argv[i], "-D") == 0) {
                 ++i;
                 if (i >= argc || argv[i][0] == '-') {
                     PrintMessage("TscanCode: argument to '-D' is missing.");
@@ -403,23 +370,21 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             }
 
             // No "=", append a "=1"
-            if (define.find("=") == std::string::npos)
+            if (define.find('=') == std::string::npos)
                 define += "=1";
-
-            // DEF= => empty define
-            else if (define.find("=") + 1U == define.size())
-                define.erase(define.size() - 1U);
 
             if (!_settings->userDefines.empty())
                 _settings->userDefines += ";";
             _settings->userDefines += define;
+
+            def = true;
         }
         // User undef
-        else if (strncmp(argv[i], "-U", 2) == 0) {
+        else if (std::strncmp(argv[i], "-U", 2) == 0) {
             std::string undef;
 
             // "-U undef"
-            if (strcmp(argv[i], "-U") == 0) {
+            if (std::strcmp(argv[i], "-U") == 0) {
                 ++i;
                 if (i >= argc || argv[i][0] == '-') {
                     PrintMessage("TscanCode: argument to '-U' is missing.");
@@ -437,11 +402,11 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // Include paths
-        else if (strncmp(argv[i], "-I", 2) == 0) {
+        else if (std::strncmp(argv[i], "-I", 2) == 0) {
             std::string path;
 
             // "-I path/"
-            if (strcmp(argv[i], "-I") == 0) {
+            if (std::strcmp(argv[i], "-I") == 0) {
                 ++i;
                 if (i >= argc || argv[i][0] == '-') {
                     PrintMessage("TscanCode: argument to '-I' is missing.");
@@ -458,27 +423,40 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
             path = Path::removeQuotationMarks(path);
 
             // If path doesn't end with / or \, add it
-            if (path[path.length()-1] != '/')
+            if (*path.rbegin() != '/')
                 path += '/';
 
             _settings->_includePaths.push_back(path);
-        } else if (strncmp(argv[i], "--includes-file=", 16) == 0) {
+        } else if (std::strncmp(argv[i], "--include=", 10) == 0) {
+            std::string path = argv[i] + 10;
+
+            path = Path::fromNativeSeparators(path);
+
+            _settings->userIncludes.push_back(path);
+        } else if (std::strncmp(argv[i], "--includes-file=", 16) == 0) {
             // open this file and read every input file (1 file name per line)
-            AddInclPathsToList(16 + argv[i], _settings->_includePaths);
+            AddInclPathsToList(16 + argv[i], &_settings->_includePaths);
+        } else if (std::strncmp(argv[i], "--config-exclude=",17) ==0) {
+            std::string path = argv[i] + 17;
+            path = Path::fromNativeSeparators(path);
+            _settings->configExcludePaths.insert(path);
+        } else if (std::strncmp(argv[i], "--config-excludes-file=", 23) == 0) {
+            // open this file and read every input file (1 file name per line)
+            AddPathsToSet(23 + argv[i], &_settings->configExcludePaths);
         }
 
         // file list specified
-        else if (strncmp(argv[i], "--file-list=", 12) == 0) {
+        else if (std::strncmp(argv[i], "--file-list=", 12) == 0) {
             // open this file and read every input file (1 file name per line)
             AddFilesToList(12 + argv[i], _pathnames);
         }
 
         // Ignored paths
-        else if (strncmp(argv[i], "-i", 2) == 0) {
+        else if (std::strncmp(argv[i], "-i", 2) == 0) {
             std::string path;
 
             // "-i path/"
-            if (strcmp(argv[i], "-i") == 0) {
+            if (std::strcmp(argv[i], "-i") == 0) {
                 ++i;
                 if (i >= argc || argv[i][0] == '-') {
                     PrintMessage("TscanCode: argument to '-i' is missing.");
@@ -494,41 +472,49 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
 
             if (!path.empty()) {
                 path = Path::fromNativeSeparators(path);
-                path = Path::simplifyPath(path.c_str());
+                path = Path::simplifyPath(path);
                 path = Path::removeQuotationMarks(path);
 
                 if (FileLister::isDirectory(path)) {
                     // If directory name doesn't end with / or \, add it
-                    if (path[path.length()-1] != '/')
+                    if (*path.rbegin() != '/')
                         path += '/';
                 }
-                _ignoredPaths.push_back(path);
+                //_ignoredPaths.push_back(path);
+				//save to _settings directly
+				_settings->_pathToIgnore.push_back(path);
             }
         }
 
+        // --library
+        else if (std::strncmp(argv[i], "--library=", 10) == 0) {
+            if (!TscanCodeExecutor::tryLoadLibrary(_settings->library, argv[0], argv[i]+10))
+                return false;
+        }
+
         // Report progress
-        else if (strcmp(argv[i], "--report-progress") == 0) {
+        else if (std::strcmp(argv[i], "--report-progress") == 0) {
             _settings->reportProgress = true;
         }
 
         // --std
-        else if (strcmp(argv[i], "--std=posix") == 0) {
+        else if (std::strcmp(argv[i], "--std=posix") == 0) {
             _settings->standards.posix = true;
-        } else if (strcmp(argv[i], "--std=c89") == 0) {
+        } else if (std::strcmp(argv[i], "--std=c89") == 0) {
             _settings->standards.c = Standards::C89;
-        } else if (strcmp(argv[i], "--std=c99") == 0) {
+        } else if (std::strcmp(argv[i], "--std=c99") == 0) {
             _settings->standards.c = Standards::C99;
-        } else if (strcmp(argv[i], "--std=c11") == 0) {
+        } else if (std::strcmp(argv[i], "--std=c11") == 0) {
             _settings->standards.c = Standards::C11;
-        } else if (strcmp(argv[i], "--std=c++03") == 0) {
+        } else if (std::strcmp(argv[i], "--std=c++03") == 0) {
             _settings->standards.cpp = Standards::CPP03;
-        } else if (strcmp(argv[i], "--std=c++11") == 0) {
+        } else if (std::strcmp(argv[i], "--std=c++11") == 0) {
             _settings->standards.cpp = Standards::CPP11;
         }
 
         // Output formatter
-        else if (strcmp(argv[i], "--template") == 0 ||
-                 strncmp(argv[i], "--template=", 11) == 0) {
+        else if (std::strcmp(argv[i], "--template") == 0 ||
+                 std::strncmp(argv[i], "--template=", 11) == 0) {
             // "--template path/"
             if (argv[i][10] == '=')
                 _settings->_outputFormat = argv[i] + 11;
@@ -549,11 +535,11 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // Checking threads
-        else if (strncmp(argv[i], "-j", 2) == 0) {
+        else if (std::strncmp(argv[i], "-j", 2) == 0) {
             std::string numberString;
 
             // "-j 3"
-            if (strcmp(argv[i], "-j") == 0) {
+            if (std::strcmp(argv[i], "-j") == 0) {
                 ++i;
                 if (i >= argc || argv[i][0] == '-') {
                     PrintMessage("TscanCode: argument to '-j' is missing.");
@@ -579,24 +565,47 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
                 PrintMessage("TscanCode: argument for '-j' is allowed to be 10000 at max.");
                 return false;
             }
+        } else if (std::strncmp(argv[i], "-l", 2) == 0) {
+            std::string numberString;
+
+            // "-l 3"
+            if (std::strcmp(argv[i], "-l") == 0) {
+                ++i;
+                if (i >= argc || argv[i][0] == '-') {
+                    PrintMessage("TscanCode: argument to '-l' is missing.");
+                    return false;
+                }
+
+                numberString = argv[i];
+            }
+
+            // "-l3"
+            else
+                numberString = argv[i]+2;
+
+            std::istringstream iss(numberString);
+            if (!(iss >> _settings->_loadAverage)) {
+                PrintMessage("TscanCode: argument to '-l' is not a number.");
+                return false;
+            }
         }
 
         // print all possible error messages..
-        else if (strcmp(argv[i], "--errorlist") == 0) {
+        else if (std::strcmp(argv[i], "--errorlist") == 0) {
             _showErrorMessages = true;
             _settings->_xml = true;
             _exitAfterPrint = true;
         }
 
         // documentation..
-        else if (strcmp(argv[i], "--doc") == 0) {
+        else if (std::strcmp(argv[i], "--doc") == 0) {
             std::ostringstream doc;
             // Get documentation..
             for (std::list<Check *>::iterator it = Check::instances().begin(); it != Check::instances().end(); ++it) {
                 const std::string& name((*it)->name());
                 const std::string info((*it)->classInfo());
                 if (!name.empty() && !info.empty())
-                    doc << "===" << name << "===\n"
+                    doc << "## " << name << " ##\n"
                         << info << "\n";
             }
 
@@ -606,7 +615,7 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 
         // show timing information..
-        else if (strncmp(argv[i], "--showtime=", 11) == 0) {
+        else if (std::strncmp(argv[i], "--showtime=", 11) == 0) {
             const std::string showtimeMode = argv[i] + 11;
             if (showtimeMode == "file")
                 _settings->_showtime = SHOWTIME_FILE;
@@ -614,44 +623,54 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
                 _settings->_showtime = SHOWTIME_SUMMARY;
             else if (showtimeMode == "top5")
                 _settings->_showtime = SHOWTIME_TOP5;
-            else
+            else if (showtimeMode.empty())
                 _settings->_showtime = SHOWTIME_NONE;
+            else {
+                std::string message("TscanCode: error: unrecognized showtime mode: \"");
+                message += showtimeMode;
+                message +=  "\". Supported modes: file, summary, top5.";
+                PrintMessage(message);
+                return false;
+            }
         }
-
 #ifdef HAVE_RULES
         // Rule given at command line
-        else if (strncmp(argv[i], "--rule=", 7) == 0) {
+        else if (std::strncmp(argv[i], "--rule=", 7) == 0) {
             Settings::Rule rule;
             rule.pattern = 7 + argv[i];
             _settings->rules.push_back(rule);
         }
 
         // Rule file
-        else if (strncmp(argv[i], "--rule-file=", 12) == 0) {
-            TiXmlDocument doc;
-            if (doc.LoadFile(12+argv[i])) {
-                TiXmlElement *node = doc.FirstChildElement();
-                for (; node && node->ValueStr() == "rule"; node = node->NextSiblingElement()) {
+        else if (std::strncmp(argv[i], "--rule-file=", 12) == 0) {
+            tinyxml2::XMLDocument doc;
+            if (doc.LoadFile(12+argv[i]) == tinyxml2::XML_NO_ERROR) {
+                tinyxml2::XMLElement *node = doc.FirstChildElement();
+                for (; node && strcmp(node->Value(), "rule") == 0; node = node->NextSiblingElement()) {
                     Settings::Rule rule;
 
-                    TiXmlElement *pattern = node->FirstChildElement("pattern");
+                    tinyxml2::XMLElement *tokenlist = node->FirstChildElement("tokenlist");
+                    if (tokenlist)
+                        rule.tokenlist = tokenlist->GetText();
+
+                    tinyxml2::XMLElement *pattern = node->FirstChildElement("pattern");
                     if (pattern) {
                         rule.pattern = pattern->GetText();
                     }
 
-                    TiXmlElement *message = node->FirstChildElement("message");
+                    tinyxml2::XMLElement *message = node->FirstChildElement("message");
                     if (message) {
-                        TiXmlElement *severity = message->FirstChildElement("severity");
+                        tinyxml2::XMLElement *severity = message->FirstChildElement("severity");
                         if (severity)
                             rule.severity = severity->GetText();
 
-                        TiXmlElement *id = message->FirstChildElement("id");
+                        tinyxml2::XMLElement *id = message->FirstChildElement("id");
                         if (id)
                             rule.id = id->GetText();
 
-                        TiXmlElement *summary = message->FirstChildElement("summary");
+                        tinyxml2::XMLElement *summary = message->FirstChildElement("summary");
                         if (summary)
-                            rule.summary = summary->GetText();
+                            rule.summary = summary->GetText() ? summary->GetText() : "";
                     }
 
                     if (!rule.pattern.empty())
@@ -661,13 +680,8 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
 #endif
 
-        // Check configuration
-        else if (strcmp(argv[i], "--check-config") == 0) {
-            _settings->checkConfiguration = true;
-        }
-
         // Specify platform
-        else if (strncmp(argv[i], "--platform=", 11) == 0) {
+        else if (std::strncmp(argv[i], "--platform=", 11) == 0) {
             std::string platform(11+argv[i]);
 
             if (platform == "win32A")
@@ -680,6 +694,8 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
                 _settings->platform(Settings::Unix32);
             else if (platform == "unix64")
                 _settings->platform(Settings::Unix64);
+            else if (platform == "native")
+                _settings->platform(Settings::Unspecified);
             else {
                 std::string message("TscanCode: error: unrecognized platform: \"");
                 message += platform;
@@ -688,21 +704,61 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
                 return false;
             }
         }
-        // Print help
-        else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+
+        // Set maximum number of #ifdef configurations to check
+        else if (std::strncmp(argv[i], "--max-configs=", 14) == 0) {
+            _settings->_force = false;
+
+            std::istringstream iss(14+argv[i]);
+            if (!(iss >> _settings->_maxConfigs)) {
+                PrintMessage("TscanCode: argument to '--max-configs=' is not a number.");
+                return false;
+            }
+
+            if (_settings->_maxConfigs < 1) {
+                PrintMessage("TscanCode: argument to '--max-configs=' must be greater than 0.");
+                return false;
+            }
+
+            maxconfigs = true;
+        }
+        else if (std::strcmp(argv[i], "-h") == 0 || std::strcmp(argv[i], "--help") == 0) {
             _pathnames.clear();
             _showHelp = true;
             _exitAfterPrint = true;
             break;
         }
+		else if (strcmp(argv[i], "-rf") == 0 || strcmp(argv[i], "--recordfuncinfo") == 0)
+			_settings->_recordFuncinfo = true;
+		else if (std::strncmp(argv[i], "--cfg-merge", 11) == 0)
+		{
+			++i;
+			if (i >= argc || argv[i][0] == '-') {
+				PrintMessage("TscanCode: argument to '--cfg-merge' is missing. The correct format is --cfg-merge [new_cfg_xml] [old_cfg_xml]");
+				return false;
+			}
+			_newcfg = argv[i];
+			++i;
+			if (i >= argc || argv[i][0] == '-') {
+				PrintMessage("TscanCode: argument to '--cfg-merge' is missing. The correct format is --cfg-merge [new_cfg_xml] [old_cfg_xml]");
+				return false;
+			}
+			_oldcfg = argv[i];
 
-        else if (strncmp(argv[i], "-", 1) == 0 || strncmp(argv[i], "--", 2) == 0) {
+			_mergecfg = true;
+		}
+		else if (std::strncmp(argv[i], "-e2o", 11) == 0)
+		{
+			_settings->_e2o = true;
+		}
+        else if (argv[i][0] == '-') {
             std::string message("TscanCode: error: unrecognized command line option: \"");
             message += argv[i];
             message +=  "\".";
             PrintMessage(message);
             return false;
         }
+
 
         else {
             std::string path = Path::fromNativeSeparators(argv[i]);
@@ -711,12 +767,20 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
         }
     }
 
+    if (def && !_settings->_force && !maxconfigs)
+        _settings->_maxConfigs = 1U;
+
+    if (_settings->_force)
+        _settings->_maxConfigs = ~0U;
+
     if (_settings->isEnabled("unusedFunction") && _settings->_jobs > 1) {
-        PrintMessage("TscanCode: unusedFunction check can't be used with '-j' option, so it's disabled.");
+        PrintMessage("TscanCode: unusedFunction check can't be used with '-j' option. Disabling unusedFunction check.");
     }
 
-    if (argc <= 1)
+    if (argc <= 1) {
         _showHelp = true;
+        _exitAfterPrint = true;
+    }
 
     if (_showHelp) {
         PrintHelp();
@@ -724,7 +788,7 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
     }
 
     // Print error only if we have "real" command and expect files
-    if (!_exitAfterPrint && _pathnames.empty()) {
+    if (!_exitAfterPrint && !_mergecfg && _pathnames.empty()) {
         PrintMessage("TscanCode: No C or C++ source files found.");
         return false;
     }
@@ -733,33 +797,35 @@ bool CmdLineParser::ParseFromArgs(int argc, const char* const argv[])
     if (_settings->_basePaths.empty() && _settings->_relativePaths)
         _settings->_basePaths = _pathnames;
 
+	//default enable all checks
+	(void)_settings->addEnabled("all");
     return true;
 }
 
 void CmdLineParser::PrintHelp()
 {
-    std::cout <<   "TscanCode - A tool for static C/C++ code analysis\n"
+    std::cout << "TscanCode - A tool for static C/C++ code analysis\n"
               "\n"
               "Syntax:\n"
-              "    TscanCode [OPTIONS] [files or paths]\n"
+              "    tscancode [OPTIONS] [files or paths]\n"
               "\n"
               "If a directory is given instead of a filename, *.cpp, *.cxx, *.cc, *.c++, *.c,\n"
               "*.tpp, and *.txx files are checked recursively from the given directory.\n\n"
               "Options:\n"
-              "    --append=<file>      This allows you to provide information about functions\n"
-              "                         by providing an implementation for them.\n"
-              "    --check-config       Check TscanCode configuration. The normal code\n"
-              "                         analysis is disabled by this flag.\n"
-              "    -D<ID>               By default TscanCode checks all configurations. Use -D\n"
-              "                         to limit the checking to a particular configuration.\n"
+              "    -D<ID>               Define preprocessor symbol. Unless --max-configs or\n"
+              "                         --force is used, TscanCode will only check the given\n"
+              "                         configuration when -D is used.\n"
               "                         Example: '-DDEBUG=1 -D__cplusplus'.\n"
-              "    -U<ID>               By default TscanCode checks all configurations. Use -U\n"
-              "                         to explicitly hide certain #ifdef <ID> code paths from\n"
-              "                         checking.\n"
+              "    -U<ID>               Undefine preprocessor symbol. Use -U to explicitly\n"
+              "                         hide certain #ifdef <ID> code paths from checking.\n"
               "                         Example: '-UDEBUG'\n"
               "    --enable=<id>        Enable additional checks. The available ids are:\n"
               "                          * all\n"
-              "                                  Enable all checks\n"
+              "                                  Enable all checks. It is recommended to only\n"
+              "                                  use --enable=all when the whole program is\n"
+              "                                  scanned, because this enables unusedFunction.\n"
+              "                          * warning\n"
+              "                                  Enable warning messages\n"
               "                          * style\n"
               "                                  Enable all coding style checks. All messages\n"
               "                                  with the severities 'style', 'performance' and\n"
@@ -771,136 +837,35 @@ void CmdLineParser::PrintHelp()
               "                          * information\n"
               "                                  Enable information messages\n"
               "                          * unusedFunction\n"
-              "                                  Check for unused functions\n"
+              "                                  Check for unused functions. It is recommend\n"
+              "                                  to only enable this when the whole program is\n"
+              "                                  scanned.\n"
               "                          * missingInclude\n"
               "                                  Warn if there are missing includes. For\n"
               "                                  detailed information, use '--check-config'.\n"
               "                         Several ids can be given if you separate them with\n"
               "                         commas. See also --std\n"
-              "    --error-exitcode=<n> If errors are found, integer [n] is returned instead of\n"
-              "                         the default '0'. '" << EXIT_FAILURE << "' is returned\n"
-              "                         if arguments are not valid or if no input files are\n"
-              "                         provided. Note that your operating system can modify\n"
-              "                         this value, e.g. '256' can become '0'.\n"
-              "    --errorlist          Print a list of all the error messages in XML format.\n"
-              "    --exitcode-suppressions=<file>\n"
-              "                         Used when certain messages should be displayed but\n"
-              "                         should not cause a non-zero exitcode.\n"
-              "    --file-list=<file>   Specify the files to check in a text file. Add one\n"
-              "                         filename per line. When file is '-,' the file list will\n"
-              "                         be read from standard input.\n"
-              "    -f, --force          Force checking of all configurations in files. If used\n"
-              "                         together with '--max-configs=', the last option is the\n"
-              "                         one that is effective.\n"
               "    -h, --help           Print this help.\n"
               "    -I <dir>             Give path to search for include files. Give several -I\n"
               "                         parameters to give several paths. First given path is\n"
               "                         searched for contained header files first. If paths are\n"
               "                         relative to source files, this is not needed.\n"
-              "    --includes-file=<file>\n"
-              "                         Specify directory paths to search for included header\n"
-              "                         files in a text file. Add one include path per line.\n"
-              "                         First given path is searched for contained header\n"
-              "                         files first. If paths are relative to source files,\n"
-              "                         this is not needed.\n"
-              "    -i <dir or file>     Give a source file or source file directory to exclude\n"
-              "                         from the check. This applies only to source files so\n"
-              "                         header files included by source files are not matched.\n"
-              "                         Directory name is matched to all parts of the path.\n"
-              "    --inconclusive       Allow that TscanCode reports even though the analysis is\n"
-              "                         inconclusive.\n"
-              "                         There are false positives with this option. Each result\n"
-              "                         must be carefully investigated before you know if it is\n"
-              "                         good or bad.\n"
-              "    --inline-suppr       Enable inline suppressions. Use them by placing one or\n"
-              "                         more comments, like: '// TscanCode-suppress warningId'\n"
-              "                         on the lines before the warning to suppress.\n"
               "    -j <jobs>            Start [jobs] threads to do the checking simultaneously.\n"
-              "    --language=<language>, -x <language>\n"
-              "                         Forces TscanCode to check all files as the given\n"
-              "                         language. Valid values are: c, c++\n"
-              "    --max-configs=<limit>\n"
-              "                         Maximum number of configurations to check in a file\n"
-              "                         before skipping it. Default is '12'. If used together\n"
-              "                         with '--force', the last option is the one that is\n"
-              "                         effective.\n"
-              "    --platform=<type>    Specifies platform specific types and sizes. The\n"
-              "                         available platforms are:\n"
-              "                          * unix32\n"
-              "                                 32 bit unix variant\n"
-              "                          * unix64\n"
-              "                                 64 bit unix variant\n"
-              "                          * win32A\n"
-              "                                 32 bit Windows ASCII character encoding\n"
-              "                          * win32W\n"
-              "                                 32 bit Windows UNICODE character encoding\n"
-              "                          * win64\n"
-              "                                 64 bit Windows\n"
-              "    -q, --quiet          Only print error messages.\n"
-              "    -rp, --relative-paths\n"
-              "    -rp=<paths>, --relative-paths=<paths>\n"
-              "                         Use relative paths in output. When given, <paths> are\n"
-              "                         used as base. You can separate multiple paths by ';'.\n"
-              "                         Otherwise path where source files are searched is used.\n"
-              "                         We use string comparison to create relative paths, so\n"
-              "                         using e.g. ~ for home folder does not work. It is\n"
-              "                         currently only possible to apply the base paths to\n"
-              "                         files that are on a lower level in the directory tree.\n"
-              "    --report-progress    Report progress messages while checking a file.\n"
-#ifdef HAVE_RULES
-              "    --rule=<rule>        Match regular expression.\n"
-              "    --rule-file=<file>   Use given rule file. For more information, see: \n"
-              "                         https://sourceforge.net/projects/cppcheck/files/Articles/\n"
-#endif
-              "    --std=<id>           Set standard.\n"
-              "                         The available options are:\n"
-              "                          * posix\n"
-              "                                 POSIX compatible code\n"
-              "                          * c89\n"
-              "                                 C code is C89 compatible\n"
-              "                          * c99\n"
-              "                                 C code is C99 compatible\n"
-              "                          * c11\n"
-              "                                 C code is C11 compatible (default)\n"
-              "                          * c++03\n"
-              "                                 C++ code is C++03 compatible\n"
-              "                          * c++11\n"
-              "                                 C++ code is C++11 compatible (default)\n"
-              "                         More than one --std can be used:\n"
-              "                           'TscanCode --std=c99 --std=posix file.c'\n"
-              "    --suppress=<spec>    Suppress warnings that match <spec>. The format of\n"
-              "                         <spec> is:\n"
-              "                         [error id]:[filename]:[line]\n"
-              "                         The [filename] and [line] are optional. If [error id]\n"
-              "                         is a wildcard '*', all error ids match.\n"
-              "    --suppressions-list=<file>\n"
-              "                         Suppress warnings listed in the file. Each suppression\n"
-              "                         is in the same format as <spec> above.\n"
-              "    --template='<text>'  Format the error messages. E.g.\n"
-              "                         '{file}:{line},{severity},{id},{message}' or\n"
-              "                         '{file}({line}):({severity}) {message}'\n"
-              "                         Pre-defined templates: gcc, vs, edit.\n"
-              "    -v, --verbose        Output more detailed error information.\n"
-              "    --version            Print out version number.\n"
+              "    -q, --quiet          Do not show progress reports.\n"
               "    --xml                Write results in xml format to error stream (stderr).\n"
-              "    --xml-version=<version>\n"
-              "                         Select the XML file version. Currently versions 1 and\n"
-              "                         2 are available. The default version is 1."
               "\n"
               "Example usage:\n"
               "  # Recursively check the current folder. Print the progress on the screen and\n"
               "  # write errors to a file:\n"
-              "  TscanCode . 2> err.txt\n"
+              "  tscancode . 2> err.txt\n"
               "\n"
               "  # Recursively check ../myproject/ and don't print progress:\n"
-              "  TscanCode --quiet ../myproject/\n"
+              "  tscancode --quiet ../myproject/\n"
               "\n"
-              "  # TscanCode test.cpp, enable all checks:\n"
-              "  TscanCode --enable=all --inconclusive --std=posix test.cpp\n"
+              "  # Check test.cpp, enable all checks:\n"
+              "  tscancode --enable=all test.cpp\n"
               "\n"
               "  # Check f.cpp and search include files from inc1/ and inc2/:\n"
-              "  TscanCode -I inc1/ -I inc2/ f.cpp\n"
-              "\n"
-              "For more information:\n"
-              " Contact us on our website!";
+              "  tscancode -I inc1/ -I inc2/ f.cpp\n"
+              "\n";
 }

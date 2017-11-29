@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#ifndef TIMER_H
-#define TIMER_H
+//---------------------------------------------------------------------------
+#ifndef timerH
+#define timerH
+//---------------------------------------------------------------------------
 
 #include <string>
 #include <map>
 #include <ctime>
 #include "config.h"
 
-enum {
+enum SHOWTIME_MODES {
     SHOWTIME_NONE = 0,
     SHOWTIME_FILE,
     SHOWTIME_SUMMARY,
     SHOWTIME_TOP5
 };
 
-class CPPCHECKLIB TimerResultsIntf {
+class TSCANCODELIB TimerResultsIntf {
 public:
     virtual ~TimerResultsIntf() { }
 
@@ -53,19 +54,19 @@ struct TimerResultsData {
     }
 };
 
-class CPPCHECKLIB TimerResults : public TimerResultsIntf {
+class TSCANCODELIB TimerResults : public TimerResultsIntf {
 public:
     TimerResults() {
     }
 
-    void ShowResults() const;
+    void ShowResults(SHOWTIME_MODES mode) const;
     virtual void AddResults(const std::string& str, std::clock_t clocks);
 
 private:
     std::map<std::string, struct TimerResultsData> _results;
 };
 
-class CPPCHECKLIB Timer {
+class TSCANCODELIB Timer {
 public:
     Timer(const std::string& str, unsigned int showtimeMode, TimerResultsIntf* timerResults = NULL);
     ~Timer();
@@ -80,5 +81,5 @@ private:
     const unsigned int _showtimeMode;
     bool _stopped;
 };
-
-#endif // TIMER_H
+//---------------------------------------------------------------------------
+#endif // timerH

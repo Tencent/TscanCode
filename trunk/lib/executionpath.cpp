@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2012-2013 tencent TSC TEAM.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 
 #include "executionpath.h"
@@ -66,6 +65,16 @@ void ExecutionPath::print() const
               << " numberOfIf=" << numberOfIf
               << "\n";
 }
+
+// I use this function when debugging ExecutionPaths with GDB
+/*
+static void printchecks(const std::list<ExecutionPath *> &checks)
+{
+    for (std::list<ExecutionPath *>::const_iterator it = checks.begin(); it != checks.end(); ++it)
+        (*it)->print();
+}
+*/
+
 
 
 /**

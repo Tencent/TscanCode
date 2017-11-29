@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,14 +14,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
-
 //---------------------------------------------------------------------------
-#ifndef CheckNonReentrantFunctionsH
-#define CheckNonReentrantFunctionsH
+#ifndef checknonreentrantfunctionsH
+#define checknonreentrantfunctionsH
 //---------------------------------------------------------------------------
 
 #include "config.h"
@@ -37,31 +34,20 @@
  * @brief Using non reentrant functions that can be replaced by their reentrant versions
  */
 
-class CPPCHECKLIB CheckNonReentrantFunctions : public Check {
+class TSCANCODELIB CheckNonReentrantFunctions : public Check {
 public:
     /** This constructor is used when registering the CheckNonReentrantFunctions */
     CheckNonReentrantFunctions() : Check(myName()) {
-        initNonReentrantFunctions();
     }
 
     /** This constructor is used when running checks. */
     CheckNonReentrantFunctions(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
         : Check(myName(), tokenizer, settings, errorLogger) {
-			#ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
-        initNonReentrantFunctions();
-#endif
     }
 
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		UNREFERENCED_PARAMETER(tokenizer);
-		UNREFERENCED_PARAMETER(settings);
-		UNREFERENCED_PARAMETER(errorLogger);
-		#ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
         CheckNonReentrantFunctions checkNonReentrantFunctions(tokenizer, settings, errorLogger);
+#ifdef TSCANCODE_RULE_OPEN
         checkNonReentrantFunctions.nonReentrantFunctions();
 #endif
     }
@@ -71,53 +57,16 @@ public:
 
 private:
 
-    /* function name / error message */
-    std::map<std::string,std::string> _nonReentrantFunctions;
+    static std::string generateErrorMessage(const std::string& function);
 
-    /** init nonreentrant functions list ' */
-    void initNonReentrantFunctions() {
-        static const char * const non_reentrant_functions_list[] = {
-            "localtime", "gmtime", "strtok", "gethostbyname", "gethostbyaddr", "getservbyname"
-            , "getservbyport", "crypt", "ttyname", "gethostbyname2"
-            , "getprotobyname", "getnetbyname", "getnetbyaddr", "getrpcbyname", "getrpcbynumber", "getrpcent"
-            , "ctermid", "readdir", "getlogin", "getpwent", "getpwnam", "getpwuid", "getspent"
-            , "fgetspent", "getspnam", "getgrnam", "getgrgid", "getnetgrent", "tempnam", "fgetpwent"
-            , "fgetgrent", "ecvt", "gcvt", "getservent", "gethostent", "getgrent", "fcvt"
-        };
-
-        // generate messages
-        for (unsigned int i = 0; i < (sizeof(non_reentrant_functions_list) / sizeof(char *)); ++i) {
-            std::string strMsg("Non reentrant function '");
-            strMsg+=non_reentrant_functions_list[i];
-            strMsg+= "' called. For threadsafe applications it is recommended to use the reentrant replacement function '";
-            strMsg+=non_reentrant_functions_list[i];
-            strMsg+="_r'.";
-            _nonReentrantFunctions[non_reentrant_functions_list[i]] = strMsg;
-        }
-    }
-
-    void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const {
-        CheckNonReentrantFunctions c(0, settings, errorLogger);
-
-        std::map<std::string,std::string>::const_iterator it(_nonReentrantFunctions.begin()), itend(_nonReentrantFunctions.end());
-        for (; it!=itend; ++it) {
-            c.reportError(0, Severity::portability, "nonreentrantFunctions","nonreentrantFunctions"+it->first, it->second);
-        }
-    }
+    void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const;
 
     static std::string myName() {
-        return "NonReentrantFunctions";
+        return "Non reentrant functions";
     }
 
-    std::string classInfo() const {
-        std::string info = "Warn if any of these non reentrant functions are used:\n";
-        std::map<std::string,std::string>::const_iterator it(_nonReentrantFunctions.begin()), itend(_nonReentrantFunctions.end());
-        for (; it!=itend; ++it) {
-            info += "* " + it->first + "\n";
-        }
-        return info;
-    }
+    std::string classInfo() const;
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // checknonreentrantfunctionsH

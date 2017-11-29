@@ -1,8 +1,3 @@
---Ç°Ğò´úÂëÊ¡ÂÔ
-function Demo:setAnim(state, loop, callback)
-	state = state or 1
-	--or true ´æÔÚÈ±Ïİ£¬Èç¹ûloop ¸³ÖµÎªfalse£¬loopµÄÖµ»¹ÊÇ»á±ä³Étrue
-	loop = loop or true 
-	callback = callback or 0
-	--Ê¡ÂÔºóĞø´úÂë
+function Demo(param)
+	p = param or true --pæ€»æ˜¯ä¸ºtrueï¼Œ ä¸è®ºparamæ˜¯trueè¿˜æ˜¯false
 end

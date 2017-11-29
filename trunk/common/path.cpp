@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,17 +14,24 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
+#if defined(__GNUC__) && (defined(_WIN32) || defined(__CYGWIN__))
+#undef __STRICT_ANSI__
+#endif
+#include "path.h"
+#include "settings.h"
 #include <algorithm>
 #include <vector>
 #include <sstream>
 #include <cstring>
 #include <cctype>
-#include "path.h"
-//#include "dealconfig.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif // _WIN32
+
+
 /** Is the filesystem case insensitive? */
 static bool caseInsensitiveFilesystem()
 {
@@ -57,34 +64,49 @@ std::string Path::fromNativeSeparators(std::string path)
     return path;
 }
 
-std::string Path::simplifyPath(const char *originalPath)
+std::string Path::simplifyPath(std::string originalPath)
 {
-    // Skip ./ at the beginning
-	if(!originalPath)
-		return "";
-    if (strlen(originalPath) > 2 && originalPath[0] == '.' &&
+    const bool isUnc = originalPath.size() > 2 && originalPath[0] == '/' && originalPath[1] == '/';
+
+    // Remove ./, .//, ./// etc. at the beginning
+    if (originalPath.size() > 2 && originalPath[0] == '.' &&
         originalPath[1] == '/') {
-        originalPath += 2;
+        size_t toErase = 2;
+        for (std::size_t i = 2; i < originalPath.size(); i++) {
+            if (originalPath[i] == '/')
+                toErase++;
+            else
+                break;
+        }
+        originalPath = originalPath.erase(0, toErase);
     }
 
     std::string subPath = "";
     std::vector<std::string> pathParts;
-    for (; *originalPath; ++originalPath) {
-        if (*originalPath == '/' || *originalPath == '\\') {
+    for (std::size_t i = 0; i < originalPath.size(); ++i) {
+        if (originalPath[i] == '/' || originalPath[i] == '\\') {
             if (subPath.length() > 0) {
                 pathParts.push_back(subPath);
                 subPath = "";
             }
 
-            pathParts.push_back(std::string(1 , *originalPath));
+            pathParts.push_back(std::string(1 , originalPath[i]));
         } else
-            subPath.append(1, *originalPath);
+            subPath.append(1, originalPath[i]);
     }
 
     if (subPath.length() > 0)
         pathParts.push_back(subPath);
 
-    for (unsigned int i = 1; i < pathParts.size(); ++i) {
+    // First filter out all double slashes
+	for (std::string::size_type i = 1; i < pathParts.size(); ++i) {
+        if (i > 0 && pathParts[i] == "/" && pathParts[i-1] == "/") {
+            pathParts.erase(pathParts.begin() + static_cast<int>(i) - 1);
+            --i;
+        }
+    }
+
+	for (std::string::size_type i = 1; i < pathParts.size(); ++i) {
         if (i > 1 && pathParts[i-2] != ".." && pathParts[i] == ".." && pathParts.size() > i + 1) {
             pathParts.erase(pathParts.begin() + static_cast<int>(i) + 1);
             pathParts.erase(pathParts.begin() + static_cast<int>(i));
@@ -94,11 +116,15 @@ std::string Path::simplifyPath(const char *originalPath)
         } else if (i > 0 && pathParts[i] == ".") {
             pathParts.erase(pathParts.begin() + static_cast<int>(i));
             i = 0;
-        } else if (i > 1 && pathParts[i] == "/" && pathParts[i-1] == "/") {
-			// add by TSC, ignore the case, "\\XXX\XXX\...", it's OK for a windows path
+        } else if (i > 0 && pathParts[i] == "/" && pathParts[i-1] == "/") {
             pathParts.erase(pathParts.begin() + static_cast<int>(i) - 1);
             i = 0;
         }
+    }
+
+    if (isUnc) {
+        // Restore the leading double slash
+        pathParts.insert(pathParts.begin(), "/");
     }
 
     std::ostringstream oss;
@@ -109,36 +135,30 @@ std::string Path::simplifyPath(const char *originalPath)
     return oss.str();
 }
 
+std::string Path::getPathFromFilename(const std::string &filename)
+{
+    std::size_t pos = filename.find_last_of("\\/");
+
+    if (pos != std::string::npos)
+        return filename.substr(0, 1 + pos);
+
+    return "";
+}
+
+
 bool Path::sameFileName(const std::string &fname1, const std::string &fname2)
 {
 #if defined(__linux__) || defined(__sun) || defined(__hpux)
     return bool(fname1 == fname2);
+#elif defined(_MSC_VER) || (defined(__GNUC__) && defined(_WIN32))
+    return bool(_stricmp(fname1.c_str(), fname2.c_str()) == 0);
 #elif defined(__GNUC__)
     return bool(strcasecmp(fname1.c_str(), fname2.c_str()) == 0);
 #elif defined(__BORLANDC__)
     return bool(stricmp(fname1.c_str(), fname2.c_str()) == 0);
-#elif defined(_MSC_VER)
-    return bool(_stricmp(fname1.c_str(), fname2.c_str()) == 0);
 #else
 #error Platform filename compare function needed
 #endif
-}
-
-int splitString(const std::string & strSrc, const std::string& strDelims, std::vector<std::string>& strDest)
-{
-	typedef std::string::size_type ST;  
-	std::string delims = strDelims;  
-	std::string STR;  
-	if(delims.empty()) delims = "/n/r";  
-	ST pos=0, LEN = strSrc.size();  
-	while(pos < LEN ){  
-		STR="";   
-		while( (delims.find(strSrc[pos]) != std::string::npos) && (pos < LEN) ) ++pos;  
-		if(pos==LEN) return strDest.size();  
-		while( (delims.find(strSrc[pos]) == std::string::npos) && (pos < LEN) ) STR += strSrc[pos++];  
-		if( ! STR.empty() ) strDest.push_back(STR);  
-	}  
-	return strDest.size();
 }
 
 // This wrapper exists because Sun's CC does not allow a static_cast
@@ -190,70 +210,112 @@ std::string Path::getRelativePath(const std::string& absolutePath, const std::ve
     }
     return absolutePath;
 }
-//add by TSC 20140909
-// add by TSC 20141112, add ".hh"
-bool Path::isH(const std::string &path)
-{
-	
-	const std::string extension = getFilenameExtension(path);
-	return((extension == ".h") || (extension == ".hh"));
-}
 
 bool Path::isC(const std::string &path)
 {
     // In unix, ".C" is considered C++ file
     const std::string extension = getFilenameExtension(path);
-    return(extension == ".c");
+    return (extension == ".c");
 }
 
 bool Path::isCPP(const std::string &path)
 {
     const std::string extension = getFilenameExtensionInLowerCase(path);
-			
-	//from TSC 20141014 add ignore list such as ".pb.cc"
-	std::vector<std::string> ignorelist;
-	splitString(IGNOREFILE,"|",ignorelist); 
-	for(unsigned int i=0;i<ignorelist.size();i++)
-	{
-		if(strstr(path.c_str(),ignorelist[i].c_str()) && (extension == ".cpp" ||
-        extension == ".cxx" ||
-        extension == ".cc" ||
-        extension == ".c++" ||
-        extension == ".tpp" ||
-        extension == ".txx"||
-		 extension == ".hpp"||
-		  extension == ".m"||
-		extension == ".uc"||
-		extension == ".cs"))
-		{
-			return false;
-		}
-	}
-	// TSC:from  Support scanning HPP files 20130813
     if (extension == ".cpp" ||
         extension == ".cxx" ||
         extension == ".cc" ||
         extension == ".c++" ||
+        extension == ".hpp" ||
+        extension == ".hxx" ||
+        extension == ".hh" ||
         extension == ".tpp" ||
-        extension == ".txx"||
-		 extension == ".hpp"||
-		  extension == ".m"||
-		extension == ".uc"||
-		extension == ".cs") {
+		extension == ".h" ||
+        extension == ".txx") {
         return true;
     }
 
-	
     // In unix, ".C" is considered C++ file
-    return(getFilenameExtension(path) == ".C");
+    return (getFilenameExtension(path) == ".C");
 }
+
+bool Path::IsExtentionIgnored(const std::string &strName)
+{
+	Settings *pSettings = Settings::Instance();
+	for (std::vector<std::string>::const_iterator iter = pSettings->_extensionToIgnore.begin(), end = pSettings->_extensionToIgnore.end(); iter != end; ++iter)
+	{
+		if (strName.size() <= iter->size())
+		{
+			continue;
+		}
+		std::string ext = strName.substr(strName.size() - iter->size());
+		std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+		if (ext == *iter)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+bool Path::CopyFile2(const std::string& src, const std::string& dest)
+{
+#ifdef _WIN32
+	BOOL ret = ::CopyFileA(src.c_str(), dest.c_str(), FALSE);
+	return ret == TRUE;
+#else
+	int ret = rename(src.c_str(), dest.c_str());
+	return ret == 0;
+#endif
+}
+
+bool Path::acceptFile(const std::string &path, const std::set<std::string> &extra)
+{
+	if (IsExtentionIgnored(path))
+	{
+		return false;
+	}
+	return !Path::isHeader(path) && (Path::isCPP(path) || Path::isC(path) || extra.find(getFilenameExtension(path)) != extra.end());
+}
+
+
 
 bool Path::acceptFile(const std::string &filename)
 {
-    return(Path::isCPP(filename) || Path::isC(filename));
+	const std::set<std::string> extra;
+	return acceptFile(filename, extra);
 }
-//add by TSC 20140909 
-bool Path::acceptFile_h(const std::string &filename)
+
+bool Path::acceptFile_H(const std::string &filename)
 {
-	return(Path::isCPP(filename) || Path::isC(filename)||Path::isH(filename));
+	const std::set<std::string> extra;
+	return acceptFile(filename, extra) || isHeader(filename);
+}
+
+bool Path::isHeader(const std::string &path)
+{
+	if (IsExtentionIgnored(path))
+	{
+		return false;
+	}
+
+	return 0 != Settings::Instance()->_headerExtension.count(getFilenameExtensionInLowerCase(path));
+}
+
+std::string Path::getAbsoluteFilePath(const std::string& filePath)
+{
+    std::string absolute_path;
+#ifdef _WIN32
+    char absolute[_MAX_PATH];
+    if (_fullpath(absolute, filePath.c_str(), _MAX_PATH))
+        absolute_path = absolute;
+#elif defined(__linux__) || defined(__sun) || defined(__hpux) || defined(__GNUC__)
+    char * absolute = realpath(filePath.c_str(), NULL);
+    if (absolute)
+        absolute_path = absolute;
+    free(absolute);
+#else
+#error Platform absolute path function needed
+#endif
+    return absolute_path;
 }

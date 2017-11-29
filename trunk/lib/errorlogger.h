@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,13 +14,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
-
+//---------------------------------------------------------------------------
 #ifndef errorloggerH
 #define errorloggerH
+//---------------------------------------------------------------------------
 
 #include <list>
 #include <string>
@@ -30,29 +29,21 @@
 
 class Token;
 class TokenList;
-
-#define TSC_LOG
-#define TSC_IGNORE_LOWCHECK
-
-#ifdef UNREFERENCED_PARAMETER
-#undef UNREFERENCED_PARAMETER
-#endif
-//from TSC use UNREFERENCED_PARAMETER to solve warning C4100: ''ＸＸＸＸ'' : unreferenced formal parameter
-#define UNREFERENCED_PARAMETER(P) (void)(P)
-#define TSC_REPORT_NEW_ERRORTYPE
-
+class Scope;
 /// @addtogroup Core
 /// @{
 
 /** @brief Simple container to be thrown when internal error is detected. */
 struct InternalError {
-    InternalError(const Token *tok, const std::string &errorMsg);
+    enum Type {SYNTAX, INTERNAL};
+    InternalError(const Token *tok, const std::string &errorMsg, Type type = INTERNAL);
     const Token *token;
     std::string errorMessage;
+    std::string id;
 };
 
 /** @brief enum class for severity. Used when reporting errors. */
-class CPPCHECKLIB Severity {
+class TSCANCODELIB Severity {
 public:
     /**
      * Message severities.
@@ -62,7 +53,6 @@ public:
          * No severity (default value).
          */
         none,
-		compute, // TSC:from TSC 20130715
         /**
          * Programming error.
          * This indicates severe error like memory leak etc.
@@ -116,8 +106,6 @@ public:
             return "";
         case error:
             return "error";
-		case compute:
-			return "compute";
         case warning:
             return "warning";
         case style:
@@ -156,27 +144,74 @@ public:
     }
 };
 
+class TSCANCODELIB ErrorType
+{
+public:
+	enum ErrorTypeEnum
+	{
+		None,
+		Logic,
+		Suspicious,
+		Compute,
+		NullPointer,
+		BufferOverrun,
+		MemoryLeak,
+		UnsafeFunc,
+		Unity,
+		UserCustom,
+		Uninit
+	};
+
+	static std::string ToString(ErrorTypeEnum type)
+	{
+		switch (type)
+		{
+		case ErrorType::None:
+			return "none";
+		case ErrorType::Logic:
+			return "logic";
+		case ErrorType::Suspicious:
+			return "suspicious";
+		case ErrorType::Compute:
+			return "compute";
+		case ErrorType::NullPointer:
+			return "nullpointer";
+		case ErrorType::BufferOverrun:
+			return "bufoverrun";
+		case ErrorType::MemoryLeak:
+			return "memleak";
+		case ErrorType::UnsafeFunc:
+			return "unsafefunc";
+		case ErrorType::Unity:
+			return "unity";
+		case ErrorType::UserCustom:
+			return "custom";
+		case ErrorType::Uninit:
+			return "uninit";
+		default:
+			return "none";
+		}
+	}
+};
+
 /**
  * @brief This is an interface, which the class responsible of error logging
  * should implement.
  */
-class CPPCHECKLIB ErrorLogger {
+class TSCANCODELIB ErrorLogger {
 public:
 
     /**
      * Wrapper for error messages, provided by reportErr()
      */
-    class CPPCHECKLIB ErrorMessage {
+    class TSCANCODELIB ErrorMessage {
     public:
-		bool code_trace;
-		void read_cfg();     //kktodo: exact from the class 
-		bool read_cfg_xml(); //kktodo: exact from the class 
         /**
          * File name and line number.
          * Internally paths are stored with / separator. When getting the filename
          * it is by default converted to native separators.
          */
-        class CPPCHECKLIB FileLocation {
+        class TSCANCODELIB FileLocation {
         public:
             FileLocation()
                 : line(0) {
@@ -202,29 +237,32 @@ public:
             void setfile(const std::string &file);
 
             /**
-             * Returns the location as a string. Format: [file:line]
+             * @return the location as a string. Format: [file:line]
              */
             std::string stringify() const;
 
             unsigned int line;
         private:
-            std::string _file;
-
+            std::string  _file;
         };
 
-		ErrorMessage(const std::list<FileLocation> &callStack, Severity::SeverityType severity, const std::string &msg, const std::string &id, bool inconclusive);
-		ErrorMessage(const std::list<const Token*>& callstack, const TokenList* list, Severity::SeverityType severity, const std::string& id, const std::string& msg, bool inconclusive);
+		ErrorMessage(const std::list<FileLocation> &callStack, Severity::SeverityType severity, const std::string &msg, ErrorType::ErrorTypeEnum type, const std::string& id, bool inconclusive);
+		ErrorMessage(const std::list<const Token*>& callstack, const TokenList* list, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string& id, const std::string& msg, bool inconclusive);
+		ErrorMessage();
 
-        ErrorMessage(const std::list<FileLocation> &callStack, Severity::SeverityType severity, const std::string &msg, const std::string &id,const std::string& subid, bool inconclusive);
-		ErrorMessage(const std::list<const Token*>& callstack, const TokenList* list, Severity::SeverityType severity, const std::string& id, const std::string& subid,const std::string& msg, bool inconclusive);
-        ErrorMessage();
+		/**
+		* Format the error message in XML format
+		* @param verbose use verbose message
+		* @param ver XML version
+		*/
+		std::string toXML(bool verbose, int ver) const;
 
         /**
          * Format the error message in XML format
          * @param verbose use verbose message
          * @param ver XML version
          */
-        std::string toXML(bool verbose, int ver) const;
+		std::string toXML_codetrace(bool verbose, int ver) const;
 
         static std::string getXMLHeader(int xml_version);
         static std::string getXMLFooter(int xml_version);
@@ -234,22 +272,25 @@ public:
          * @param verbose use verbose message
          * @param outputFormat Empty string to use default output format
          * or template to be used. E.g. "{file}:{line},{severity},{id},{message}"
+        * @return formatted string
          */
-        std::string toString(bool verbose, const std::string &outputFormat = "") const;
+        std::string toString(bool verbose, const std::string &outputFormat = emptyString) const;
 
         std::string serialize() const;
         bool deserialize(const std::string &data);
 
         std::list<FileLocation> _callStack;
-        std::string _id;
-		// TSC:from TSC 20130617
-		std::string _subid;
+		ErrorType::ErrorTypeEnum _type;
+		std::string _id;
 
         /** source file (not header) */
         std::string file0;
 
         Severity::SeverityType _severity;
+        unsigned int _cwe;
         bool _inconclusive;
+		std::string _webIdentify;
+		std::string _funcinfo;
 
         /** set short and verbose messages */
         void setmsg(const std::string &msg);
@@ -264,6 +305,10 @@ public:
             return _verboseMessage;
         }
 
+		void SetWebIdentity(const std::string &identity) { _webIdentify = identity; }
+
+		void SetFuncInfo(const std::string& funcInfo) { _funcinfo = funcInfo; }
+
     private:
         /**
          * Replace all occurrences of searchFor with replaceWith in the
@@ -273,6 +318,8 @@ public:
          * @param replaceWith What will replace the found item
          */
         static void findAndReplace(std::string &source, const std::string &searchFor, const std::string &replaceWith);
+
+        static std::string fixInvalidChars(const std::string& raw);
 
         /** Short message */
         std::string _shortMessage;
@@ -300,6 +347,8 @@ public:
      */
     virtual void reportErr(const ErrorLogger::ErrorMessage &msg) = 0;
 
+	virtual void reportErr(const std::string &errmsg){ }
+
     /**
      * Report progress to client
      * @param filename main file that is checked
@@ -307,9 +356,9 @@ public:
      * @param value progress value (0-100)
      */
     virtual void reportProgress(const std::string &filename, const char stage[], const std::size_t value) {
-        UNREFERENCED_PARAMETER(filename);   
-        UNREFERENCED_PARAMETER(stage);   
-        UNREFERENCED_PARAMETER(value);   
+        (void)filename;
+        (void)stage;
+        (void)value;
     }
 
     /**
@@ -327,8 +376,12 @@ public:
     void reportUnmatchedSuppressions(const std::list<Suppressions::SuppressionEntry> &unmatched);
 
     static std::string callStackToString(const std::list<ErrorLogger::ErrorMessage::FileLocation> &callStack);
+
+	static const std::string GenWebIdentity(const std::string &idenity, const std::string &retfrom);
+	static const std::string GenWebIdentity(const std::string &idenity);
+	static void GetScopeFuncInfo(const Scope* s, std::string &_lastFuncName);
 };
 
 /// @}
-
-#endif
+//---------------------------------------------------------------------------
+#endif // errorloggerH

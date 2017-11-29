@@ -1,11 +1,21 @@
-/*
-* Tencent is pleased to support the open source community by making TscanCode available.
-* Copyright (C) 2015 THL A29 Limited, a Tencent company. All rights reserved.
-* Licensed under the GNU General Public License as published by the Free Software Foundation, version 3 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-* http://www.gnu.org/licenses/gpl.html
-* TscanCode is free software: you can redistribute it and/or modify it under the terms of License.    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR * A PARTICULAR PURPOSE.  See the GNU General Public License for more details. 
-*/
 
+/*
+* TscanCode - A tool for static C/C++ code analysis
+* Copyright (C) 2007-2012 Daniel Marjamäki and TscanCode team.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 //---------------------------------------------------------------------------
 
@@ -19,6 +29,7 @@
 class Token;
 class Function;
 class Variable;
+
 
 /// @addtogroup Checks
 /// @{
@@ -36,7 +47,7 @@ struct STfunclist
 };
 /** @brief Various small checks */
 
-class CPPCHECKLIB CheckTSCLogic : public Check {
+class TSCANCODELIB CheckTSCLogic : public Check {
 public:
 	/** @brief This constructor is used when registering the CheckClass */
 	CheckTSCLogic() : Check(myName())
@@ -50,41 +61,21 @@ public:
 	/** @brief Run checks against the normal token list */
 	void runChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
 		CheckTSCLogic CheckTSCLogic(tokenizer, settings, errorLogger);
-		//time_t ts,te;
-		//TIMELOG(
-		if(getCheckConfig()->logic)
-		{
-			if(getCheckConfig()->RecursiveFunc)
-			{
-				CheckTSCLogic.checkRecursiveFunc();
-			}
+		CheckTSCLogic.checkRecursiveFunc();
+		CheckTSCLogic.checkNoFirstCase();	
+		CheckTSCLogic.checkSwitchNoDefault();
+		CheckTSCLogic.checkSwitchNoBreakUP();	
+		CheckTSCLogic.CheckUnintentionalOverflow();
+		CheckTSCLogic.CheckReferenceParam();
 
-			if(getCheckConfig()->NoFirstCase)
-			{
-				CheckTSCLogic.checkNoFirstCase();	
-			}
-
-			if (getCheckConfig()->SwitchNoDefault)
-			{
-				CheckTSCLogic.checkSwitchNoDefault();
-			}
-
-			if (getCheckConfig()->SwitchNoBreakUP)
-			{
-				CheckTSCLogic.checkSwitchNoBreakUP();	
-			}
+		CheckTSCLogic.checkSTLFind();
+		CheckTSCLogic.checkSignedUnsignedMixed();
 		}
-		//," CheckTSCLogic ",checklogfile)
+		
 			
-	}
 
 	/** @brief Run checks against the simplified token list */
-	void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		UNREFERENCED_PARAMETER(tokenizer);
-		UNREFERENCED_PARAMETER(settings);
-		UNREFERENCED_PARAMETER(errorLogger);
-
-	}
+	void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger);
 
 
 	static std::string myName() {
@@ -99,16 +90,9 @@ public:
 
 	void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const {
 		CheckTSCLogic c(0, settings, errorLogger);
-		c.RecursiveFuncError(0);
-
 
 	}
 
-	//rule
-
-	/* @TSC Check for switch case without Break or Default */
-	void checkSwitchNoBreak();
-	void SwitchNoBreak(const Token *tok);
 	void checkSwitchNoBreakUP();
 	//report error if switch case without break
 	void SwitchNoBreakUPError(const Token *tok);
@@ -119,14 +103,29 @@ public:
 	//report error if switch case with more one Default
 	void SwitchMoreDefaultError(const Token *tok);
 
-	/* @TSC 20130708 switch { here missing first case} */
 	void checkNoFirstCase();
 	//report error if switch case without firstcase
 	void NoFirstCaseError(const Token *tok);
 
-	/* @TSC 20130709  myfunc(){  myfunc();} */
 	void checkRecursiveFunc();
-	//report error if RecursiveFunction call other function
+
+	void CheckCompareDefectInFor();
+	
+	
+
+	void CheckUnintentionalOverflow();
+	bool GetExprSize(const Token* tokStart, const Token* tokEnd, unsigned& size, const Token*& tokFlag);
+	void UnintentionalOverflowError(const Token *tok, unsigned size, unsigned sizeVar);
+
+
+
+	void CheckReferenceParam();
+
+
+
+	void checkSTLFind();
+	void checkSignedUnsignedMixed();
+
 	void RecursiveFuncError(const Token *tok);
 
 };

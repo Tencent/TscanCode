@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2007-2012 Daniel Marjamäki and TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ class SymbolDatabase;
  * Base class for Execution Paths checking
  * An execution path is a linear list of statements. There are no "if"/.. to worry about.
  **/
-class CPPCHECKLIB ExecutionPath {
+class TSCANCODELIB ExecutionPath  {
 private:
     /** No implementation */
     void operator=(const ExecutionPath &);

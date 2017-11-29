@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2011 Marek Zmysłowski and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+//---------------------------------------------------------------------------
 #ifndef standardsH
 #define standardsH
+//---------------------------------------------------------------------------
 
 /// @addtogroup Core
 /// @{
@@ -24,7 +27,7 @@
 
 /**
  * @brief This is just a container for standards settings.
- * This struct contains all possible standards that cppcheck recognize.
+ * This struct contains all possible standards that tscancode recognize.
  */
 struct Standards {
     /** C code C89/C99/C11 standard */
@@ -37,9 +40,9 @@ struct Standards {
     bool posix;
 
     /** This constructor clear all the variables **/
-    Standards() : c(C11), cpp(CPP11), posix(true) {};
+    Standards() : c(C11), cpp(CPP11), posix(false) {}
 };
 
 /// @}
-
+//---------------------------------------------------------------------------
 #endif // standardsH

@@ -1,179 +1,237 @@
 /*
-* Tencent is pleased to support the open source community by making TscanCode available.
-* Copyright (C) 2015 THL A29 Limited, a Tencent company. All rights reserved.
-* Licensed under the GNU General Public License as published by the Free Software Foundation, version 3 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-* http://www.gnu.org/licenses/gpl.html
-* TscanCode is free software: you can redistribute it and/or modify it under the terms of License.    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR * A PARTICULAR PURPOSE.  See the GNU General Public License for more details. 
+* TscanCode - A tool for static C/C++ code analysis
+* Copyright (C) 2017 TscanCode team.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 //---------------------------------------------------------------------------
 // Invalid variable arguments check
 //---------------------------------------------------------------------------
 
-#include "checkTSCInvalidVarArgs.h"
+#include "checktscinvalidvarargs.h"
 #include "symboldatabase.h"
+
 
 #include <list>
 #include <string>
+#include <map>
 
+#ifdef UNREFERENCED_PARAMETER
+#undef UNREFERENCED_PARAMETER
+#endif
+#define UNREFERENCED_PARAMETER(a) ((void)a);
 //---------------------------------------------------------------------------
 
 
-// Register this check class into cppcheck by creating a static instance of it..
 namespace {
-    static CheckTSCInvalidVarArgs instance;
+	static CheckTSCInvalidVarArgs instance;
 }
+
+
+using namespace std;
+
+
+unsigned int static GetVarID(const Variable * const v)
+{
+	if (v == nullptr)
+	{
+		return 0;
+	}
+	if (v->nameToken() == nullptr)
+	{
+		return 0;
+	}
+
+	return v->nameToken()->varId();
+}
+
 
 map<std::string, int> CheckTSCInvalidVarArgs::s_funcMap;
 
 void CheckTSCInvalidVarArgs::runChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
 {
-	if(getCheckConfig()->logic)
-	{
-		if(getCheckConfig()->InvalidVarArgs)
-		{
-			(void)tokenizer;
-			(void)settings;
-			(void)errorLogger;
-		}
-	}
+		(void)tokenizer;
+		(void)settings;
+		(void)errorLogger;
 }
 
 void CheckTSCInvalidVarArgs::runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
 {
-	if(getCheckConfig()->logic)
-	{
-		if(getCheckConfig()->InvalidVarArgs)
-		{
-			CheckTSCInvalidVarArgs checkInvalidVarArgs(tokenizer, settings, errorLogger);
-			checkInvalidVarArgs.CheckVarArgs();
-		}
-	}
+	CheckTSCInvalidVarArgs checkInvalidVarArgs(tokenizer, settings, errorLogger);
+	checkInvalidVarArgs.CheckVarArgs_new();
 }
 
 void CheckTSCInvalidVarArgs::getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const
 {
-	
-		UNREFERENCED_PARAMETER(settings);
-		UNREFERENCED_PARAMETER(errorLogger);
+	UNREFERENCED_PARAMETER(settings);
+	UNREFERENCED_PARAMETER(errorLogger);
 }
 
 void CheckTSCInvalidVarArgs::InitFuncMap()
 {
-		if (s_funcMap.size() == 0)
-		{
-			s_funcMap["printf"]		= 0;
-			s_funcMap["wprintf"]	= 0;
-			s_funcMap["sprintf"]	= 1;
-			s_funcMap["swprintf"]	= 1;
-			s_funcMap["fprintf"]	= 1;
-			s_funcMap["fwprintf"]	= 1;
+	if (s_funcMap.size() == 0)
+	{
+		s_funcMap["printf"]		= 0;
+		s_funcMap["wprintf"]	= 0;
+		s_funcMap["sprintf"]	= 1;
+		s_funcMap["swprintf"]	= 1;
+		s_funcMap["fprintf"]	= 1;
+		s_funcMap["fwprintf"]	= 1;
 
-			s_funcMap["scanf"]		= 0;
-			s_funcMap["wscanf"]		= 0;
-			s_funcMap["fwscanf"]	= 1;
-			s_funcMap["wscanf"]		= 1;
-			s_funcMap["sscanf"]		= 1;
-			s_funcMap["swscanf"]	= 1;
-		}
+		s_funcMap["scanf"]		= 0;
+		s_funcMap["wscanf"]		= 0;
+		s_funcMap["fwscanf"]	= 1;
+		s_funcMap["wscanf"]		= 1;
+		s_funcMap["sscanf"]		= 1;
+		s_funcMap["swscanf"]	= 1;
+
+	}
 }
 
-void CheckTSCInvalidVarArgs::CheckVarArgs()
+
+static bool inline IsNameLikeFormatFunction(const std::string& name)
 {
-	InitFuncMap();
+	std::string upper = name;
+	std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+	
+	return upper.find("LOG") != std::string::npos;
+}
 
+void CheckTSCInvalidVarArgs::CheckVarArgs_new()
+{
 	const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
-	const std::size_t functions = symbolDatabase->functionScopes.size();
-
-	std::map<std::string, int>::iterator iter = s_funcMap.begin();
-	while(iter != s_funcMap.end())
+	const std::size_t functionCount = symbolDatabase->functionScopes.size();
+	std::map<std::string, int>::iterator iter;
+	std::map<std::string, int>::iterator end = s_funcMap.end();
+	for (std::size_t ii = 0; ii < functionCount; ++ii)
 	{
-		std::string strFunc = iter->first;
-		bool bPrintf = (strFunc.find("printf") != std::string::npos);
-		int posIndex = iter->second;
-
-		std::ostringstream streamPattern;
-		streamPattern << "[=;{)] ";
-		streamPattern << strFunc;
-		streamPattern << " (";
-		for (int i=0; i<posIndex; i++)
+		const Scope * scope = symbolDatabase->functionScopes[ii];
+		if (!scope || !scope->classStart)
 		{
-			streamPattern << " %var% ,";
+			continue;
 		}
-
-		for (std::size_t i = 0; i < functions; ++i) 
+		for (const Token *tok = scope->classStart->next(); tok && tok != scope->classEnd; tok = tok->next())
 		{
-			const Scope * scope = symbolDatabase->functionScopes[i];
-			if(!scope)
-				continue;
-			for (const Token *tok = scope->classStart; tok && tok != scope->classEnd; tok = tok->next()) 
+			if (tok->str() != "(" 
+				|| (tok->previous()->tokType() != Token::eName && tok->previous()->tokType() != Token::eVariable)
+				|| !Token::Match(tok->tokAt(-2), "[=;{)]"))
 			{
-
-				if (Token::Match(tok, streamPattern.str().c_str()))
+				continue;
+			}
+			iter = s_funcMap.find(tok->previous()->str());
+			if (iter != end) // std functions
+			{
+				const Token *pTokVar = tok->tokAt(1 + 2 * iter->second);
+				if (!pTokVar)
 				{
-					const Token *pTokVar = tok->tokAt(3 + 2 * posIndex);
-					if (!pTokVar)
-						break;
+					continue;
+				}
+				// ingore pattern: printf("RoleID:(%"PRIu64"),%d", 10, 20);
+				if (!pTokVar->next() || (pTokVar->next()->str() != "," && pTokVar->next()->str() != ")"))
+				{
+					tok = pTokVar;
+					continue;
+				}
+				if (pTokVar->tokType() == Token::eString)
+				{
+					const std::string& strFormatted = pTokVar->str();
 
-					// ingore pattern: printf("RoleID:(%"PRIu64"),%d", 10, 20);
-					if (!pTokVar->next() || (pTokVar->next()->str() != "," && pTokVar->next()->str() != ")"))
-					{
-						tok = pTokVar;
+					if (strFormatted.empty())
 						continue;
-					}
 
-					string strFormatted;
-					bool inconclusive = false;
-					// blank string
-					if (pTokVar->type() == Token::eString)
+					tok = CheckParamCount(strFormatted, pTokVar, iter->first, false, iter->first.find("printf") != std::string::npos);
+				}
+				// char* or wchar_t* string
+				else if (pTokVar->tokType() == Token::eVariable)
+				{
+					const Variable* pVar = symbolDatabase->getVariableFromVarId(pTokVar->varId());
+					if (!pVar)
+						continue;
+
+					if (pVar->isLocal())
 					{
-						strFormatted = pTokVar->str();
-
-						if (strFormatted.empty())
-							continue;
-
-						tok = CheckParamCount(strFormatted, pTokVar, strFunc, false, bPrintf);
-					}
-					// char* or wchar_t* string
-					else if (pTokVar->type() == Token::eVariable)
-					{
-						const Variable* pVar = symbolDatabase->getVariableFromVarId(pTokVar->varId());
-						if (!pVar)
-							continue;
-
-						if (pVar->isLocal())
+						const Token * tokEnd = tok;
+						while (tokEnd && tokEnd->str() != ";")
 						{
-							const Token * tokEnd = tok;
-							while (tokEnd && tokEnd->str() != ";")
+							tokEnd = tokEnd->previous();
+						}
+						if (tokEnd)
+						{
+							std::string strFormatted;
+							bool inconclusive = false;
+							CheckScope(pVar->scope()->classStart, tokEnd, pVar->name(), ::GetVarID(pVar), strFormatted, inconclusive);
+							if (strFormatted.empty())
 							{
-								tokEnd = tokEnd->previous();
+								continue;
 							}
-							if (tokEnd)
-							{
-								CheckScope(pVar->scope()->classStart, tokEnd, pVar->name(), pVar->varId(), strFormatted, inconclusive);
-								if (strFormatted.empty())
-									continue;	
-								tok = CheckParamCount(strFormatted, pTokVar, strFunc, inconclusive, bPrintf);
-							}
+							tok = CheckParamCount(strFormatted, pTokVar, iter->first, inconclusive, iter->first.find("printf") != std::string::npos);
 						}
 					}
 				}
 			}
+			else
+			{
+				const Token *tokFormatStr = tok->next();
+				if (!tokFormatStr 
+					|| tokFormatStr->tokType() != Token::eString 
+					|| !tokFormatStr->next() 
+					|| !IsNameLikeFormatFunction(tok->previous()->str())
+					)
+				{
+					continue;
+				}
+				int nFormatParam = CountFormatStrParam(tokFormatStr->str(), false, false);
+				if (nFormatParam <= 0)
+				{
+					continue;
+				}
+
+				int realParam = 0;
+				const Token *tokParent = tokFormatStr->astParent();
+				if (!tokParent)
+				{
+					continue;
+				}
+				if (tokParent->str() == ",")
+				{
+					tokParent = tokParent->astParent();
+					while (tokParent && tokParent->str() == ",")
+					{
+						++realParam;
+						tokParent = tokParent->astParent();
+					}
+					if (tokParent)
+						++realParam;
+				}
+				
+				//report only less
+				if (realParam < nFormatParam && nFormatParam - realParam < 3)
+				{
+					ReportErrorParamDismatch(tok, tok->previous()->str());
+				}
+			}
 		}
-		iter++;
 	}
-	
 }
 
-void CheckTSCInvalidVarArgs::ReportErrorParamDismatch(const Token *tok, const string& funcName, bool inconclusive /*= false*/)
+void CheckTSCInvalidVarArgs::ReportErrorParamDismatch(const Token *tok, const string& funcName/*, bool inconclusive*/ /*= false*/)
 {
 	char szMsg[0x100] = {0};
-	sprintf(szMsg, "The count of parameters mismatches the formatted string in %s", funcName.c_str());
-	if (!inconclusive) 
-		reportError(tok, Severity::error, "logic", "InvalidVarArgs", szMsg, false);
-	else 
-		reportError(tok, Severity::error, "logic", "InvalidVarArgs", szMsg, true);
+	sprintf(szMsg, "The count of parameters mismatches the format string in %s", funcName.c_str());
+	
+	reportError(tok, Severity::error, ErrorType::Logic, "InvalidVarArgs", szMsg, ErrorLogger::GenWebIdentity((funcName)));
 }
 
 void CheckTSCInvalidVarArgs::CheckScope(const Token *tokBegin, const Token *tokEnd, const std::string &varname, unsigned int varid, std::string& strFormatted, bool& inconclusive)
@@ -183,6 +241,7 @@ void CheckTSCInvalidVarArgs::CheckScope(const Token *tokBegin, const Token *tokE
 	std::stack<const Token *> assignStack;
 
 	Token *tok = GetCode(tokBegin, tokEnd, assignStack, varid);
+
 	std::stack<std::string> useStack;
 
 	for (const Token* tok2 = tok; tok2 ; tok2 = tok2->next())
@@ -192,7 +251,7 @@ void CheckTSCInvalidVarArgs::CheckScope(const Token *tokBegin, const Token *tokE
 			useStack.push(tok2->str());
 		}
 	}
-	  
+
 	bool bUsed = false;
 	bool bBlankStr = false;
 	while(!useStack.empty())
@@ -207,8 +266,8 @@ void CheckTSCInvalidVarArgs::CheckScope(const Token *tokBegin, const Token *tokE
 		{
 			const Token* pTokBack = assignStack.top();
 			assignStack.pop();
-			
-			if (pTokBack && pTokBack->type() == Token::eString)
+
+			if (pTokBack && pTokBack->tokType() == Token::eString)
 			{
 				bBlankStr = true;
 				strFormatted = pTokBack->str();
@@ -232,10 +291,9 @@ void CheckTSCInvalidVarArgs::addtoken(Token **rettail, const Token *tok, const s
 Token* CheckTSCInvalidVarArgs::GetCode(const Token *tokBegin, const Token *tokEnd, std::stack<const Token *>& assignStack, const unsigned int varid)
 {
 	const Token* tok = tokBegin;
-	//add nullcheck by TSC 20141128
-	if(tok == NULL )
+	if(tok == nullptr )
 	{
-		return NULL;
+		return nullptr;
 	}
 	// The first token should be ";"
 	Token* rethead = new Token(0);
@@ -263,7 +321,7 @@ Token* CheckTSCInvalidVarArgs::GetCode(const Token *tokBegin, const Token *tokEn
 			--indentlevel;
 			if (indentlevel <= 0)
 				break;
-			
+
 		}
 		else if (tok->str() == "(")
 			++parlevel;
@@ -304,7 +362,7 @@ Token* CheckTSCInvalidVarArgs::GetCode(const Token *tokBegin, const Token *tokEn
 
 					if (tok2->varId() == varid || tok2->str() == ":" || tok2->str() == "{" || tok2->str() == "}") 
 					{
-							break;
+						break;
 					}
 				}
 
@@ -344,123 +402,112 @@ Token* CheckTSCInvalidVarArgs::GetCode(const Token *tokBegin, const Token *tokEn
 			addtoken(&rettail, tok, "assign");
 			assignStack.push(tok->tokAt(3));
 		}
-		//add nullcheck by TSC 20141128
 		if(tok2 != NULL)
 		{
-		tok = tok2->previous();
+			tok = tok2->previous();
 		}
 	}
 
 	return rethead;
 }
 
+
+
 const Token * CheckTSCInvalidVarArgs::CheckParamCount(const string &strFormatted, const Token * tok, const std::string& strFunc, bool inconclusive, bool bPrintf)
 {
 	// traverse formatted string to find out the number of parameters
+	int paramCount = CountFormatStrParam(strFormatted, true, bPrintf);
+
+	const Token* tokFormatted = tok;	
+	const Token* tokParent = tokFormatted->astParent();
+
+	if (!tokParent)
+		return tokFormatted->next();
+
+	bool isLeft = (tokFormatted->astParent()->astOperand1() == tokFormatted);
+	int realParam = 0;
+
+
+	if (tokParent->str() == "(")
+	{
+		realParam = 0;
+	}
+	else if (tokParent->str() == ",")
+	{
+		const Token* tok2 = tokParent->astParent();
+		while(tok2 && tok2->str() == ",")
+		{
+			++realParam;
+			tok2 = tok2->astParent();
+		}
+		if (tok2)
+			++realParam;
+
+		if (!isLeft)
+			--realParam;
+	}
+	if (realParam != paramCount)
+	{
+		ReportErrorParamDismatch(tokFormatted, strFunc/*, inconclusive*/);
+	}
+
+
+	return tok;
+}
+
+int CheckTSCInvalidVarArgs::CountFormatStrParam(const std::string &strFormatted, bool bFormatString, bool bPrintf) const
+{
+	static const char* szFormatChars = "bdiuoxXfFeEgGaAcsSpnlLzhtIwW"; //add  20151217%I64u %64d, 2016/5/4, add %ws   
 	int paramCount = 0;
-	size_t index = 0;
-	while(index < strFormatted.size() - 1)
+	size_t index =  1;
+	const std::size_t nSize = strFormatted.size() - 1;
+	while (index < nSize)
 	{
 		if (strFormatted[index] == '%')
 		{
-			char nextChar = strFormatted[index + 1];
-			if(nextChar != '%')
+			char nextChar = strFormatted[++index];
+			if (nextChar == '%')
 			{
-				// handle %m
-				if (nextChar == 'm')
+				++index;
+				continue;
+			}
+
+			if (bPrintf)
+			{
+				while (!isalpha(nextChar) && (index < nSize + 1))
 				{
-				}
-				// handle %*
-				else if (nextChar == '*')
-				{
-					if (bPrintf)
+					if (nextChar == '*')
 					{
-						// handle %*.*
-						// handle %*-*
-						if (index + 3 < strFormatted.size())
-						{
-							if (strFormatted[index + 2] == '.' || strFormatted[index + 2] == '-')
-							{
-								if (strFormatted[index + 3] == '*')
-								{
-									paramCount ++;
-								}
-							}
-						}
-						paramCount += 2;
+						++paramCount;
 					}
+					nextChar = strFormatted[++index];
 				}
-				// handle %-*
-				// handle %.*
-				else if (nextChar == '-' || nextChar == '.')
+
+				if (strchr(szFormatChars, nextChar))
 				{
-					if (index + 2 < strFormatted.size())
-					{
-						if (strFormatted[index + 2] == '*')
-						{
-							paramCount += 2;
-						}
-						else
-						{
-							paramCount++;
-						}
-					}
-				}
-				else
-				{
-					paramCount++;
+					++paramCount;
 				}
 			}
 			else
 			{
-				index++;
-			}
-		}
-		index++;
-	}
-
-	const Token* tokFormatted = tok;
-
-	int brace = 0;
-	while (tok)
-	{
-		const Token* tok2 = Token::findmatch(tok, "[,;()]");
-		if (!tok2)
-			break;
-		if (tok2->str() == ";")
-		{
-			if (paramCount != 0)
-			{
-				ReportErrorParamDismatch(tokFormatted, strFunc, inconclusive);
-			}
-			tok = tok2->previous();
-			break;
-		}
-		else if (tok2->str() == ",")
-		{
-			if (brace == 0)
-			{
-				//from TSC 20141027 bug fixed. printf("",xx,xx,xx,);
-				if(!Token::Match(tok2,", ) ;"))
+				if (nextChar == '*')
 				{
-					paramCount--;
+					++index;
+					continue;;
 				}
+				
+				if (isalpha(nextChar) && !strchr(szFormatChars, nextChar))
+				{
+					return -1;
+				}
+				++paramCount;
 			}
-			tok = tok2->next();
 		}
-		else if (tok2->str() == "(")
-		{
-			brace++;
-			tok = tok2->next();
-		}
-		else if (tok2->str() == ")")
-		{
-			if (brace > 0)
-			{
-				brace--;
-			}
-			tok = tok2->next();
-		}
-	}		
-	return tok;
+		++index;
+	}
+	if (!bFormatString && paramCount == 0)
+	{
+		return -1;
+	}
+	return paramCount;
 }

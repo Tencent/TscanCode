@@ -6,7 +6,7 @@
 
 Tencent is pleased to support the open source community by making TscanCode available.
 
-Copyright (C) 2017 THL A29 Limited, a Tencent company, and TscanCode Team. All rights reserved.
+Copyright (C) 2017 Tencent company and TscanCode Team. All rights reserved.
 
 ## Introduction
 
@@ -74,5 +74,10 @@ Error list, result.xml:
 </results>
 ~~~~~~~~~~
 
-There are more [examples](trunk).
+There are more examples:
+* [CPP samples](samples/cpp);
+* [C# samples](samples/csharp);
+* [Lua samples](samples/lua);
+
+For now, codes under [trunk](trunk) are only for TscanCode `CPP` version, `C#` and `Lua` version are in the internal review process. Sorry for the inconvenience.
 

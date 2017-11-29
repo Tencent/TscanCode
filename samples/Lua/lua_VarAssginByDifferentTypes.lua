@@ -3,6 +3,6 @@ function Demo()
 end
 
 function Demo2()
-	--Í¬Ò»¸ö±äÁ¿tÔÚÁ½¸ö²»Í¬µÄ×÷ÓÃÓò¸³Óè²»Í¬µÄÀàÐÍ£¬·ÇÍÆ¼öµÄÐ´·¨
+	--åŒä¸€ä¸ªå˜é‡tåœ¨ä¸¤ä¸ªä¸åŒçš„ä½œç”¨åŸŸèµ‹äºˆä¸åŒçš„ç±»åž‹ï¼ŒéžæŽ¨èçš„å†™æ³•
 	t = "" 
 end

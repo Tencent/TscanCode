@@ -1,16 +1,11 @@
---前序代码省略
-function Demo:setData(idx, data)
-	self.chatBg.setFlipX(idx % 2 == 0)
-	if data then
-		local person = nil
-		if data.type == 1 then
-			person = "爱人"
-		elseif data.type == 2 then
-			person = "好友"
-		elseif data.type == 3 then
-			person = "父母"
-		end
-		--person 初始值为nil, 且缺少else分支
-		self.ToLabel:setString("对他的"..person.."说")
+function Demo(count)
+	local t 
+	if count > 1 then
+		t = {1, 2}
+	elseif count == 1 then
+		t = {1}
 	end
+	--t娌℃湁鍦ㄩ粯璁ゅ垎鏀腑璧嬪�硷紝杩欓噷鍙兘涓簄il
+	t[0] = 0 
+	return t
 end

@@ -1,10 +1,4 @@
-function Demo(idx)
-	if idx > 10 then
-		return 1
-	--应该是elseif
-	else if id > 5 then
-		return 0
-	else
-		return -1
+	function Demo()
+		--这里少了一个括号。工具只能检查有限的语法错误。
+		foo({name='ben', sex='male'} 
 	end
-end

@@ -1,12 +1,3 @@
-/*
-* Tencent is pleased to support the open source community by making TscanCode available.
-* Copyright (C) 2015 THL A29 Limited, a Tencent company. All rights reserved.
-* Licensed under the GNU General Public License as published by the Free Software Foundation, version 3 (the "License"); you may not use this file except in compliance with the License. You may obtain a * copy of the License at
-* http://www.gnu.org/licenses/gpl.html
-* TscanCode is free software: you can redistribute it and/or modify it under the terms of License.    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-*/
-
-
 #pragma once
 
 #include <string>
@@ -39,7 +30,7 @@ public:
 	void DumpFileDependResults();
 
 	static std::string GetProgramDirectory();
-	static void CreateLogDirectory();
+	static bool CreateLogDirectory(std::string* pLogPath = NULL);
 private:
 	bool CreateFileDependTree(const std::vector<std::string> &paths, const std::vector<std::string> &includePaths, const std::vector<std::string>& excludesPaths);
 
@@ -82,6 +73,9 @@ public:
 	const std::string& GetName();
 	CFolder* GetParent();
 	std::string GetFullPath();
+
+	virtual void SetIgnore(bool ignore) { m_bIgnore = ignore; }
+	bool GetIgnore() const { return m_bIgnore; }
 	virtual ~CFileBase();
 protected:
 	CFileBase();
@@ -93,6 +87,8 @@ protected:
 	// 父节点指针
 	CFolder* m_parent;
 	EFileType m_fileType;
+
+	bool m_bIgnore;
 private:
 	static unsigned int s_id;
 };
@@ -112,6 +108,7 @@ public:
 	void Release();
 	const std::vector<CFileBase*>& GetSubs();
 	
+	virtual void SetIgnore(bool ignore);
 private:
 	// 子节点指针集合
 	std::vector<CFileBase*> m_subs;
@@ -127,13 +124,17 @@ public:
 	void SetNext(CCodeFile* next);
 	CCodeFile* GetNext();
 	;
-	std::size_t GetSize();
+	std::size_t GetSize() const;
 
 	void AddDependFile(CCodeFile* pFile);
 	std::vector<CCodeFile*>& GetDepends();
 
 	
 	std::list<CCodeFile*>& GetAllDepends();
+
+	void AddExpandCount();
+	unsigned int GetExpandCount() const { return m_nExpandCount; }
+	bool IsExpaned() const { return m_nExpandCount != 0; }
 private:
 	void FillAllDepends();
 	static void ExpandIncludes(CCodeFile* pCodeFile, std::list<CCodeFile*>& allDepends, std::set<CCodeFile*>& included);
@@ -148,4 +149,6 @@ private:
 	std::list<CCodeFile*> m_allDepends;
 
 	CCodeFile* m_next;
+
+	unsigned int m_nExpandCount;
 };

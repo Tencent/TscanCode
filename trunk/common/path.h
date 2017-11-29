@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,28 +14,29 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
-//TO ignore the warning C4819
 
-#ifndef PATH_H_INCLUDED
-#define PATH_H_INCLUDED
+//---------------------------------------------------------------------------
+#ifndef pathH
+#define pathH
+//---------------------------------------------------------------------------
 
+#include "config.h"
+#include <set>
 #include <string>
 #include <vector>
-#include "config.h"
 
-//add by TSC ignore some files such as .pb.cc
-#define IGNOREFILE ".pb.cc"
+/// @addtogroup Core
+/// @{
+
 
 /**
  * @brief Path handling routines.
- * Internally cppcheck wants to store paths with / separator which is also
+ * Internally tscancode wants to store paths with / separator which is also
  * native separator for Unix-derived systems. When giving path to user
  * or for other functions we convert path separators back to native type.
  */
-class CPPCHECKLIB Path {
+class TSCANCODELIB Path {
 public:
     /**
      * Convert path to use native separators.
@@ -56,7 +57,14 @@ public:
      * @param originalPath path to be simplified, must have / -separators.
      * @return simplified path
      */
-    static std::string simplifyPath(const char *originalPath);
+    static std::string simplifyPath(std::string originalPath);
+
+    /**
+     * @brief Lookup the path part from a filename (e.g., '/tmp/a.h' -> '/tmp/', 'a.h' -> '')
+     * @param filename filename to lookup, must have / -separators.
+     * @return path part of the filename
+     */
+    static std::string getPathFromFilename(const std::string &filename);
 
     /**
      * @brief Compare filenames to see if they are the same.
@@ -97,37 +105,60 @@ public:
     static std::string getRelativePath(const std::string& absolutePath, const std::vector<std::string>& basePaths);
 
     /**
+      * @brief Get an absolute file path from a relative one.
+      * @param filePath File path to be made absolute.
+      * @return absolute path, if possible. Otherwise an empty path is returned
+      */
+    static std::string getAbsoluteFilePath(const std::string& filePath);
+
+    /**
      * @brief Check if the file extension indicates that it's a C/C++ source file.
      * Check if the file has source file extension: *.c;*.cpp;*.cxx;*.c++;*.cc;*.txx
-     * @param filename filename to check
-     * @return returns true if the file extension indicates it should be checked
+     * @param filename filename to check. path info is optional
+     * @return true if the file extension indicates it should be checked
      */
     static bool acceptFile(const std::string &filename);
-	//add by TSC 20140909
-	static bool acceptFile_h(const std::string &filename);
+
+	static bool acceptFile_H(const std::string &filename);
+
+    /**
+     * @brief Check if the file extension indicates that it's a C/C++ source file.
+     * Check if the file has source file extension: *.c;*.cpp;*.cxx;*.c++;*.cc;*.txx
+     * @param filename filename to check. path info is optional
+     * @param extra    extra file extensions
+     * @return true if the file extension indicates it should be checked
+     */
+    static bool acceptFile(const std::string &filename, const std::set<std::string> &extra);
+
     /**
      * @brief Identify language based on file extension.
-     * @param extensionInLowerCase e.g. ".c"
+     * @param path filename to check. path info is optional
      * @return true if extension is meant for C files
      */
-    static bool isC(const std::string &extensionInLowerCase);
-
-	//add by TSC 20140909
-	static bool isH(const std::string &extensionInLowerCase);
+    static bool isC(const std::string &path);
 
     /**
      * @brief Identify language based on file extension.
-     * @param extensionInLowerCase e.g. ".cpp"
+     * @param extensionInLowerCase filename to check. path info is optional
      * @return true if extension is meant for C++ files
      */
     static bool isCPP(const std::string &extensionInLowerCase);
+
+    /**
+     * @brief Is filename a header based on file extension
+     * @param path filename to check. path info is optional
+     * @return true if filename extension is meant for headers
+     */
+    static bool isHeader(const std::string &path);
+
+	/**
+	*check is extension is ignored
+	*/
+	static bool IsExtentionIgnored(const std::string &strName);
+
+	static bool CopyFile2(const std::string& src, const std::string& dest);
 };
 
-//splitString函数的参数说明：  
-//返回值是分割后字符串数组大小  
-//strSrc 原始字符串  
-//strDelims 自定义的分割字符串的分割数组  
-//strDest 分割后的字符串数组，引用传递  
-int splitString(const std::string & strSrc, const std::string& strDelims, std::vector<std::string>& strDest);
-
-#endif // PATH_H_INCLUDED
+/// @}
+//---------------------------------------------------------------------------
+#endif // pathH

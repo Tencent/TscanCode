@@ -1,8 +1,9 @@
-function CheckFull(idx)
-	return _G['bag'][idx] >= 10
+local function GetBag(id)
+	return id + 1
 end
 
-function Demo()
-	--º¯ÊıÓĞÒ»¸ö²ÎÊı£¬ÇÒ²ÎÊı²»¿ÉÊ¡ÂÔ
-	CheckFull()
+local function isBagNull(id)
+	local size = GetBag(id)
 end
+--isBagNullå‡½æ•°éœ€è¦è‡³å°‘ä¸€ä¸ªå‚æ•°ï¼Œè¿™é‡Œä¸€ä¸ªå‚æ•°éƒ½æ²¡æœ‰å¡«ã€‚
+isBagNull() 

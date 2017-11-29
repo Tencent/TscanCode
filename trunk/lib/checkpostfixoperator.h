@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,14 +14,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
 
 //---------------------------------------------------------------------------
-#ifndef CheckPostfixOperatorH
-#define CheckPostfixOperatorH
+#ifndef checkpostfixoperatorH
+#define checkpostfixoperatorH
 //---------------------------------------------------------------------------
 
 #include "config.h"
@@ -34,28 +32,23 @@
  * @brief Using postfix operators ++ or -- rather than postfix operator.
  */
 
-class CPPCHECKLIB CheckPostfixOperator : public Check {
+class TSCANCODELIB CheckPostfixOperator : public Check {
 public:
     /** This constructor is used when registering the CheckPostfixOperator */
-    CheckPostfixOperator() : Check(myName())
-    { }
+    CheckPostfixOperator() : Check(myName()) {
+    }
 
     /** This constructor is used when running checks. */
     CheckPostfixOperator(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
-        : Check(myName(), tokenizer, settings, errorLogger)
-    { }
+        : Check(myName(), tokenizer, settings, errorLogger) {
+    }
 
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		UNREFERENCED_PARAMETER(tokenizer);
-		UNREFERENCED_PARAMETER(settings);
-		UNREFERENCED_PARAMETER(errorLogger);
-#ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
-		if (tokenizer && tokenizer->isC())
+        if (tokenizer->isC())
             return;
 
         CheckPostfixOperator checkPostfixOperator(tokenizer, settings, errorLogger);
+#ifdef TSCANCODE_RULE_OPEN
         checkPostfixOperator.postfixOperator();
 #endif
     }
@@ -73,7 +66,7 @@ private:
     }
 
     static std::string myName() {
-        return "Usingpostfixoperators";
+        return "Using postfix operators";
     }
 
     std::string classInfo() const {
@@ -82,4 +75,4 @@ private:
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // checkpostfixoperatorH

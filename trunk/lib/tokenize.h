@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,13 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 //---------------------------------------------------------------------------
 #ifndef tokenizeH
 #define tokenizeH
 //---------------------------------------------------------------------------
-#pragma once
-#include "dealconfig.h"
 
 #include "errorlogger.h"
 #include "tokenlist.h"
@@ -30,17 +27,31 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include <list>
+#include <ctime>
+#include <unordered_map>
+
+#ifndef __GNUC__
+#define __attribute__(A)
+#endif
 
 class Settings;
 class SymbolDatabase;
 class TimerResults;
+struct TSCEnumerator;
+struct STypedefEntry;
+struct SGTypeDef;
 
 /// @addtogroup Core
 /// @{
 
 /** @brief The main purpose is to tokenize the source code. It also has functions that simplify the token list */
-class CPPCHECKLIB Tokenizer {
+class TSCANCODELIB Tokenizer {
+
+    friend class TestSimplifyTokens;
+    friend class TestSimplifyTypedef;
+    friend class TestTokenizer;
 public:
     Tokenizer();
     Tokenizer(const Settings * settings, ErrorLogger *errorLogger);
@@ -50,25 +61,23 @@ public:
         m_timerResults = tr;
     }
 
-    /** Returns the source file path. e.g. "file.cpp" */
-    const std::string& getSourceFilePath() const;
-
-	//add by TSC get filePath by fileindex 
-	 const std::string& getFilePathByIndex(int fileIndex) const;
-
     /** Is the code C. Used for bailouts */
-    bool isC() const;
+    bool isC() const {
+        return list.isC();
+    }
 
     /** Is the code CPP. Used for bailouts */
-    bool isCPP() const;
-
+    bool isCPP() const {
+        return list.isCPP();
+    }
+	
     /**
      * Check if inner scope ends with a call to a noreturn function
      * \param endScopeToken The '}' token
      * \param unknown set to true if it's unknown if the scope is noreturn
      * \return true if scope ends with a function call that might be 'noreturn'
      */
-    static bool IsScopeNoReturn(const Token *endScopeToken, bool *unknown = 0);
+    bool IsScopeNoReturn(const Token *endScopeToken, bool *unknown = nullptr) const;
 
     /**
      * Tokenize code
@@ -89,24 +98,44 @@ public:
      *
      * @param FileName The filename
      * @param configuration E.g. "A" for code where "#ifdef A" is true
-     * @param preprocessorCondition Set this flag to true if the code is a preprocessor condition. It disables some simplifications
+     * @param noSymbolDB_AST Disable creation of SymbolDatabase and AST
      * @return false if source code contains syntax errors
      */
     bool tokenize(std::istream &code,
                   const char FileName[],
-                  const std::string &configuration = "",
-                  const bool preprocessorCondition = false);
+                  const std::string &configuration = emptyString,
+                  bool noSymbolDB_AST = false, bool bAnalyze = false);
+    /**
+     * tokenize condition and run simple simplifications on it
+     * @param code code
+     * @return true if success.
+     */
+    bool tokenizeCondition(const std::string &code);
 
     /** Set variable id */
     void setVarId();
 
     /**
-     * Simplify tokenlist
-     *
-     * @return false if there is an error that requires aborting
-     * the checking of this file.
-     */
-    bool simplifyTokenList();
+    * Basic simplification of tokenlist
+    *
+    * @param FileName The filename to run; used to do
+    * markup checks.
+    *
+    * @return false if there is an error that requires aborting
+    * the checking of this file.
+    */
+    bool simplifyTokenList1(const char FileName[]);
+
+    void SimplifyNamelessRValueReferences();
+	void SimplifyNew();
+
+    /**
+    * Most aggressive simplification of tokenlist
+    *
+    * @return false if there is an error that requires aborting
+    * the checking of this file.
+    */
+    bool simplifyTokenList2();
 
     /**
      * Deletes dead code between 'begin' and 'end'.
@@ -126,8 +155,8 @@ public:
     static void eraseDeadCode(Token *begin, const Token *end);
 
     /**
-     * Simplify '* & ( %var% ) =' or any combination of '* &' and '()'
-     * parentheses around '%var%' to '%var% ='
+     * Simplify '* & ( %name% ) =' or any combination of '* &' and '()'
+     * parentheses around '%name%' to '%name% ='
      */
     void simplifyMulAndParens();
 
@@ -165,17 +194,41 @@ public:
      */
     bool simplifyCalculations();
 
+    /**
+     * Simplify dereferencing a pointer offset by a number:
+     *     "*(ptr + num)" => "ptr[num]"
+     *     "*(ptr - num)" => "ptr[-num]"
+     */
+    void simplifyOffsetPointerDereference();
+
+    /**
+       * Simplify referencing a pointer offset:
+       *     "Replace "&str[num]" => "(str + num)"
+       */
+    void simplifyOffsetPointerReference();
+
     /** Insert array size where it isn't given */
     void arraySize();
 
     /** Simplify labels and 'case|default' syntaxes.
-      * @return true if found nothing or the syntax is correct.
-      *         false if syntax is found to be wrong.
       */
-    bool simplifyLabelsCaseDefault();
+    void simplifyLabelsCaseDefault();
+
+    /** simplify case ranges (gcc extension)
+      */
+    void simplifyCaseRange();
 
     /** Remove macros in global scope */
     void removeMacrosInGlobalScope();
+
+    /** Remove undefined macro in class definition:
+      * class DLLEXPORT Fred { };
+      * class Fred FINAL : Base { };
+      */
+    void removeMacroInClassDef();
+
+    /** Remove unknown macro in variable declarations: PROGMEM char x; */
+    void removeMacroInVarDecl();
 
     /** Remove redundant assignment */
     void removeRedundantAssignment();
@@ -185,6 +238,9 @@ public:
       * 'x = realloc (y, 0);' => 'x = 0; free(y);'
       */
     void simplifyRealloc();
+
+    /** Add parentheses for sizeof: sizeof x => sizeof(x) */
+    void sizeofAddParentheses();
 
     /**
      * Replace sizeof() to appropriate size.
@@ -198,8 +254,7 @@ public:
      * \param only_k_r_fpar Only simplify K&R function parameters
      */
     void simplifyVarDecl(bool only_k_r_fpar);
-	// TSC:from TSC 20140224
-	void simplifyVarArray();
+    void simplifyVarDecl(Token * tokBegin, Token * tokEnd, bool only_k_r_fpar);
 
     /**
      * Simplify variable initialization
@@ -235,11 +290,27 @@ public:
      */
     void simplifyCompoundAssignment();
 
+
     /**
-     * simplify if-assignments
-     * Example: "if(a=b);" => "a=b;if(a);"
+     * Simplify "* const" to "*"
      */
-    void simplifyIfAssign();
+    void simplifyPointerConst();
+
+    /**
+     * Simplify the location of "static" and "const" qualifiers in
+     * a variable declaration or definition.
+     * Example: "int static const a;" => "static const a;"
+     * Example: "long long const static b;" => "static const long long b;"
+     */
+    void simplifyStaticConst();
+
+    /**
+     * Simplify assignments in "if" and "while" conditions
+     * Example: "if(a=b);" => "a=b;if(a);"
+     * Example: "while(a=b) { f(a); }" => "a = b; while(a){ f(a); a = b; }"
+     * Example: "do { f(a); } while(a=b);" => "do { f(a); a = b; } while(a);"
+     */
+    void simplifyIfAndWhileAssign();
 
     /**
      * Simplify multiple assignments.
@@ -248,29 +319,13 @@ public:
     void simplifyVariableMultipleAssign();
 
     /**
-     * simplify if-not
-     * Example: "if(0==x);" => "if(!x);"
-     */
-    void simplifyIfNot();
-
-    /**
-     * simplify if-not NULL
-     * Example: "if(0!=x);" => "if(x);"
-     * Special case: 'x = (0 != x);' is removed.
-     */
-    void simplifyIfNotNull();
-
-    /** @brief simplify if (a) { if (a) */
-    void simplifyIfSameInnerCondition();
-
-    /**
-     * Simplify the "not" and "and" keywords to "!" and "&&"
-     * accordingly.
+     * Simplify the 'C Alternative Tokens'
      * Examples:
-     * - "if (not p)" => "if (!p)"
-     * - "if (p and q)" => "if (p && q)"
+     * "if(s and t)" => "if(s && t)"
+     * "while((r bitand s) and not t)" => while((r & s) && !t)"
+     * "a and_eq b;" => "a &= b;"
      */
-    bool simplifyLogicalOperators();
+    bool simplifyCAlternativeTokens();
 
     /**
      * Simplify comma into a semicolon when possible:
@@ -280,15 +335,26 @@ public:
      */
     void simplifyComma();
 
-    /** Add braces to an if-block
+    /** Add braces to an if-block, for-block, etc.
      * @return true if no syntax errors
      */
-    bool simplifyIfAddBraces();
+    bool simplifyAddBraces();
 
-    /**
-     * Add braces to an do-while block
+    /** Add braces to an if-block, for-block, etc.
+     * for command starting at token including else-block
+     * @return last token of command
+     *         or input token in case of an error where no braces are added
+     *         or NULL when syntaxError is called
      */
-    void simplifyDoWhileAddBraces();
+    Token * simplifyAddBracesToCommand(Token * tok);
+
+    /** Add pair of braces to an single if-block, else-block, for-block, etc.
+     * for command starting at token
+     * @return last token of command
+     *         or input token in case of an error where no braces are added
+     *         or NULL when syntaxError is called
+     */
+    Token * simplifyAddBracesPair(Token *tok, bool commandWithCondition);
 
     /**
      * typedef A mytype;
@@ -299,11 +365,19 @@ public:
      * A c;
      */
     void simplifyTypedef();
-
+	void simplifyTypedef2();
+	void simplifyTypedef2_collectAllTypedefs(std::unordered_map<const Token*, STypedefEntry>& allTypedefs);
+	void simplifyTypedef2_expandTypedefs(std::unordered_map<const Token*, STypedefEntry>& allTypedefs);
+	bool simplifyTypedef2_expandTypedef_global(Token*& tok);
+	void simplifyTypedef2_eraseTypedefs(std::unordered_map<const Token*, STypedefEntry>& allTypedefs);
     /**
      * Simplify casts
      */
     void simplifyCasts();
+	/**
+	* Simplify casts for nullpointercheck
+	*/
+	void simplifyCasts2NullCheck();
 
     /**
      * Change (multiple) arrays to (multiple) pointers.
@@ -331,10 +405,7 @@ public:
      */
     bool simplifyKnownVariablesSimplify(Token **tok2, Token *tok3, unsigned int varid, const std::string &structname, std::string &value, unsigned int valueVarId, bool valueIsPointer, const Token * const valueToken, int indentlevel) const;
 
-    /** Replace a "goto" with the statements */
-    void simplifyGoto();
-
-    /** Simplify useless C++ empty namespaces, like: 'namespace %var% { }'*/
+    /** Simplify useless C++ empty namespaces, like: 'namespace %name% { }'*/
     void simplifyEmptyNamespaces();
 
     /** Simplify redundant code placed after control flow statements :
@@ -347,11 +418,6 @@ public:
 
     /** Simplify "if else" */
     void elseif();
-
-    /**
-     * Simplify the operator "?:"
-     */
-    void simplifyConditionOperator();
 
     /** Simplify conditions
      * @return true if something is modified
@@ -384,9 +450,6 @@ public:
      */
     bool simplifyFunctionReturn();
 
-    /** Struct initialization */
-    void simplifyStructInit();
-
     /** Struct simplification
      * "struct S { } s;" => "struct S { }; S s;"
      */
@@ -394,7 +457,7 @@ public:
     void simplifyStructDecl();
 
     /**
-     * Remove redundant parenthesis:
+     * Remove redundant parentheses:
      * - "((x))" => "(x)"
      * - "(function())" => "function()"
      * - "(delete x)" => "delete x"
@@ -402,14 +465,9 @@ public:
      * @return true if modifications to token-list are done.
      *         false if no modifications are done.
      */
-    bool simplifyRedundantParenthesis();
+    bool simplifyRedundantParentheses();
 
-	/*
-	*Remove redundant Parenthesis in Var
-	*@author TSC
-	*@date 20141113
-	*/
-	void simplifyVarParenthesis();
+    void simplifyCharAt();
 
     /** Simplify references */
     void simplifyReference();
@@ -417,9 +475,8 @@ public:
     /**
      * Simplify functions like "void f(x) int x; {"
      * into "void f(int x) {"
-     * @return false only if there's a syntax error
      */
-    bool simplifyFunctionParameters();
+    void simplifyFunctionParameters();
 
     /**
      * Simplify templates
@@ -434,34 +491,29 @@ public:
 
     void simplifyParameterVoid();
 
+    void fillTypeSizes();
+
+    void combineOperators();
+
+    void combineStrings();
+
     void concatenateDoubleSharp();
 
-    void simplifyLineMacro();
+    void simplifyFileAndLineMacro();
 
     void simplifyNull();
 
-	//from TSC 20140902
-	/*
-	if(!(a && b && c))=>if(!a || !b || !c)
-	if(!(a==NULL || b==NULL ||c==NULL))=>if(a && b && c)
-	*/
-	void simplifyNOT();
-
-    void concatenateNegativeNumber();
+    void concatenateNegativeNumberAndAnyPositive();
 
     void simplifyExternC();
 
-    void simplifyRoundCurlyParenthesis();
-
-    void simplifyDebugNew();
+    void simplifyRoundCurlyParentheses();
 
     void simplifySQL();
 
-    bool hasEnumsWithTypedef();
+    void checkForEnumsWithTypedef();
 
-    void simplifyDefaultAndDeleteInsideClass();
-
-    bool hasComplicatedSyntaxErrorsInTemplates();
+    void findComplicatedSyntaxErrorsInTemplates();
 
     /**
      * Simplify e.g. 'atol("0")' into '0'
@@ -481,16 +533,15 @@ public:
      */
     static std::string simplifyString(const std::string &source);
 
-    /**
-     * Use "<" comparison instead of ">"
-     * Use "<=" comparison instead of ">="
-     */
-    void simplifyComparisonOrder();
+private:
 
     /**
-     * Change "int const x;" into "const int x;"
+     * is token pointing at function head?
+     * @param tok         A '(' or ')' token in a possible function head
+     * @param endsWith    string after function head
+     * @return token matching with endsWith if syntax seems to be a function head else nullptr
      */
-    void simplifyConst();
+    const Token * isFunctionHead(const Token *tok, const std::string &endsWith) const;
 
     /**
      * simplify "while (0)"
@@ -511,6 +562,13 @@ public:
      * Replace enum with constant value
      */
     void simplifyEnum();
+	void simplifyEnum2();
+	void dumpEnumInfo(std::list<TSCEnumerator>& enumList);
+	bool simplifyEnum2_getAllEnums(std::list<TSCEnumerator>& enumList);
+	bool simplifyEnum2_substituteEnums(std::list<TSCEnumerator>& enumList);
+	bool simplifyEnum2_simplifyEnumType(std::list<TSCEnumerator>& enumList);
+	bool simplifyEnum2_eraseEnumDefs(std::list<TSCEnumerator>& enumList);
+
 
     /**
      * Remove "std::" before some function names
@@ -523,43 +581,41 @@ public:
     /** Simplify function pointers */
     void simplifyFunctionPointers();
 
-    /**
-     * Remove exception specifications.
-     */
-    void removeExceptionSpecifications();
-
 
     /**
      * Send error message to error logger about internal bug.
      * @param tok the token that this bug concerns.
      */
-    void cppcheckError(const Token *tok) const;
+    void tscancodeError(const Token *tok) const __attribute__((noreturn));
 
     /**
      * Setup links for tokens so that one can call Token::link().
-     *
-     * @return false if there was a mismatch with tokens, this
-     * should mean that source code was not valid.
      */
-    bool createLinks();
+    void createLinks();
 
     /**
      * Setup links between < and >.
      */
     void createLinks2();
 
+public:
+
     /** Syntax error */
-    void syntaxError(const Token *tok) const;
+    void syntaxError(const Token *tok) const __attribute__((noreturn));
 
     /** Syntax error. Example: invalid number of ')' */
-    void syntaxError(const Token *tok, char c) const;
+    void syntaxError(const Token *tok, char c) const __attribute__((noreturn));
+
+private:
+
+    /** Report that there is an unhandled "class x y {" code */
+    void unhandled_macro_class_x_y(const Token *tok) const;
 
     /**
      * assert that tokens are ok - used during debugging for example
-     * to catch problems in simplifyTokenList.
-     * @return always true.
+     * to catch problems in simplifyTokenList1/2.
      */
-    bool validate() const;
+    void validate() const;
 
     /**
      * Remove __declspec()
@@ -587,14 +643,14 @@ public:
     void simplifyAsm();
 
     /**
+     * asm heuristics, Put ^{} statements in asm()
+     */
+    void simplifyAsm2();
+
+    /**
      * Simplify bitfields - the field width is removed as we don't use it.
      */
     void simplifyBitfields();
-
-    /**
-     * Remove __builtin_expect(...), likely(...), and unlikely(...)
-     */
-    void simplifyBuiltinExpect();
 
     /**
      * Remove unnecessary member qualification
@@ -602,19 +658,9 @@ public:
     void removeUnnecessaryQualification();
 
     /**
-     * unnecessary member qualification error
-     */
-    void unnecessaryQualificationError(const Token *tok, const std::string &qualification) const;
-
-    /**
      * Add std:: in front of std classes, when using namespace std; was given
      */
     void simplifyNamespaceStd();
-
-    /**
-     * Remove Microsoft MFC 'DECLARE_MESSAGE_MAP()'
-     */
-    void simplifyMicrosoftMFC();
 
     /**
     * Convert Microsoft memory functions
@@ -648,6 +694,22 @@ public:
     void simplifyOperatorName();
 
     /**
+    * Remove [[deprecated]] (C++14) from TokenList
+    */
+    void simplifyDeprecated();
+
+    /**
+     * Replace strlen(str)
+     * @return true if any replacement took place, false else
+     * */
+    bool simplifyStrlen();
+
+    /**
+    * Prepare ternary operators with parantheses so that the AST can be created
+    * */
+    void prepareTernaryOpForAST();
+
+    /**
      * check for duplicate enum definition
      */
     bool duplicateDefinition(Token **tokPtr, const Token *name) const;
@@ -655,15 +717,17 @@ public:
     /**
      * report error message
      */
-    void reportError(const Token* tok, const Severity::SeverityType severity, const std::string& id,  const std::string& subid, const std::string& msg, bool inconclusive = false) const;
-    void reportError(const std::list<const Token*>& callstack, Severity::SeverityType severity, const std::string& id, const std::string& subid,  const std::string& msg, bool inconclusive = false) const;
+	void reportError(const Token* tok, const Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string& id, const std::string& msg, bool inconclusive = false) const;
+	void reportError(const std::list<const Token*>& callstack, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string& id, const std::string& msg, bool inconclusive = false) const;
+	void reportError(const Token* tok, const Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string& id, const std::string& msg, const std::string& indentify, bool inconclusive = false) const;
+	void reportError(const std::list<const Token*>& callstack, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string& id, const std::string& msg, const std::string& indentify, bool inconclusive = false) const;
 
     /**
      * duplicate enum definition error
      */
     void duplicateEnumError(const Token *tok1, const Token *tok2, const std::string & type) const;
 
-    bool duplicateTypedef(Token **tokPtr, const Token *name, const Token *typeDef, bool undefinedStruct) const;
+    bool duplicateTypedef(Token **tokPtr, const Token *name, const Token *typeDef, const std::set<std::string>& structs) const;
     void duplicateTypedefError(const Token *tok1, const Token *tok2, const std::string & type) const;
 
     /**
@@ -673,10 +737,18 @@ public:
 
     void unsupportedTypedef(const Token *tok) const;
 
+    void setVarIdClassDeclaration(Token * const startToken,
+                                  const std::map<std::string, unsigned int> &variableId,
+                                  const unsigned int scopeStartVarId,
+                                  std::map<unsigned int, std::map<std::string,unsigned int> >& structMembers);
+
+public:
+
     /** Was there templates in the code? */
     bool codeWithTemplates() const {
         return _codeWithTemplates;
     }
+
 
     void setSettings(const Settings *settings) {
         _settings = settings;
@@ -689,7 +761,19 @@ public:
     void createSymbolDatabase();
     void deleteSymbolDatabase();
 
+    /** print --debug output if debug flags match the simplification:
+     * 0=unknown/both simplifications
+     * 1=1st simplifications
+     * 2=2nd simplifications
+     */
+    void printDebugOutput(unsigned int simplification) const;
+
+	void printDebugOutputInternal(std::ostream& os) const;
+
+    void dump(std::ostream &out) const;
+
     Token *deleteInvalidTypedef(Token *typeDef);
+	Token *skipTypedef(Token *typeDef);
 
     /**
      * Get variable count.
@@ -698,6 +782,7 @@ public:
     unsigned int varIdCount() const {
         return _varId;
     }
+
 
     /**
      * Simplify e.g. 'return(strncat(temp,"a",1));' into
@@ -708,7 +793,7 @@ public:
     /**
      * Output list of unknown types.
      */
-    void printUnknownTypes();
+    void printUnknownTypes() const;
 
 
     /**
@@ -729,12 +814,36 @@ public:
      * @return new location of last token copied
      */
     static Token *copyTokens(Token *dest, const Token *first, const Token *last, bool one_line = true);
+	static Token *copyTokens_orgname(Token *dest, const Token *first, const Token *last, bool one_line,std::string orgname);
 
-	//from TSC 20141209
-	inline dealconfig* getCheckConfig()
-	{
-		return dealconfig::instance();
-	}
+    /**
+    * Helper function to check whether number is zero (0 or 0.0 or 0E+0) or not?
+    * @param s the string to check
+    * @return true in case is is zero and false otherwise.
+    */
+    static bool isZeroNumber(const std::string &s);
+
+    /**
+    * Helper function to check whether number is one (1 or 0.1E+1 or 1E+0) or not?
+    * @param s the string to check
+    * @return true in case is is one and false otherwise.
+    */
+    static bool isOneNumber(const std::string &s);
+
+    /**
+    * Helper function to check whether number is two (2 or 0.2E+1 or 2E+0) or not?
+    * @param s the string to check
+    * @return true in case is is two and false otherwise.
+    */
+    static bool isTwoNumber(const std::string &s);
+
+    /**
+    * Helper function to check for start of function execution scope.
+    * Do not use this in checks.  Use the symbol database.
+    * @param tok --> pointer to end parentheses of parameter list
+    * @return pointer to start brace of function scope or nullptr if not start.
+    */
+    static const Token * startOfExecutableScope(const Token * tok);
 
 private:
     /** Disable copy constructor, no implementation */
@@ -743,11 +852,21 @@ private:
     /** Disable assignment operator, no implementation */
     Tokenizer &operator=(const Tokenizer &);
 
+    Token * startOfFunction(Token * tok) const;
+    static Token * startOfExecutableScope(Token * tok) {
+        return const_cast<Token*>(startOfExecutableScope(const_cast<const Token *>(tok)));
+    }
+
+    Token *processFunc(Token *tok2, bool inOperator) const;
+
+    /** Set pod types */
+    void setPodTypes();
+
     /** settings */
     const Settings * _settings;
 
     /** errorlogger */
-    ErrorLogger * const _errorLogger;
+    ErrorLogger* const _errorLogger;
 
     /** Symbol database that all checks etc can use */
     SymbolDatabase *_symbolDatabase;
@@ -772,9 +891,47 @@ private:
      * TimerResults
      */
     TimerResults *m_timerResults;
+#ifdef MAXTIME
+    /** Tokenizer maxtime */
+    std::time_t maxtime;
+#endif
+
+	std::string&  GetTokenFuncInfo(const Token* tok) const;
+	mutable const Scope *_lastFuncScope;
+	mutable std::string _lastFuncName;
+
+private:
+	int m_currentFileIndex;
+
+	std::map<std::string, SGTypeDef> m_currentGTypedefBuffer;
+
 };
 
 /// @}
 
+struct Space {
+	Space() : classEnd(nullptr), isNamespace(false) { }
+	std::string className;
+	const Token * classEnd;
+	bool isNamespace;
+};
+
+struct STypedefEntry
+{
+	Token *TypeDef;
+	Token *TypeName;
+	Token *TypeStart;
+	Token *TypeEnd;
+	Token *ArrayStart;
+	Token *ArrayEnd;
+	std::vector<std::string> Pointers;
+	std::vector<Space> SpaceInfo;
+
+
+	STypedefEntry() : TypeDef(nullptr), TypeName(nullptr), TypeStart(nullptr), TypeEnd(nullptr), ArrayStart(nullptr), ArrayEnd(nullptr)
+	{
+
+	}
+};
 //---------------------------------------------------------------------------
-#endif
+#endif // tokenizeH

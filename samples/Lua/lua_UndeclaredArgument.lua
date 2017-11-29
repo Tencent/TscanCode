@@ -1,7 +1,4 @@
-
---前序代码省略
-
-function Demo:onClose(eventType, tag)
-	self:onOption(enentType, #self.data) --很明显enentType拼写错误, 成为一个新的变量
-	self:hide()
+function Demo(event)
+	--evnt并没有在任何地方声明就作为print函数的参数使用
+	print(evnt) 
 end

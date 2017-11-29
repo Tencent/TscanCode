@@ -1,12 +1,3 @@
-/*
-* Tencent is pleased to support the open source community by making TscanCode available.
-* Copyright (C) 2015 THL A29 Limited, a Tencent company. All rights reserved.
-* Licensed under the GNU General Public License as published by the Free Software Foundation, version 3 (the "License"); you may not use this file except in compliance with the License. You may obtain a * copy of the License at
-* http://www.gnu.org/licenses/gpl.html
-* TscanCode is free software: you can redistribute it and/or modify it under the terms of License.    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-*/
-
-
 #ifdef _WIN32
 
 #include <windows.h>
@@ -35,37 +26,9 @@
 #include <list>
 #include <algorithm>
 
-#include "FileDepend.h"
+#include "filedepend.h"
 #include "path.h"
 #include "filelister.h"
-
-
-
-#ifdef TSC_FILE_DEPEND_DBG
-
-std::ofstream log_file;
-unsigned int log_total_includes = 0;
-unsigned int log_missed = 0;
-unsigned int log_more_than_one = 0;
-void open_log_file()
-{
-	log_total_includes = 0;
-	log_missed = 0;
-	log_more_than_one = 0;
-	log_file.open("tsc_log.txt", std::ios_base::trunc);
-	printf("open_log_file\n");
-}
-
-void close_log_file()
-{
-	log_file << "Total includes: " << log_total_includes << std::endl;
-	log_file << "Includes missed: " << log_missed << std::endl;
-	log_file << "Includes more than one: " << log_more_than_one << std::endl;
-	log_file.close();
-	printf("close_log_file\n");
-}
-
-#endif
 
 unsigned int CFileBase::s_id = 0;
 
@@ -77,7 +40,9 @@ CFileDependTable::CFileDependTable()
 
 CFileDependTable::~CFileDependTable()
 {
-
+	delete m_pRoot;
+	m_flag = m_begin = NULL;
+	m_pRoot = NULL;
 }
 
 bool CFileDependTable::Create(
@@ -85,9 +50,6 @@ bool CFileDependTable::Create(
 	const std::vector<std::string>& excludesPaths, 
 	const std::vector<std::string>& includePaths)
 {
-#ifdef TSC_FILE_DEPEND_DBG
-	open_log_file();
-#endif
 	ReleaseTable();
 
 	if (!paths.size())
@@ -100,9 +62,6 @@ bool CFileDependTable::Create(
 	}
 	UpdateIncludes(includePaths);
 	
-#ifdef TSC_FILE_DEPEND_DBG
-	close_log_file();
-#endif
 	return true;
 }
 #ifdef _WIN32
@@ -116,7 +75,7 @@ bool CFileDependTable::BuildTable(CFolder* pParent, const std::string& sPath, fp
 	std::string strNative = Path::toNativeSeparators(sPath);
 
 	std::ostringstream oss;
-	oss << strNative;
+	oss << strNative.c_str();
 	
 	if (FileLister::isDirectory(strNative)) 
 	{
@@ -521,9 +480,6 @@ void CFileDependTable::GetIncludes(const std::string &fileName, std::vector<std:
 
 CCodeFile* CFileDependTable::FindMatchedFile(CCodeFile* pFile, std::string sInclude)
 {
-#ifdef TSC_FILE_DEPEND_DBG
-	log_total_includes++;
-#endif
 	std::replace(sInclude.begin(), sInclude.end(), '\\', '/');
 
 	std::vector<std::string> vecInc;
@@ -598,7 +554,7 @@ CCodeFile* CFileDependTable::FindMatchedFile(CCodeFile* pFile, std::string sIncl
 				while (iter != iterEnd)
 				{
 					index2 = index;
-					CFileBase* pFlag = pFile->GetParent();
+					pFlag = pFile->GetParent();
 					while(index2-- >= 0 && pFlag)
 					{
 						pFlag = pFlag->GetParent();
@@ -619,22 +575,10 @@ CCodeFile* CFileDependTable::FindMatchedFile(CCodeFile* pFile, std::string sIncl
 			}
 		}
 
-#ifdef TSC_FILE_DEPEND_DBG
-		if (vecMatched.size() > 1)
-		{
-			log_more_than_one++;
-			log_file << "more than one matched files: [" << sInclude << "] [" << pFile->GetFullPath() << "]" << std::endl;
-		}
-#endif // TSC_FILE_DEPEND_DBG
-
 		return FindShortestPath(vecMatched, pFile);
 	
 	}
 
-#ifdef TSC_FILE_DEPEND_DBG
-	log_missed++;
-	log_file << "no matched files: [" << sInclude << "] [" << pFile->GetFullPath() << "]" << std::endl;
-#endif // TSC_FILE_DEPEND_DBG
 	return NULL;
 }
 
@@ -649,13 +593,13 @@ void CFileDependTable::DumpFileDependResults()
 	CCodeFile* pFile = m_begin;
 	while (pFile != NULL)
 	{
-		ofs << Path::toNativeSeparators(pFile->GetFullPath()) << std::endl;
+		ofs << Path::toNativeSeparators(pFile->GetFullPath()) << ", " << pFile->GetSize() << ", expanded " << pFile->GetExpandCount() << std::endl;
 		std::list<CCodeFile*>::iterator iter = pFile->GetAllDepends().begin();
 		std::list<CCodeFile*>::iterator iterEnd = pFile->GetAllDepends().end();
 		iterEnd--;
 		for (;iter != iterEnd;iter++)
 		{
-			ofs << "\t\t[" <<  Path::toNativeSeparators((*iter)->GetFullPath()) << "]" << std::endl;
+			ofs << "\t\t[" <<  Path::toNativeSeparators((*iter)->GetFullPath()) << ", " << (*iter)->GetSize() << "]" << std::endl;
 		}
 		ofs << std::endl;
 		pFile = pFile->GetNext();
@@ -725,7 +669,7 @@ bool CFileDependTable::CreateFileDependTree(const std::vector<std::string> &path
 	for (std::vector<std::string>::const_iterator iter = iterBegin; iter != iterEnd; iter++)
 	{
 		std::string sPath = Path::fromNativeSeparators(getAbsolutePath(*iter));
-		if (!BuildFileDependTree(sPath, Path::acceptFile_h))
+		if (!BuildFileDependTree(sPath, Path::acceptFile_H))
 		{
 			return false;
 		}
@@ -736,7 +680,7 @@ bool CFileDependTable::CreateFileDependTree(const std::vector<std::string> &path
 	for (std::vector<std::string>::const_iterator iter = iterBegin; iter != iterEnd; iter++)
 	{
 		std::string sPath = Path::fromNativeSeparators(getAbsolutePath(*iter));
-		if (!BuildFileDependTree(sPath, Path::isH))
+		if (!BuildFileDependTree(sPath, Path::isHeader))
 		{
 			return false;
 		}
@@ -750,7 +694,7 @@ bool CFileDependTable::CreateFileDependTree(const std::vector<std::string> &path
 
 		if (pFile)
 		{
-			pFile->GetParent()->RemoveFile(pFile->GetName());
+			pFile->SetIgnore(true);
 		}
 	}
 
@@ -803,6 +747,8 @@ CFileBase* CFileDependTable::FindFile(const std::string& filePath)
 	while (end != std::string::npos)
 	{
 		entry = sPath.substr(begin, end - begin);
+		//if (!entry.empty())
+		//{
 			pFile = pFolder->FindFile(entry.c_str());
 			if (!pFile)
 				return NULL;
@@ -810,6 +756,7 @@ CFileBase* CFileDependTable::FindFile(const std::string& filePath)
 			pFolder = dynamic_cast<CFolder*>(pFile);
 			if (!pFolder)
 				return NULL;
+		//}
 		begin = end + 1;
 		end = sPath.find('/', begin);
 	}
@@ -838,7 +785,10 @@ bool CFileDependTable::BuildFileDependTree(std::string &sPath, fp_fileFilter fp)
 	while (end != std::string::npos)
 	{
 		entry = sPath.substr(begin, end - begin);
-		pFolder = pFolder->AddFolder(entry.c_str(), bNew);
+		//if (!entry.empty())
+		//{
+			pFolder = pFolder->AddFolder(entry.c_str(), bNew);
+		//}
 		begin = end + 1;
 		end = sPath.find('/', begin);
 	}
@@ -912,20 +862,26 @@ std::string CFileDependTable::GetProgramDirectory()
 	return sPath;
 }
 
-void CFileDependTable::CreateLogDirectory()
+bool CFileDependTable::CreateLogDirectory(std::string* pLogPath)
 {
 	std::string sPath = GetProgramDirectory();
 	sPath +="log";
 	sPath = Path::toNativeSeparators(sPath);
-
+	if (pLogPath)
+	{
+		pLogPath->assign(sPath.c_str());
+	}
 	if (!FileLister::fileExists(sPath))
 	{
 #ifdef WIN32
-		SHCreateDirectoryExA(NULL, sPath.c_str(), NULL);
+		return (SHCreateDirectoryExA(NULL, sPath.c_str(), NULL) == ERROR_SUCCESS);
 #else
 		mkdir(sPath.c_str(), 0777);
+		return true;
 #endif
 	}
+	else
+		return true;
 }
 
 CFileBase::CFileBase()
@@ -933,6 +889,7 @@ CFileBase::CFileBase()
 	m_fileType = FT_NONE;
 	m_uID = s_id++;
 	m_parent = NULL;
+	m_bIgnore = false;
 }
 
 CFileBase::~CFileBase()
@@ -987,7 +944,11 @@ void CFolder::AddFile(CFileBase* pFile)
 
 CFolder::~CFolder()
 {
-
+	for (std::vector<CFileBase*>::iterator I = m_subs.begin(), E = m_subs.end(); I != E; ++I)
+	{
+		delete *I;
+	}
+	m_subs.clear();
 }
 
 void CFolder::Release()
@@ -1068,6 +1029,20 @@ const std::vector<CFileBase*>& CFolder::GetSubs()
 	return m_subs;
 }
 
+void CFolder::SetIgnore(bool ignore)
+{
+	CFileBase::SetIgnore(ignore);
+
+	for (std::vector<CFileBase*>::iterator iter = m_subs.begin(), E = m_subs.end();iter != E; ++iter)
+	{
+		CFileBase* pFile = *iter;
+		if (pFile)
+		{
+			pFile->SetIgnore(ignore);
+		}
+	}
+}
+
 void CFolder::RemoveFile(const std::string& sName)
 {
 	std::vector<CFileBase*>::iterator iter = m_subs.begin();
@@ -1103,6 +1078,7 @@ CCodeFile::CCodeFile(const char* szName, std::size_t size)
 	m_name = szName;
 	m_size = size;
 	m_next = NULL;
+	m_nExpandCount = 0;
 }
 
 CCodeFile::~CCodeFile()
@@ -1131,14 +1107,14 @@ std::vector<CCodeFile*>& CCodeFile::GetDepends()
 	return m_depends;
 }
 
-std::size_t CCodeFile::GetSize()
+std::size_t CCodeFile::GetSize() const
 {
 	return m_size;
 }
 
 void CCodeFile::FillAllDepends()
 {
-	m_allDepends.clear();
+	//m_allDepends.clear();
 
 	std::set<CCodeFile*> included;
 	ExpandIncludes(this, m_allDepends, included);
@@ -1155,6 +1131,10 @@ std::list<CCodeFile*>& CCodeFile::GetAllDepends()
 
 void CCodeFile::ExpandIncludes(CCodeFile* pCodeFile, std::list<CCodeFile*>& allDepends, std::set<CCodeFile*>& included)
 {
+	//char szOutput[1024];
+	//sprintf(szOutput, "zydebug, %s", pCodeFile->GetFullPath());
+	//::OutputDebugStringA(szOutput);
+
 	if (included.count(pCodeFile))
 	{
 		return;
@@ -1197,4 +1177,9 @@ void CCodeFile::ExpandIncludes(CCodeFile* pCodeFile, std::list<CCodeFile*>& allD
 	}
 
 	allDepends.push_back(pCodeFile);
+}
+
+void CCodeFile::AddExpandCount()
+{
+	++m_nExpandCount;
 }

@@ -1,6 +1,12 @@
-#define CPPCHECK_VERSION_STRING "2.0"
-//#define CPPCHECK_VERSION_STRING "1.57"
-#define CPPCHECK_VERSION 2,0,0,0
-//#define CPPCHECK_VERSION 1,57,0,0
-#define LEGALCOPYRIGHT L"Copyright (C) CD gametest1 team."
-//#define LEGALCOPYRIGHT L"Copyright (C) 2007-2012 Daniel Marjam\x00E4ki and Cppcheck team."
+#define TSC_SVN 2179
+#define TSC_MAJOR 2
+#define TSC_MINOR 8
+#define TSC_DEVMINOR 1
+
+#define STRINGIFY(x) STRING(x)
+#define STRING(VER) #VER
+
+#define TSCANCODE_VERSION_STRING STRINGIFY(TSC_MAJOR) "." STRINGIFY(TSC_MINOR) "." STRINGIFY(TSC_SVN)
+#define TSCANCODE_VERSION TSC_MAJOR,TSC_MINOR,0,0
+
+#define LEGALCOPYRIGHT L"Copyright (C) 2017 TSC team"
