@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<def format="1">
+  <section name="CodeTrace" value="0">
+  </section>
+  <section name="PathToIgnore">
+	<!---path name="F:\TSC2\trunk\quarkzou\np_demo\np_demo\demo"></path-->
+  </section>
+  <section name="JumpCode">
+	<!--jumpcode name="JMP"></jumpcode-->
+	<jumpcode name="assert" default="1">
+		<arg index="1"></arg>
+	</jumpcode>
+  </section>
+  <section name="Checks">
+	  <id name="nullpointer" value="1">
+		  <subid name="dereferenceAfterCheck"			value="1" default="1"/>
+		  <subid name="funcDereferenceAfterCheck"		value="1" default="1"/>
+		  <subid name="arrayDereferenceAfterCheck"		value="1" default="1"/>
+		  <subid name="possibleDereferenceAfterCheck"	value="1" default="1"/>
+
+		  <subid name="funcRetNull"						value="1" default="1"/>
+		  <subid name="funcRetNullStatistic"			value="1" default="1"/>
+		  <subid name="funcFuncRetNull"					value="1" default="1"/>
+		  <subid name="arrayFuncRetNull"				value="1" default="1"/>
+
+		  <subid name="dereferenceBeforeCheck"			value="1" default="1"/>
+		  <subid name="funcDereferenceBeforeCheck"		value="1" default="1"/>
+		  <subid name="arrayDereferenceBeforeCheck"		value="1" default="1"/>
+
+		  <subid name="dereferenceIfNull"				value="1" default="1"/>
+		  <subid name="funcDereferenceIfNull"			value="1" default="1"/>
+		  <subid name="arrayDereferenceIfNull"			value="1" default="1"/>
+
+		  <subid name="explicitNullDereference"			value="1" default="1"/>
+		  <subid name="checkNullDefect"					value="1" default="1"/>
+
+		  <subid name="invalidDereferenceIterator"		value="1" default="1"/>
+
+		  <subid name="possibleNullDereferenced"		value="1" default="1"/>
+		  <subid name="nullPointerArray"				value="0" default="1"/>
+		  <subid name="nullPointerArg"					value="0" default="1"/>
+		  <subid name="nullPointerClass"				value="0" default="1"/>
+		  <subid name="directFuncPossibleRetNull"		value="1" default="1"/>
+	  </id>
+	  <id name="bufoverrun" value="1">
+		  <subid name="arrayIndexOutOfBounds"			value="1" default="1"/>
+		  <subid name="negativeIndex"					value="1" default="1"/>
+		  <subid name="arrayIndexThenCheck"				value="1" default="1"/>
+		  <subid name="arrayIndexCheckDefect"			value="1" default="1"/>
+		  <subid name="IndexSelfIncrementError"         value="0" default="1"/>
+
+		  <subid name="bufferAccessOutOfBounds"			value="1" default="1"/>
+		  <subid name="formatbufoverrun"				value="1" default="1"/>
+		  <subid name="funcRetLengthAsIndex"			value="1" default="1"/>
+
+		  <subid name="pointerOutOfBounds"				value="0" default="1"/>
+		  <subid name="stlOutOfBounds"					value="1" default="1"/>
+	  </id>
+	  <id name="memleak" value="1">
+		  <subid name="memleak"							value="1" default="1"/>
+		  <subid name="memleakOnRealloc"				value="1" default="1"/>
+		  <subid name="resourceLeak"					value="1" default="1"/>
+		  <subid name="deallocDealloc"					value="1" default="1"/>
+		  <subid name="deallocuse"						value="1" default="1"/>
+		  <subid name="mismatchAllocDealloc"			value="1" default="1"/>
+		  <subid name="mismatchSize"					value="1" default="1"/>
+		  <subid name="unsafeClassCanLeak"				value="1" default="1"/>
+		  <subid name="publicAllocationError"			value="1" default="1"/>
+		  <subid name="leakNoVarFunctionCall"			value="1" default="1"/>
+		  <subid name="leakReturnValNotUsed"			value="1" default="1"/>
+		  <subid name="leakUnsafeArgAlloc"				value="1" default="1"/>
+		  <subid name="virtualDestructor"				value="1" default="1"/>
+	  </id>
+	  <id name="compute" value="1">
+		  <subid name="incrementboolean"				value="1" default="1"/>
+		  <subid name="moduloAlwaysTrueFalse"			value="1" default="1"/>
+		  <subid name="SizeofForNumericParameter"		value="1" default="1"/>
+		  <subid name="SizeofForArrayParameter"			value="1" default="1"/>
+		  <subid name="SizeofForPointerSize"			value="1" default="1"/>
+		  <subid name="sizeofsizeof"					value="1" default="1"/>
+		  <subid name="PreciseComparison"				value="1" default="1"/>
+		  <subid name="Unsignedlessthanzero"			value="1" default="1"/>
+		  <subid name="UnsignedDivision"				value="1" default="1"/>
+		  <subid name="NegativeBitwiseShift"			value="1" default="1"/>
+		  <subid name="ZeroDivision"					value="1" default="1"/>
+	  </id>
+	  <id name="suspicious" value="1">
+		  <subid name="assignmentInAssert"				value="1" default="1"/>
+		  <subid name="autovar"							value="1" default="1"/>
+		  <subid name="suspiciousSemicolon"				value="1" default="1"/>
+		  <subid name="memsetZeroBytes"					value="1" default="1"/>
+		  <subid name="Danglingpointer"					value="1" default="1"/>
+		  <subid name="NestedLoop"						value="1" default="1"/>
+		  <subid name="suspiciousArrayIndex"			value="1" default="1"/>
+		  <subid name="unConditionalBreakinLoop"		value="1" default="1"/>
+		  <subid name="SuspiciousPriority"				value="1" default="1"/>
+		  <subid name="suspiciousfor"					value="1" default="1"/>
+		  <subid name="suspiciouswhilestrerror"			value="1" default="1"/>
+		  <subid name="wrongvarinfor"					value="1" default="1"/>
+		  <subid name="FuncReturn"						value="1" default="1"/>
+		  <subid name="BoolFuncReturn"					value="1" default="1"/>
+		  <subid name="IfCondition"						value="1" default="1"/>
+		  <subid name="invalidIterator"					value="1" default="1"/>
+		  <subid name="strPlusChar"  					value="1" default="1"/>
+		  <subid name="RenameLocalVariable"	            value="0" default="1"/>
+		  <subid name="tooManyNestedScopes"	            value="0" />
+	  </id>
+	  <id name="logic" value="1">
+		  <subid name="bitwiseOnBoolean"				value="1" default="1"/>
+		  <subid name="ComparisonOfBoolWithInt"			value="1" default="1"/>
+		  <subid name="ComparisonOfBoolWithBool"		value="1" default="1"/>
+		  <subid name="ComparisonWithBool"				value="1" default="1"/>
+		  <subid name="assignIf"						value="1" default="1"/>
+		  <subid name="oppositeInnerCondition"			value="1" default="1"/>
+		  <subid name="incorrectLogicOperator"			value="1" default="1"/>
+		  <subid name="clarifyCondition"				value="1" default="1"/>
+		  <subid name="stlIfFind"						value="1" default="1"/>
+		  <subid name="StlMissingComparison"			value="1" default="1"/>
+		  <subid name="stlSortCheck"					value="1" default="1"/>
+		  <subid name="InvalidVarArgs"					value="1" default="1"/>
+		  <subid name="SwitchNoBreakUP"					value="1" default="1"/>
+		  <subid name="SwitchNoDefault"					value="1" default="1"/>
+		  <subid name="NoFirstCase"						value="1" default="1"/>
+		  <subid name="RecursiveFunc"					value="1" default="1"/>
+		  <subid name="CompareDefectInFor"				value="1" default="1"/>
+		  <subid name="UnintentionalOverflow"			value="1" default="1"/>
+		  <subid name="ReferenceParamError"				value="1" default="1"/>
+		  <subid name="deadpointer"						value="1" default="1"/>
+		  <subid name="duplicateBranch"					value="1" default="1"/>
+		  <subid name="DuplicateExpression"				value="1" default="1"/>
+		  <subid name="selfAssignment"					value="1" default="1"/>
+		  <subid name="duplicateIf"						value="1" default="1"/>
+		  <subid name="redundantAssignment"				value="0" default="1"/>	
+		  <subid name="STLFindError"					value="1" default="1"/>
+		  <subid name="SignedUnsignedMixed"				value="1" default="1"/>
+		  <subid name="redundantCondition"              value="1" default="1"/>
+		  <subid name="pragmaPackNotMatch"				value="1" default="1"/>
+		  <subid name="integerMultiplyOverflow"			value="1" default="1"/>
+		  <subid name="unsignedMinusError"				value="1" default="1"/>
+		  <subid name="structSpaceWasted"				value="1" default="1"/>
+	  </id>
+	  <id name="unsafefunc" value="1">
+		  <subid name="unsafeFunctionUsage"				value="1" default="1"/>
+		  <subid name="NonThreadSafeFunc"				value="1" default="1"/>
+	  </id>
+	  <id name="unity" value="1">
+		  <subid name="unityFloatVariables"				value="0" />
+		  <subid name="unityRandomFunc"					value="0" />
+		  <subid name="unityUnstableSortFunc"			value="0" />
+		  <subid name="sgameStructAlignError"			value="0" />
+	  </id>
+	  <id name="uninit" value="1">
+		  <subid name="uninitstring"					value="1" default="1"/>
+		  <subid name="uninitvar"						value="1" default="1"/>
+		  <subid name="possibleUninitvar"				value="1" default="1"/>
+		  <subid name="uninitPtr"						value="1" default="1"/>
+		  <subid name="possibleUninitPtr"			    value="1" default="1"/>
+		  <subid name="uninitMemberInCtor"				value="1" default="1"/>
+		  <subid name="possibleUninitStruct"     		value="1" default="1"/>
+		  <subid name="UninitStruct"            		value="1" default="1"/>
+		  <subid name="possibleUninitMemberInCtor" 		value="1" default="1"/>
+		  <subid name="uninitMemberVar"				    value="1" default="1"/>
+	  </id>
+	  <id name="custom" value="1">
+		  <subid name="WeShoot_SizeUnmatch"				value="0" />
+		  <subid name="WeShoot_SizePossibleUnmatch"		value="0" />
+		  <subid name="SGame_PointerMember"				value="0" />
+		  <subid name="SGame_PointerMemberTemplate"		value="0" />
+		  <subid name="ssk_UncheckedIndex"              value="0" />
+		  <subid name="NonThreadSafeFunc"				value="0" />
+		  <subid name="structSpaceWasted"				value="0" />
+		  <subid name="pragmaPackNotMatch"				value="0" />
+		  <subid name="ReferenceParamError"				value="0" />
+	  </id>
+  </section>
+  <section name="IgnoreFileExtension">
+	<ext name=".pb.cc" default="1"></ext>
+	<ext name=".pb.c" default="1"></ext>
+	<ext name=".pb.cpp" default="1"></ext>
+	<ext name=".pb.h" default="1"></ext>
+	<ext name=".pb.hpp" default="1"></ext>
+  </section>
+  <section name="FunctionNotReturnNull">
+	<function name="malloc" default="1"></function>
+	<function name="localtime_r" default="1"></function>
+	<function name="localtime" default="1"></function>
+	<function name="TMalloc" default="1"></function>
+	<function name="create" default="1"></function>
+	<function name="getInstance" default="1"></function>
+	<function name="instance" default="1"></function>
+	<function name="widgetFromBinaryFile" default="1"></function>
+	<function name="seekWidgetByName" default="1"></function>
+	<function name="widgetFromJsonFile" default="1"></function>
+	<function name="getChildByName" default="1"></function>
+	<function name="getItem" default="1"></function>
+	<function name="FirstChildElement" default="1"></function>
+	<function name="newRsb" default="1"></function>
+	<function name="getLuaStack" default="1"></function>
+	<function name="begin" default="1"></function>
+	<function name="Begin" default="1"></function>
+	<function name="c_str" default="1"></function>
+	<function name="strtod" default="1"></function>
+	<function name="strerror" default="1"></function>
+	<function name="strtoul" default="1"></function>
+	<function name="clearerr" default="1"></function>
+	<function name="fflush" default="1"></function>
+	<function name="fgetc" default="1"></function>
+	<function name="fprintf" default="1"></function>
+	<function name="fputc" default="1"></function>
+	<function name="fscanf" default="1"></function>
+	<function name="ftell" default="1"></function>
+	<function name="fwrite" default="1"></function>
+	<function name="getc" default="1"></function>
+	<function name="getchar" default="1"></function>
+	<function name="perror" default="1"></function>
+	<function name="printf" default="1"></function>
+	<function name="putc" default="1"></function>
+	<function name="putchar" default="1"></function>
+	<function name="puts" default="1"></function>
+	<function name="rewind" default="1"></function>
+	<function name="scanf" default="1"></function>
+	<function name="setbuf" default="1"></function>
+	<function name="setvbuf" default="1"></function>
+	<function name="sprintf" default="1"></function>
+	<function name="sscanf" default="1"></function>
+	<function name="tmpnam" default="1"></function>
+	<function name="ungetc" default="1"></function>
+	<function name="vprintf" default="1"></function>
+	<function name="vfprintf" default="1"></function>
+	<function name="vsprintf" default="1"></function>
+	<function name="free" default="1"></function>
+	<function name="abs" default="1"></function>
+	<function name="acos" default="1"></function>
+	<function name="asin" default="1"></function>
+	<function name="atan" default="1"></function>
+	<function name="atan2" default="1"></function>
+	<function name="ceil" default="1"></function>
+	<function name="cos" default="1"></function>
+	<function name="cosh" default="1"></function>
+	<function name="div" default="1"></function>
+	<function name="exp" default="1"></function>
+	<function name="fabs" default="1"></function>
+	<function name="floor" default="1"></function>
+	<function name="fmod" default="1"></function>
+	<function name="frexp" default="1"></function>
+	<function name="labs" default="1"></function>
+	<function name="ldexp" default="1"></function>
+	<function name="ldiv" default="1"></function>
+	<function name="log" default="1"></function>
+	<function name="log10" default="1"></function>
+	<function name="modf" default="1"></function>
+	<function name="pow" default="1"></function>
+	<function name="sin" default="1"></function>
+	<function name="sinh" default="1"></function>
+	<function name="sqrt" default="1"></function>
+	<function name="tan" default="1"></function>
+	<function name="tanh" default="1"></function>
+	<function name="asctime" default="1"></function>
+	<function name="clock" default="1"></function>
+	<function name="ctime" default="1"></function>
+	<function name="difftime" default="1"></function>
+	<function name="gmtime" default="1"></function>
+	<function name="mktime" default="1"></function>
+	<function name="strftime" default="1"></function>
+	<function name="time" default="1"></function>
+	<function name="abort" default="1"></function>
+	<function name="assert" default="1"></function>
+	<function name="longjmp" default="1"></function>
+	<function name="qsort" default="1"></function>
+	<function name="rand" default="1"></function>
+	<function name="signal" default="1"></function>
+	<function name="srand" default="1"></function>
+	<function name="va_arg" default="1"></function>
+	<function name="feof" default="1"></function>
+	<function name="strlen" default="1"></function>
+	
+	
+	<!--function name="MyClass::bar(TTT a, KKK b)"></function-->
+  </section>
+  <!--section name="PerformanceCfg">
+	  <entry name="large_token_count" value="-1"></entry>
+	  <entry name="large_header_size" value="-1"></entry>
+  </section-->
+  <section name="NonReferenceType">
+	  <typename name="CommunicatorPtr" ></typename>
+	  <typename name="ServantPrx" ></typename>
+	  <typename name="AdapterPrx" ></typename>
+	  <typename name="ServantPrx" ></typename>
+	  <typename name="ServantProxyCallbackPtr" ></typename>
+	  <typename name="ThreadContextCallbackPtr" ></typename>
+	  <typename name="ServantProxyRouterPtr" ></typename>
+	  <typename name="ObjectPrx" ></typename>
+	  <typename name="JceCurrentPtr" ></typename>
+	  <typename name="StatFPrx" ></typename>
+	  <typename name="StatReportPtr" ></typename>
+	  <typename name="BasePrx" ></typename>
+	  <typename name="FDReactorPtr" ></typename>
+	  <typename name="StatReportPtr" ></typename>
+	  <typename name="ServantProxyFactoryPtr" ></typename>
+	  <typename name="ObjectProxyFactoryPtr" ></typename>
+	  <typename name="AsyncProcThreadPtr" ></typename>
+	  <typename name="ReqMessagePtr" ></typename>
+	  <typename name="TC_AutoPtr" ></typename>
+  </section>
+  <section name="HeaderExtension">
+	<ext name=".hpp" default="1"/>
+	<ext name=".inl" default="1"/>
+	<ext name=".h"   default="1"/>
+	<ext name=".hh"  default="1"/>
+  </section>
+  <!--section name="SelfMemMalloc">
+	  <function customSelfMalloc="mymalloc" customSelfDelloc="mydelloc" ></function>
+	  <function customSelfMalloc="ffopen" customSelfDelloc="ffclose" ></function>
+  </section-->
+</def>
