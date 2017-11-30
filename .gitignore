@@ -1,2 +1,20 @@
+################################################################################
+# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
+################################################################################
+
+/.svn
+/TSC2_samples
+/branches
+*.db
+*.opendb
+*.diagsession
+/trunk/.vs
+/trunk/bin
+/trunk/ipch
+/trunk/cli/temp
+/trunk/lib/temp
+*.DS_Store
 *.swp
 .DS_Store
+trunk/tscancode.xcodeproj/project.xcworkspace
+trunk/tscancode.xcodeproj/xcuserdata

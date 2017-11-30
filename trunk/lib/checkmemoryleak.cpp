@@ -2335,6 +2335,9 @@ void CheckMemoryLeakInFunction::check()
 
 void CheckMemoryLeakInClass::check()
 {
+	if (!_settings->IsCheckIdOpened(ErrorType::ToString(ErrorType::UserCustom).c_str(), "unsafeClassCanLeak"))
+		return;
+
     const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
 
     // only check classes and structures
@@ -2490,7 +2493,7 @@ void CheckMemoryLeakInClass::variable(const Scope *scope, const Token *tokVarnam
 void CheckMemoryLeakInClass::unsafeClassError(const Token *tok, const std::string &classname, const std::string &varname)
 {
 //#ifdef  TSCANCODE_RULE_OPEN
-    reportError(tok, Severity::style, ErrorType::MemoryLeak, "unsafeClassCanLeak",
+    reportError(tok, Severity::style, ErrorType::UserCustom, "unsafeClassCanLeak",
                 "Class '" + classname + "' is unsafe, as '" + varname + "' is allocated in constructor or functions, but not deallocated in destructor.\n"
                 "The class '" + classname + "' is unsafe, wrong usage can cause memory/resource leaks for '" + varname + "'. This can for instance be fixed by adding proper cleanup in the destructor.", ErrorLogger::GenWebIdentity(varname));
 //#endif

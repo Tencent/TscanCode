@@ -42,7 +42,6 @@
 		  <subid name="mismatchAllocDealloc"			value="1" severity="Warning" rule_name="内存申请和释放不匹配" desc="内存申请和释放的方式不匹配，比如new的内存，用free去释放" />
 		  <subid name="mismatchSize"					value="1" severity="Warning" rule_name="内存分配大小错误" desc="alloc的大小和类型的大小不匹配" />
 		  <subid name="virtualDestructor"				value="1" severity="Warning" rule_name="虚析构函数使用错误" desc="析构函数没有设置为virtual，如果漏调用可能产生资源泄漏" />
-		  <subid name="unsafeClassCanLeak"				value="1" severity="Warning" rule_name="析构函数未释放类成员变量" desc="类成员变量在构造函数或者成员函数中申请了内存，但是在析构函数中没有释放，可能导致内存泄漏" />
 	  </id>
 	  <id name="compute" rule_name="运算错误" value="1">
 		  <subid name="incrementboolean"				value="1" severity="Warning" rule_name="bool变量自增" desc="对bool变量使用自增，不符合代码规范，而且可能造成不可预期的错误" />
