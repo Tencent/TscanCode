@@ -1,6 +1,6 @@
-#define TSC_SVN 2179
+#define TSC_SVN 27
 #define TSC_MAJOR 2
-#define TSC_MINOR 8
+#define TSC_MINOR 11
 #define TSC_DEVMINOR 1
 
 #define STRINGIFY(x) STRING(x)
