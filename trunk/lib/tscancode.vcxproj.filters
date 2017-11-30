@@ -191,9 +191,6 @@
     <ClCompile Include="globalmacros.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="checkusercustom.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="checkstatistic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -386,9 +383,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="globalmacros.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="checkusercustom.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="checkstatistic.h">
