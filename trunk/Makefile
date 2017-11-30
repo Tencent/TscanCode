@@ -63,7 +63,6 @@ LIBOBJ =      $(SRCDIR)/astutils.o \
               $(SRCDIR)/checktsccompute.o \
               $(SRCDIR)/checktsclogic.o \
               $(SRCDIR)/checktscoverrun.o \
-              $(SRCDIR)/checkUserCustom.o \
               $(SRCDIR)/checkstatistic.o \
               $(SRCDIR)/checktscsuspicious.o \
               $(SRCDIR)/checktscinvalidvarargs.o \
@@ -202,9 +201,6 @@ $(SRCDIR)/checktsclogic.o: lib/checktsclogic.cpp lib/checktsclogic.h
 
 $(SRCDIR)/checktscoverrun.o: lib/checktscoverrun.cpp lib/checktscoverrun.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CFG) $(CXXFLAGS) $(UNDEF_STRICT_ANSI) -c -o $(SRCDIR)/checktscoverrun.o $(SRCDIR)/checktscoverrun.cpp
-
-$(SRCDIR)/checkUserCustom.o: lib/checkusercustom.cpp lib/checkusercustom.h
-	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CFG) $(CXXFLAGS) $(UNDEF_STRICT_ANSI) -c -o $(SRCDIR)/checkUserCustom.o $(SRCDIR)/checkusercustom.cpp
 
 $(SRCDIR)/checkstatistic.o: lib/checkstatistic.cpp lib/checkstatistic.h
 	$(CXX) ${INCLUDE_FOR_LIB} $(CPPFLAGS) $(CFG) $(CXXFLAGS) $(UNDEF_STRICT_ANSI) -c -o $(SRCDIR)/checkstatistic.o $(SRCDIR)/checkstatistic.cpp

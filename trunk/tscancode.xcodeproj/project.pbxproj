@@ -39,7 +39,6 @@
 		ABAF65C31C50D674008B81A6 /* checkTSCSuspicious.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABAF65BE1C50D674008B81A6 /* checkTSCSuspicious.cpp */; };
 		ABB057F71F2F0993001A5579 /* checkreadability.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057E91F2F0993001A5579 /* checkreadability.cpp */; };
 		ABB057FA1F2F0993001A5579 /* checktscoverrun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057EF1F2F0993001A5579 /* checktscoverrun.cpp */; };
-		ABB057FB1F2F0993001A5579 /* checkusercustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057F21F2F0993001A5579 /* checkusercustom.cpp */; };
 		ABB057FC1F2F0993001A5579 /* globalmacros.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057F41F2F0993001A5579 /* globalmacros.cpp */; };
 		ABEE8FDC1BFDB47C0082ACAB /* astutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABEE8FDA1BFDB47C0082ACAB /* astutils.cpp */; };
 		ABFCB7291C05972F001A1B2E /* globaltokenizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABFCB7281C05972F001A1B2E /* globaltokenizer.cpp */; };
@@ -153,8 +152,6 @@
 		ABB057EF1F2F0993001A5579 /* checktscoverrun.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktscoverrun.cpp; path = lib/checktscoverrun.cpp; sourceTree = "<group>"; };
 		ABB057F01F2F0993001A5579 /* checktscoverrun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktscoverrun.h; path = lib/checktscoverrun.h; sourceTree = "<group>"; };
 		ABB057F11F2F0993001A5579 /* checktype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktype.h; path = lib/checktype.h; sourceTree = "<group>"; };
-		ABB057F21F2F0993001A5579 /* checkusercustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkusercustom.cpp; path = lib/checkusercustom.cpp; sourceTree = "<group>"; };
-		ABB057F31F2F0993001A5579 /* checkusercustom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkusercustom.h; path = lib/checkusercustom.h; sourceTree = "<group>"; };
 		ABB057F41F2F0993001A5579 /* globalmacros.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = globalmacros.cpp; path = lib/globalmacros.cpp; sourceTree = "<group>"; };
 		ABB057F51F2F0993001A5579 /* globalmacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = globalmacros.h; path = lib/globalmacros.h; sourceTree = "<group>"; };
 		ABB057F61F2F0993001A5579 /* matchcompiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = matchcompiler.h; path = lib/matchcompiler.h; sourceTree = "<group>"; };
@@ -285,8 +282,6 @@
 				ABB057EF1F2F0993001A5579 /* checktscoverrun.cpp */,
 				ABB057F01F2F0993001A5579 /* checktscoverrun.h */,
 				ABB057F11F2F0993001A5579 /* checktype.h */,
-				ABB057F21F2F0993001A5579 /* checkusercustom.cpp */,
-				ABB057F31F2F0993001A5579 /* checkusercustom.h */,
 				ABB057F41F2F0993001A5579 /* globalmacros.cpp */,
 				ABB057F51F2F0993001A5579 /* globalmacros.h */,
 				ABB057F61F2F0993001A5579 /* matchcompiler.h */,
@@ -486,7 +481,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ABB057FB1F2F0993001A5579 /* checkusercustom.cpp in Sources */,
 				AB8107731DF3C6E800966906 /* executionpath.cpp in Sources */,
 				AB5A3B431C151B2C0022D04B /* tokenex.cpp in Sources */,
 				39E60EB91270DE3A00AC0D02 /* checkautovariables.cpp in Sources */,
