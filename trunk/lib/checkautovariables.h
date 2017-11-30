@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,51 +18,55 @@
 
 
 //---------------------------------------------------------------------------
-#ifndef CheckAutoVariablesH
-#define CheckAutoVariablesH
+#ifndef checkautovariablesH
+#define checkautovariablesH
 //---------------------------------------------------------------------------
 
 #include "config.h"
 #include "check.h"
-#include "token.h"
 
 /// @addtogroup Checks
+/** @brief Various small checks for automatic variables */
 /// @{
 
 
-class CPPCHECKLIB CheckAutoVariables : public Check {
+class TSCANCODELIB CheckAutoVariables : public Check {
 public:
     /** This constructor is used when registering the CheckClass */
-    CheckAutoVariables() : Check(myName())
-    { }
+    CheckAutoVariables() : Check(myName()) {
+    }
 
     /** This constructor is used when running checks. */
     CheckAutoVariables(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
-        : Check(myName(), tokenizer, settings, errorLogger)
-    { }
+        : Check(myName(), tokenizer, settings, errorLogger) {
+    }
 
     /** @brief Run checks against the normal token list */
     void runChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-         //getconf();
-		 //自动变量检查，如果在一个函数的返回值是对一个局部变量的引用、一个指向局部变量的指针，那么极有可能带来风险，因为随着这个函数调用的结束，这个地址上的值很有可能被重新赋值了
-		 if(getCheckConfig()->Suspicious && getCheckConfig()->autovar)
-		 {
-			 CheckAutoVariables checkAutoVariables(tokenizer, settings, errorLogger);
-			 checkAutoVariables.returnReference();
-		 }
+        CheckAutoVariables checkAutoVariables(tokenizer, settings, errorLogger);
+
+		checkAutoVariables.returnReference();
+
+#ifdef TSCANCODE_RULE_OPEN
+        checkAutoVariables.assignFunctionArg();
+        //checkAutoVariables.returnReference();
+#endif
     }
 
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		//getconf();
-		//自动变量检查，如果在一个函数的返回值是对一个局部变量的引用、一个指向局部变量的指针，那么极有可能带来风险，因为随着这个函数调用的结束，这个地址上的值很有可能被重新赋值了
-		if(getCheckConfig()->Suspicious && getCheckConfig()->autovar)
-		{
         CheckAutoVariables checkAutoVariables(tokenizer, settings, errorLogger);
-        checkAutoVariables.autoVariables();
-        checkAutoVariables.returnPointerToLocalArray();
-		checkAutoVariables.AssignNoneLocalVarWithLocalVarAddress();
-		}
+
+		checkAutoVariables.autoVariables();
+		checkAutoVariables.returnPointerToLocalArray();
+		checkAutoVariables.AssignNoneLocalVarWithLocalVarAddress(); //from TSC1.0
+#ifdef TSCANCODE_RULE_OPEN
+        //checkAutoVariables.autoVariables();
+        //checkAutoVariables.returnPointerToLocalArray();
+#endif
     }
+
+    /** assign function argument */
+    void assignFunctionArg();
 
     /** Check auto variables */
     void autoVariables();
@@ -73,28 +77,21 @@ public:
     /** Returning reference to local/temporary variable */
     void returnReference();
 
-	/** Assign class member with local variable's address */
-	/** Add by TSC, 2014-09-01 */
-	void AssignNoneLocalVarWithLocalVarAddress();
-
-
-
 private:
-    bool isRefPtrArg(unsigned int varId);
-    bool isPtrArg(unsigned int varId);
-    bool isAutoVar(unsigned int varId);
-    bool isAutoVarArray(unsigned int varId);
+    static bool isPtrArg(const Token *tok);
+    static bool isArrayArg(const Token *tok);
+    static bool isRefPtrArg(const Token *tok);
+    static bool isNonReferenceArg(const Token *tok);
+    static bool isAutoVar(const Token *tok);
+    static bool isAutoVarArray(const Token *tok);
 
     /**
      * Returning a temporary object?
      * @param tok pointing at the "return" token
-     * @param startScope indicates the function scope to be checked
      * @return true if a temporary object is returned
      */
-    bool returnTemporary(const Token *tok, const Scope *startScope) const;
+    static bool returnTemporary(const Token *tok);
 
-
-	
     void errorReturnAddressToAutoVariable(const Token *tok);
     void errorReturnPointerToLocalArray(const Token *tok);
     void errorAutoVariableAssignment(const Token *tok, bool inconclusive);
@@ -102,7 +99,8 @@ private:
     void errorReturnTempReference(const Token *tok);
     void errorInvalidDeallocation(const Token *tok);
     void errorReturnAddressOfFunctionParameter(const Token *tok, const std::string &varname);
-	void errorAssignNoneLocalVarWithLocalVarAddress(const Token *tok);
+    void errorUselessAssignmentArg(const Token *tok);
+    void errorUselessAssignmentPtrArg(const Token *tok);
 
     void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const {
         CheckAutoVariables c(0,settings,errorLogger);
@@ -113,21 +111,35 @@ private:
         c.errorReturnTempReference(0);
         c.errorInvalidDeallocation(0);
         c.errorReturnAddressOfFunctionParameter(0, "parameter");
+        c.errorUselessAssignmentArg(0);
+        c.errorUselessAssignmentPtrArg(0);
     }
 
     static std::string myName() {
-        return "AutoVariables";
+        return "Auto Variables";
     }
 
     std::string classInfo() const {
         return "A pointer to a variable is only valid as long as the variable is in scope.\n"
                "Check:\n"
-               "* returning a pointer to auto or temporary variable\n"
-               "* assigning address of an variable to an effective parameter of a function\n"
-               "* returning reference to local/temporary variable\n"
-               "* returning address of function parameter\n";
+               "- returning a pointer to auto or temporary variable\n"
+               "- assigning address of an variable to an effective parameter of a function\n"
+               "- returning reference to local/temporary variable\n"
+               "- returning address of function parameter\n"
+               "- suspicious assignment of pointer argument\n"
+               "- useless assignment of function argument\n";
     }
+
+#pragma region From TSC 1.0
+private:
+	/** Assign class member with local variable's address */
+	/** from TSC1.0*/
+	void AssignNoneLocalVarWithLocalVarAddress();
+	void errorAssignNoneLocalVarWithLocalVarAddress(const Token *tok);
+
+#pragma endregion
+
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // checkautovariablesH

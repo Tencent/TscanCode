@@ -1,0 +1,395 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{bc8bb9f1-36f8-4d60-8212-277cafc1a42d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tokenize.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="check64bit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkautovariables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkbufferoverrun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkexceptionsafety.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkmemoryleak.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checknonreentrantfunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checknullpointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkobsolescentfunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkother.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkpostfixoperator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkstl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkuninitvar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkunusedfunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkunusedvar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="errorlogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mathlib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="preprocessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="settings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="suppressions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="symboldatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="token.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkboost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkinternal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tokenlist.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkio.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="templatesimplifier.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkleakautovar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkbool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checksizeof.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkassert.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="library.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\externals\tinyxml\tinyxml2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="valueflow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="check.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkvaarg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkstring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkcondition.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="astutils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="globaltokenizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="globalsymboldatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tokenex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktsccompute.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktscinvalidvarargs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktsclogic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktscsuspicious.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktscnullpointer2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\FileDepend.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\filelister.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\path.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\pathmatch.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="executionpath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checktscoverrun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkreadability.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="globalmacros.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="checkstatistic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tscancode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="checkbufferoverrun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkexceptionsafety.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkmemoryleak.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checknonreentrantfunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checknullpointer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkobsolescentfunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkother.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkpostfixoperator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkstl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkuninitvar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkunusedfunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkunusedvar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tscancode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="errorlogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mathlib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="preprocessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="suppressions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="symboldatabase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="token.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tokenize.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="check.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="check64bit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkautovariables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkboost.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkinternal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tokenlist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="templatesimplifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkleakautovar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkbool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checksizeof.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkassert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="library.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\externals\tinyxml\tinyxml2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="valueflow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkvaarg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkcondition.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="astutils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globaltokenizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globalsymboldatabase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tokenex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktsccompute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktscinvalidvarargs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktsclogic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktscsuspicious.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktscnullpointer2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\filedepend.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\filelister.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\path.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\pathmatch.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\config.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="executionpath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checktscoverrun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkreadability.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globalmacros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="checkstatistic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
+  </ItemGroup>
+</Project>

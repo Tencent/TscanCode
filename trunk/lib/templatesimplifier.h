@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ class Settings;
 /// @{
 
 /** @brief Simplify templates from the preprocessed and partially simplified code. */
-class CPPCHECKLIB TemplateSimplifier {
+class TSCANCODELIB TemplateSimplifier {
     TemplateSimplifier();
     ~TemplateSimplifier();
 public:
@@ -51,10 +51,10 @@ public:
     static void cleanupAfterSimplify(Token *tokens);
 
     /**
-     * @return 0 if there are no syntax errors or return token which identifies
-     * the location of syntax error.
+     * \param[in] tokens token list
+     * @return false if there are no syntax errors or true
      */
-    static const Token* hasComplicatedSyntaxErrorsInTemplates(Token *tokens);
+    static void checkComplicatedSyntaxErrorsInTemplates(const Token *tokens);
 
     /**
      * is the token pointing at a template parameters block
@@ -88,7 +88,7 @@ public:
      * @param templateInstantiations list of template instantiations
      */
     static void useDefaultArgumentValues(const std::list<Token *> &templates,
-                                         const std::list<Token *> &templateInstantiations);
+                                         std::list<Token *> *templateInstantiations);
 
     /**
      * Match template declaration/instantiation
@@ -114,11 +114,24 @@ public:
         const std::string &name,
         std::vector<const Token *> &typeParametersInDeclaration,
         const std::string &newName,
-        std::vector<const Token *> &typesUsedInTemplateInstantion,
+        std::vector<const Token *> &typesUsedInTemplateInstantiation,
         std::list<Token *> &templateInstantiations);
 
     /**
-     * Simplify templates : expand all instantiatiations for a template
+     * @brief TemplateParametersInDeclaration
+     * @param tok  template < typename T, typename S >
+     *                        ^ tok
+     * @param typeParametersInDeclaration  template < typename T, typename S >
+     *                                                         ^ [0]       ^ [1]
+     * @return  template < typename T, typename S >
+     *                                              ^ return
+     */
+    static const Token * TemplateParametersInDeclaration(
+        const Token * tok,
+        std::vector<const Token *> & typeParametersInDeclaration);
+
+    /**
+     * Simplify templates : expand all instantiations for a template
      * @todo It seems that inner templates should be instantiated recursively
      * @param tokenlist token list
      * @param errorlogger error logger
@@ -128,9 +141,9 @@ public:
      * @param expandedtemplates all templates that has been expanded so far. The full names are stored.
      * @return true if the template was instantiated
      */
-    static bool simplifyTemplateInstantions(
+    static bool simplifyTemplateInstantiations(
         TokenList& tokenlist,
-        ErrorLogger& errorlogger,
+        ErrorLogger* errorlogger,
         const Settings *_settings,
         const Token *tok,
         std::list<Token *> &templateInstantiations,
@@ -145,7 +158,7 @@ public:
      */
     static void simplifyTemplates(
         TokenList& tokenlist,
-        ErrorLogger& errorlogger,
+        ErrorLogger* errorlogger,
         const Settings *_settings,
         bool &_codeWithTemplates);
 
@@ -159,7 +172,7 @@ public:
 
     /**
      * Simplify constant calculations such as "1+2" => "3".
-     * This also perform simple cleanup of parantheses etc.
+     * This also performs simple cleanup of parentheses etc.
      * @param _tokens start token
      * @return true if modifications to token-list are done.
      *         false if no modifications are done.
@@ -173,9 +186,11 @@ private:
      */
     static bool removeTemplate(Token *tok);
 
+    /** Syntax error */
+    static void syntaxError(const Token *tok);
+
 };
 
 /// @}
-
 //---------------------------------------------------------------------------
-#endif
+#endif // templatesimplifierH

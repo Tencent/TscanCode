@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,21 +14,19 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
-
 //---------------------------------------------------------------------------
-#ifndef CheckUnusedVarH
-#define CheckUnusedVarH
+#ifndef checkunusedvarH
+#define checkunusedvarH
 //---------------------------------------------------------------------------
 
 #include "config.h"
 #include "check.h"
-#include "settings.h"
 
-class Token;
+#include <map>
+
+class Type;
 class Scope;
 class Variables;
 
@@ -38,24 +36,23 @@ class Variables;
 
 /** @brief Various small checks */
 
-class CPPCHECKLIB CheckUnusedVar : public Check {
+class TSCANCODELIB CheckUnusedVar : public Check {
 public:
     /** @brief This constructor is used when registering the CheckClass */
-    CheckUnusedVar() : Check(myName())
-    { }
+    CheckUnusedVar() : Check(myName()) {
+    }
 
     /** @brief This constructor is used when running checks. */
     CheckUnusedVar(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
-        : Check(myName(), tokenizer, settings, errorLogger)
-    { }
+        : Check(myName(), tokenizer, settings, errorLogger) {
+    }
 
     /** @brief Run checks against the normal token list */
     void runChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
         CheckUnusedVar checkUnusedVar(tokenizer, settings, errorLogger);
-#ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
+
         // Coding style checks
+#ifdef TSCANCODE_RULE_OPEN
         checkUnusedVar.checkStructMemberUsage();
         checkUnusedVar.checkFunctionVariableUsage();
 #endif
@@ -63,22 +60,24 @@ public:
 
     /** @brief Run checks against the simplified token list */
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		(void)tokenizer;
+        (void)tokenizer;
         (void)settings;
         (void)errorLogger;
     }
 
     /** @brief %Check for unused function variables */
-    void checkFunctionVariableUsage_iterateScopes(const Scope* const scope, Variables& variables, bool insideLoop, std::vector<unsigned int> &usedVariables);
-    void checkVariableUsage(const Scope* const scope, const Token* start, Variables& variables);
+    void checkFunctionVariableUsage_iterateScopes(const Scope* const scope, Variables& variables, bool insideLoop);
     void checkFunctionVariableUsage();
 
     /** @brief %Check that all struct members are used */
     void checkStructMemberUsage();
 
 private:
+    bool isRecordTypeWithoutSideEffects(const Type* type);
+    bool isEmptyType(const Type* type);
+
     // Error messages..
-    void unusedStructMemberError(const Token *tok, const std::string &structname, const std::string &varname);
+    void unusedStructMemberError(const Token *tok, const std::string &structname, const std::string &varname, bool isUnion = false);
     void unusedVariableError(const Token *tok, const std::string &varname);
     void allocatedButUnusedVariableError(const Token *tok, const std::string &varname);
     void unreadVariableError(const Token *tok, const std::string &varname);
@@ -103,13 +102,18 @@ private:
         return "UnusedVar checks\n"
 
                // style
-               "* unused variable\n"
-               "* allocated but unused variable\n"
-               "* unred variable\n"
-               "* unassigned variable\n"
-               "* unused struct member\n";
+               "- unused variable\n"
+               "- allocated but unused variable\n"
+               "- unred variable\n"
+               "- unassigned variable\n"
+               "- unused struct member\n";
     }
+
+    std::map<const Type *,bool> isRecordTypeWithoutSideEffectsMap;
+
+    std::map<const Type *,bool> isEmptyTypeMap;
+
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // checkunusedvarH

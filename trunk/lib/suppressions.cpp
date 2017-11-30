@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,11 +66,11 @@ std::string Suppressions::addSuppressionLine(const std::string &line)
             // is a line number..
 
             // Get position of last colon
-            const std::string::size_type pos = file.rfind(":");
+            const std::string::size_type pos = file.rfind(':');
 
             // if a colon is found and there is no dot after it..
             if (pos != std::string::npos &&
-                file.find(".", pos) == std::string::npos) {
+                file.find('.', pos) == std::string::npos) {
                 // Try to parse out the line number
                 try {
                     std::istringstream istr1(file.substr(pos+1));
@@ -87,7 +87,7 @@ std::string Suppressions::addSuppressionLine(const std::string &line)
     }
 
     // We could perhaps check if the id is valid and return error if it is not
-    const std::string errmsg(addSuppression(id, file, lineNumber));
+    const std::string errmsg(addSuppression(id, Path::fromNativeSeparators(file), lineNumber));
     if (!errmsg.empty())
         return errmsg;
 
@@ -139,7 +139,7 @@ bool Suppressions::FileMatcher::match(const std::string &pattern, const std::str
             return true;
         }
 
-        // If there are no other paths to tray, then fail
+        // If there are no other paths to try, then fail
         if (backtrack.empty()) {
             return false;
         }
@@ -169,7 +169,7 @@ std::string Suppressions::FileMatcher::addFile(const std::string &name, unsigned
     } else if (name.empty()) {
         _globs["*"][0U] = false;
     } else {
-        _files[Path::simplifyPath(name.c_str())][line] = false;
+        _files[Path::simplifyPath(name)][line] = false;
     }
     return "";
 }
@@ -223,8 +223,13 @@ std::string Suppressions::addSuppression(const std::string &errorId, const std::
         return "Failed to add suppression. No id.";
     }
     if (errorId != "*") {
+        // Support "stlBoundries", as that was the name of the errorId until v1.59.
+        if (errorId == "stlBoundries") {
+            return _suppressions["stlBoundaries"].addFile(file, line);
+        }
+
         for (std::string::size_type pos = 0; pos < errorId.length(); ++pos) {
-            if (errorId[pos] < 0 || (!std::isalnum(errorId[pos]) &&  errorId[pos] != '_')) {
+            if (errorId[pos] < 0 || (!std::isalnum(errorId[pos]) && errorId[pos] != '_')) {
                 return "Failed to add suppression. Invalid id \"" + errorId + "\"";
             }
             if (pos == 0 && std::isdigit(errorId[pos])) {
@@ -242,10 +247,11 @@ bool Suppressions::isSuppressed(const std::string &errorId, const std::string &f
         if (_suppressions["*"].isSuppressed(file, line))
             return true;
 
-    if (_suppressions.find(errorId) == _suppressions.end())
+    std::map<std::string, FileMatcher>::iterator suppression = _suppressions.find(errorId);
+    if (suppression == _suppressions.end())
         return false;
 
-    return _suppressions[errorId].isSuppressed(file, line);
+    return suppression->second.isSuppressed(file, line);
 }
 
 bool Suppressions::isSuppressedLocal(const std::string &errorId, const std::string &file, unsigned int line)
@@ -253,55 +259,51 @@ bool Suppressions::isSuppressedLocal(const std::string &errorId, const std::stri
     if (errorId != "unmatchedSuppression" && _suppressions.find("*") != _suppressions.end())
         if (_suppressions["*"].isSuppressedLocal(file, line))
             return true;
+	if ( _suppressions.find("any") != _suppressions.end())
+		if (_suppressions["any"].isSuppressedLocal(file, line))
+			return true;
 
-    if (_suppressions.find(errorId) == _suppressions.end())
+    std::map<std::string, FileMatcher>::iterator suppression = _suppressions.find(errorId);
+    if (suppression == _suppressions.end())
         return false;
 
-    return _suppressions[errorId].isSuppressedLocal(file, line);
+    return suppression->second.isSuppressedLocal(file, line);
 }
 
-std::list<Suppressions::SuppressionEntry> Suppressions::getUnmatchedLocalSuppressions(const std::string &file) const
+std::list<Suppressions::SuppressionEntry> Suppressions::getUnmatchedLocalSuppressions(const std::string &file, const bool unusedFunctionChecking) const
 {
-    std::list<SuppressionEntry> r;
+    std::list<SuppressionEntry> result;
     for (std::map<std::string, FileMatcher>::const_iterator i = _suppressions.begin(); i != _suppressions.end(); ++i) {
-        if (i->first == "unusedFunction")
-            continue;  // unusedFunction is not a "local" suppression
+        if (!unusedFunctionChecking && i->first == "unusedFunction")
+            continue;
 
         std::map<std::string, std::map<unsigned int, bool> >::const_iterator f = i->second._files.find(file);
         if (f != i->second._files.end()) {
             for (std::map<unsigned int, bool>::const_iterator l = f->second.begin(); l != f->second.end(); ++l) {
                 if (!l->second) {
-                    r.push_back(SuppressionEntry(i->first, f->first, l->first));
+                    result.push_back(SuppressionEntry(i->first, f->first, l->first));
                 }
             }
         }
     }
-    return r;
+    return result;
 }
 
-std::list<Suppressions::SuppressionEntry> Suppressions::getUnmatchedGlobalSuppressions() const
+std::list<Suppressions::SuppressionEntry> Suppressions::getUnmatchedGlobalSuppressions(const bool unusedFunctionChecking) const
 {
-    std::list<SuppressionEntry> r;
+    std::list<SuppressionEntry> result;
     for (std::map<std::string, FileMatcher>::const_iterator i = _suppressions.begin(); i != _suppressions.end(); ++i) {
+        if (!unusedFunctionChecking && i->first == "unusedFunction")
+            continue;
+
         // global suppressions..
         for (std::map<std::string, std::map<unsigned int, bool> >::const_iterator g = i->second._globs.begin(); g != i->second._globs.end(); ++g) {
             for (std::map<unsigned int, bool>::const_iterator l = g->second.begin(); l != g->second.end(); ++l) {
                 if (!l->second) {
-                    r.push_back(SuppressionEntry(i->first, g->first, l->first));
-                }
-            }
-        }
-
-        // unusedFunction..
-        if (i->first == "unusedFunction") {
-            for (std::map<std::string, std::map<unsigned int, bool> >::const_iterator f = i->second._files.begin(); f != i->second._files.end(); ++f) {
-                for (std::map<unsigned int, bool>::const_iterator l = f->second.begin(); l != f->second.end(); ++l) {
-                    if (!l->second) {
-                        r.push_back(SuppressionEntry(i->first, f->first, l->first));
-                    }
+                    result.push_back(SuppressionEntry(i->first, g->first, l->first));
                 }
             }
         }
     }
-    return r;
+    return result;
 }

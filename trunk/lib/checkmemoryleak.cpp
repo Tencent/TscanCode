@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,8 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
 
@@ -23,10 +21,9 @@
 #include "symboldatabase.h"
 #include "mathlib.h"
 #include "tokenize.h"
+#include "astutils.h"
 
 #include <algorithm>
-#include <cstring>
-#include <cstdlib>
 #include <sstream>
 #include <set>
 #include <stack>
@@ -52,7 +49,7 @@ static unsigned int countParameters(const Token *tok)
         return 0;
 
     unsigned int numpar = 1;
-    while (NULL != (tok = tok->nextArgument()))
+    while (nullptr != (tok = tok->nextArgument()))
         numpar++;
 
     return numpar;
@@ -65,44 +62,33 @@ static unsigned int countParameters(const Token *tok)
  * This list contains function names with const parameters e.g.: atof(const char *)
  * Reference: http://www.aquaphoenix.com/ref/gnu_c_library/libc_492.html#SEC492
  */
-static const char * const call_func_white_list[] = {
-    "_open", "_wopen", "access", "adjtime", "asctime", "asctime_r", "asprintf", "assert"
-    , "atof", "atoi", "atol", "chdir", "chmod", "chown"
-    , "clearerr", "creat", "ctime", "ctime_r", "delete", "execl", "execle"
-    , "execlp", "execv", "execve", "fchmod", "fclose", "fcntl"
-    , "fdatasync", "feof", "ferror", "fflush", "fgetc", "fgetpos", "fgets"
-    , "flock", "fmemopen", "fnmatch", "fopen", "fopencookie", "for", "fprintf", "fputc", "fputs", "fread", "free"
-    , "freopen", "fscanf", "fseek", "fseeko", "fsetpos", "fstat", "fsync", "ftell", "ftello"
-    , "ftruncate", "fwrite", "getc", "getenv","getgrnam", "gethostbyaddr", "gethostbyname", "getnetbyname"
-    , "getopt", "getopt_long", "getprotobyname", "getpwnam", "gets", "getservbyname", "getservbyport"
-    , "glob", "gmtime", "gmtime_r", "if", "index", "inet_addr", "inet_aton", "inet_network", "initgroups", "ioctl"
-    , "link", "localtime", "localtime_r"
-    , "lockf", "lseek", "lstat", "mblen", "mbstowcs", "mbtowc", "memchr", "memcmp", "memcpy", "memmove", "memset"
-    , "mkdir", "mkfifo", "mknod", "mkstemp"
-    , "obstack_printf", "obstack_vprintf", "open", "opendir", "parse_printf_format", "pathconf"
-    , "perror", "popen" ,"posix_fadvise", "posix_fallocate", "pread"
-    , "printf", "psignal", "puts", "pwrite", "qsort", "read", "readahead", "readdir", "readdir_r"
-    , "readlink", "readv"
-    , "realloc", "regcomp", "remove", "rename", "return", "rewind", "rewinddir", "rindex"
-    , "rmdir" ,"scandir", "scanf", "seekdir"
-    , "setbuf", "setbuffer", "sethostname", "setlinebuf", "setlocale" ,"setvbuf", "sizeof" ,"snprintf", "sprintf", "sscanf"
-    , "stat", "stpcpy", "strcasecmp", "strcat", "strchr", "strcmp", "strcoll"
-    , "strcpy", "strcspn", "strdup", "stricmp", "strlen", "strncasecmp", "strncat", "strncmp"
-    , "strncpy", "strpbrk","strrchr", "strspn", "strstr", "strtod", "strtok", "strtol", "strtoul", "strxfrm", "switch"
-    , "symlink", "sync_file_range", "system", "telldir", "tempnam", "time", "typeid", "unlink"
-    , "utime", "utimes", "vasprintf", "vfprintf", "vfscanf", "vprintf"
-    , "vscanf", "vsnprintf", "vsprintf", "vsscanf", "while", "wordexp","write", "writev"
-};
-
-static int call_func_white_list_compare(const void *a, const void *b)
-{
-    if(a)
-	{
-       return strcmp((const char *)a, *(const char * const *)b);
-	}
-	else
-	  return 0;
-}
+static const std::set<std::string> call_func_white_list = make_container < std::set<std::string> > ()
+        << "_open" << "_wopen" << "access" << "adjtime" << "asctime" << "asctime_r" << "asprintf" << "assert"
+        << "atof" << "atoi" << "atol" << "chdir" << "chmod" << "chown"
+        << "clearerr" << "creat" << "ctime" << "ctime_r" << "execl" << "execle"
+        << "execlp" << "execv" << "execve" << "fchmod" << "fclose" << "fcntl"
+        << "fdatasync" << "feof" << "ferror" << "fflush" << "fgetc" << "fgetpos" << "fgets"
+        << "flock" << "fmemopen" << "fnmatch" << "fopen" << "fopencookie" << "for" << "fprintf" << "fputc" << "fputs" << "fread" << "free"
+        << "freopen" << "fscanf" << "fseek" << "fseeko" << "fsetpos" << "fstat" << "fsync" << "ftell" << "ftello"
+        << "ftruncate" << "fwrite" << "getc" << "getenv" << "getgrnam" << "gethostbyaddr" << "gethostbyname" << "getnetbyname"
+        << "getopt" << "getopt_long" << "getprotobyname" << "getpwnam" << "gets" << "getservbyname" << "getservbyport"
+        << "glob" << "gmtime" << "gmtime_r" << "if" << "index" << "inet_addr" << "inet_aton" << "inet_network" << "initgroups" << "ioctl"
+        << "link" << "localtime" << "localtime_r"
+        << "lockf" << "lseek" << "lstat" << "mblen" << "mbstowcs" << "mbtowc" << "memchr" << "memcmp" << "memcpy" << "memmove" << "memset"
+        << "mkdir" << "mkfifo" << "mknod" << "mkstemp"
+        << "obstack_printf" << "obstack_vprintf" << "open" << "opendir" << "parse_printf_format" << "pathconf"
+        << "perror" << "popen" << "posix_fadvise" << "posix_fallocate" << "pread"
+        << "printf" << "psignal" << "puts" << "pwrite" << "qsort" << "read" << "readahead" << "readdir" << "readdir_r"
+        << "readlink" << "readv"
+        << "realloc" << "regcomp" << "remove" << "rename" << "return" << "rewind" << "rewinddir" << "rindex"
+        << "rmdir" << "scandir" << "scanf" << "seekdir"
+        << "setbuf" << "setbuffer" << "sethostname" << "setlinebuf" << "setlocale" << "setvbuf" << "sizeof" << "snprintf" << "sprintf" << "sscanf"
+        << "stat" << "stpcpy" << "strcasecmp" << "strcat" << "strchr" << "strcmp" << "strcoll"
+        << "strcpy" << "strcspn" << "strdup" << "stricmp" << "strlen" << "strncasecmp" << "strncat" << "strncmp"
+        << "strncpy" << "strpbrk" << "strrchr" << "strspn" << "strstr" << "strtod" << "strtok" << "strtol" << "strtoul" << "strxfrm" << "switch"
+        << "symlink" << "sync_file_range" << "system" << "telldir" << "tempnam" << "time" << "typeid" << "unlink"
+        << "utime" << "utimes" << "vasprintf" << "vfprintf" << "vfscanf" << "vprintf"
+        << "vscanf" << "vsnprintf" << "vsprintf" << "vsscanf" << "while" << "wordexp" << "write" << "writev";
 
 //---------------------------------------------------------------------------
 
@@ -117,8 +103,8 @@ bool CheckMemoryLeak::isclass(const Token *tok, unsigned int varid) const
     // a type that has no side effects (no constructors and no members with constructors)
     /** @todo false negative: check base class for side effects */
     /** @todo false negative: check constructors for side effects */
-    if (var && var->type() && var->type()->numConstructors == 0 &&
-        (var->type()->varlist.empty() || var->type()->needInitialization == Scope::True) &&
+    if (var && var->typeScope() && var->typeScope()->numConstructors == 0 &&
+        (var->typeScope()->varlist.empty() || var->type()->needInitialization == Type::True) &&
         var->type()->derivedFrom.empty())
         return false;
 
@@ -135,89 +121,96 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::getAllocationType(const Token *tok2,
     //     * var = strndup("hello", 3);
     if (tok2 && tok2->str() == "(") {
         tok2 = tok2->link();
-        tok2 = tok2 ? tok2->next() : NULL;
+        tok2 = tok2 ? tok2->next() : nullptr;
     }
     if (! tok2)
         return No;
+    if (tok2->str() == "::")
+        tok2 = tok2->next();
     if (! tok2->isName())
         return No;
 
-    // Does tok2 point on "malloc", "strdup" or "kmalloc"..
-    static const char * const mallocfunc[] = {
-        "malloc",
-        "calloc",
-        "strdup",
-        "strndup",
-        "kmalloc",
-        "kzalloc",
-        "kcalloc"
-    };
-    for (unsigned int i = 0; i < sizeof(mallocfunc)/sizeof(*mallocfunc); i++) {
-        if (tok2->str() == mallocfunc[i])
-            return Malloc;
-    }
-
-    // Using realloc..
-    if (varid && Token::Match(tok2, "realloc ( %any% ,") && tok2->tokAt(2)->varId() != varid)
-        return Malloc;
-
-    // Does tok2 point on "g_malloc", "g_strdup", ..
-    static const char * const gmallocfunc[] = {
-        "g_new",
-        "g_new0",
-        "g_try_new",
-        "g_try_new0",
-        "g_malloc",
-        "g_malloc0",
-        "g_try_malloc",
-        "g_try_malloc0",
-        "g_strdup",
-        "g_strndup",
-        "g_strdup_printf"
-    };
-    for (unsigned int i = 0; i < sizeof(gmallocfunc)/sizeof(*gmallocfunc); i++) {
-        if (tok2->str() == gmallocfunc[i])
-            return gMalloc;
-    }
-
-    if (Token::Match(tok2, "new struct| %type% [;()]") ||
-        Token::Match(tok2, "new ( std :: nothrow ) struct| %type% [;()]") ||
-        Token::Match(tok2, "new ( nothrow ) struct| %type% [;()]"))
-        return New;
-
-    if (Token::Match(tok2, "new struct| %type% [") ||
-        Token::Match(tok2, "new ( std :: nothrow ) struct| %type% [") ||
-        Token::Match(tok2, "new ( nothrow ) struct| %type% ["))
-	{
-			 return NewArray;
-	}
-    if (Token::Match(tok2, "fopen|tmpfile|g_fopen ("))
-        return File;
-	if (Token::Match(tok2, "dlopen ("))
-		return Dll;
-    if (standards.posix) {
-        if (Token::Match(tok2, "open|openat|creat|mkstemp|mkostemp (")) {
-            // simple sanity check of function parameters..
-            // TODO: Make such check for all these functions
-            unsigned int num = countParameters(tok2);
-            if (tok2->str() == "open" && num != 2 && num != 3)
-                return No;
-            // is there a user function with this name?
-            if (tokenizer && Token::findmatch(tokenizer->tokens(), ("%type% *|&| " + tok2->str()).c_str()))
-                return No;
-            return Fd;
+    if (!Token::Match(tok2, "%type%|%name% ::|. %type%")) {
+        // Does tok2 point on "malloc", "strdup" or "kmalloc"..
+        static const char * const mallocfunc[] = {
+            "malloc",
+            "calloc",
+            "strdup",
+            "strndup",
+            "kmalloc",
+            "kzalloc",
+            "kcalloc"
+        };
+        for (unsigned int i = 0; i < sizeof(mallocfunc)/sizeof(*mallocfunc); i++) {
+            if (tok2->str() == mallocfunc[i])
+                return Malloc;
         }
 
-        if (Token::simpleMatch(tok2, "popen ("))
-            return Pipe;
+        // Using realloc..
+        if (varid && Token::Match(tok2, "realloc ( %any% ,") && tok2->tokAt(2)->varId() != varid)
+            return Malloc;
 
-        if (Token::Match(tok2, "opendir|fdopendir ("))
-            return Dir;
+        if (Token::Match(tok2, "new struct| %type% [;()]") ||
+            Token::Match(tok2, "new ( std :: nothrow ) struct| %type% [;()]") ||
+            Token::Match(tok2, "new ( nothrow ) struct| %type% [;()]"))
+            return New;
+
+        if (Token::Match(tok2, "new struct| %type% *| [") ||
+            Token::Match(tok2, "new ( std :: nothrow ) struct| %type% *| [") ||
+            Token::Match(tok2, "new ( nothrow ) struct| %type% *| ["))
+            return NewArray;
+
+        if (Token::Match(tok2, "fopen|tmpfile|g_fopen|_wfopen|_tfopen|fopen_s|_wfopen_s|_tfopen_s|_tfreopen|freopen|_wfreopen|_tfreopen_s|freopen_s|_wfreopen_s|_topen|_wopen|_tsopen_s|_sopen_s|_wsopen_s ("))
+            return File;
+
+        if (settings1->standards.posix) {
+            if (Token::Match(tok2, "open|openat|creat|mkstemp|mkostemp|socket (")) {
+                // simple sanity check of function parameters..
+                // TODO: Make such check for all these functions
+                unsigned int num = countParameters(tok2);
+                if (tok2->str() == "open" && num != 2 && num != 3)
+                    return No;
+
+                // is there a user function with this name?
+                if (tok2->function())
+                    return No;
+                return Fd;
+            }
+
+            if (Token::simpleMatch(tok2, "popen ("))
+                return Pipe;
+        }
+
+        // Does tok2 point on "g_malloc", "g_strdup", ..
+        const int alloctype = settings1->library.alloc(tok2);
+        if (alloctype > 0) {
+            if (alloctype == settings1->library.dealloc("free"))
+                return Malloc;
+            if (alloctype == settings1->library.dealloc("fclose"))
+                return File;
+            return Library::ismemory(alloctype) ? OtherMem : OtherRes;
+        }
     }
 
+	//add 20150526 self define customSelfMem
+	//may be user self define type; 
+	Settings *pSettings = Settings::Instance();
+	std::vector<std::string>::iterator iter = pSettings->_customSelfMalloc.begin();
+	int tmp_MatchIndex = (int)SelfDefine;
+	for (; iter != pSettings->_customSelfMalloc.end(); ++iter)
+	{
+		tmp_MatchIndex++;
+		const char* str_match = (*iter).c_str();
+		if (Token::Match(tok2, str_match))
+			return (AllocType)tmp_MatchIndex;
+	}
+
+    while (Token::Match(tok2,"%type%|%name% ::|. %type%"))
+        tok2 = tok2->tokAt(2);
+
     // User function
-    const Function* func = tokenizer->getSymbolDatabase()->findFunctionByName(tok2->str(), tok2->scope());
-    if (func == NULL)
+    const Function* func = tok2->function();
+    if (func == nullptr)
         return No;
 
     // Prevent recursion
@@ -233,28 +226,25 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::getAllocationType(const Token *tok2,
 }
 
 
-
-
-CheckMemoryLeak::AllocType CheckMemoryLeak::getReallocationType(const Token *tok2, unsigned int varid) const
+CheckMemoryLeak::AllocType CheckMemoryLeak::getReallocationType(const Token *tok2, unsigned int varid)
 {
     // What we may have...
     //     * var = (char *)realloc(..;
     if (tok2 && tok2->str() == "(") {
         tok2 = tok2->link();
-        tok2 = tok2 ? tok2->next() : NULL;
+        tok2 = tok2 ? tok2->next() : nullptr;
     }
     if (! tok2)
         return No;
 
-    if (varid > 0 && ! Token::Match(tok2, "%var% ( %varid% [,)]", varid))
+    if (varid > 0 && ! Token::Match(tok2, "%name% ( %varid% [,)]", varid))
         return No;
 
     if (tok2->str() == "realloc")
         return Malloc;
 
     // GTK memory reallocation..
-    if (Token::Match(tok2, "g_realloc|g_try_realloc|g_renew|g_try_renew"))
-        return gMalloc;
+    //if (Token::Match(tok2, "g_realloc|g_try_realloc|g_renew|g_try_renew"))
 
     return No;
 }
@@ -263,85 +253,94 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::getReallocationType(const Token *tok
 CheckMemoryLeak::AllocType CheckMemoryLeak::getDeallocationType(const Token *tok, unsigned int varid) const
 {
 
-    if (Token::Match(tok, "delete %varid% ;", varid))
-        return New;
+	if (Token::Match(tok, "delete %varid% ;", varid))
+		return New;
 
-    if (Token::Match(tok, "delete [ ] %varid% ;", varid))
-        return NewArray;
+	if (Token::Match(tok, "delete [ ] %varid% ;", varid))
+		return NewArray;
 
-    if (Token::Match(tok, "delete ( %varid% ) ;", varid))
-        return New;
+	if (Token::Match(tok, "delete ( %varid% ) ;", varid))
+		return New;
 
-    if (Token::Match(tok, "delete [ ] ( %varid% ) ;", varid))
-        return NewArray;
+	if (Token::Match(tok, "delete [ ] ( %varid% ) ;", varid))
+		return NewArray;
 
     if (tok && tok->str() == "::")
         tok = tok->next();
 
     if (Token::Match(tok, "free|kfree ( %varid% ) [;:]", varid) ||
-        Token::Match(tok, "free|kfree ( %varid% -", varid) ||
+        Token::Match(tok, "free|kfree ( %varid% -|,", varid) ||
         Token::Match(tok, "realloc ( %varid% , 0 ) ;", varid))
         return Malloc;
-
-    if (Token::Match(tok, "g_free ( %varid% ) ;", varid) ||
-        Token::Match(tok, "g_free ( %varid% -", varid))
-        return gMalloc;
 
     if (Token::Match(tok, "fclose ( %varid% )", varid) ||
         Token::simpleMatch(tok, "fcloseall ( )"))
         return File;
-	//from TSC 20140815
-	if (Token::Match(tok, "dlclose ( %varid% )", varid))
-		return Dll;
-	//TSC 20141021 remove socket because of high false positive bug
 
-    if (Token::Match(tok, "close ( %varid% )", varid))
-        return Fd;
+    if (settings1->standards.posix) {
+        if (Token::Match(tok, "close ( %varid% )", varid))
+            return Fd;
 
-    if (Token::Match(tok, "pclose ( %varid% )", varid))
-        return Pipe;
+        if (Token::Match(tok, "pclose ( %varid% )", varid))
+            return Pipe;
+    }
 
-    if (Token::Match(tok, "closedir ( %varid% )", varid))
-        return Dir;
+    // Does tok2 point on "g_free", etc ..
+    if (Token::Match(tok, "%type% ( %varid% )", varid)) {
+        const int dealloctype = settings1->library.dealloc(tok);
+        if (dealloctype > 0)
+            return Library::ismemory(dealloctype) ? OtherMem : OtherRes;
+    }
+	Settings *pSettings = Settings::Instance();
+	std::vector<std::string>::iterator iter = pSettings->_customSelfDelloc.begin();
+	int tmp_MatchIndex = (int)SelfDefine;
+	for (; iter != pSettings->_customSelfDelloc.end(); ++iter)
+	{
+		tmp_MatchIndex++;
+		const char* str_match = (*iter).c_str();
+		if (Token::Match(tok, str_match))
+			return (AllocType)tmp_MatchIndex;
+	}
 
     return No;
 }
 
 CheckMemoryLeak::AllocType CheckMemoryLeak::getDeallocationType(const Token *tok, const std::string &varname) const
 {
-    if (Token::Match(tok, std::string("delete " + varname + " [,;]").c_str()))
-        return New;
+    if (tokenizer->isCPP()) {
+        if (Token::Match(tok, std::string("delete " + varname + " [,;]").c_str()))
+            return New;
 
-    if (Token::Match(tok, std::string("delete [ ] " + varname + " [,;]").c_str()))
-        return NewArray;
+        if (Token::Match(tok, std::string("delete [ ] " + varname + " [,;]").c_str()))
+            return NewArray;
 
-    if (Token::Match(tok, std::string("delete ( " + varname + " ) [,;]").c_str()))
-        return New;
+        if (Token::Match(tok, std::string("delete ( " + varname + " ) [,;]").c_str()))
+            return New;
 
-    if (Token::Match(tok, std::string("delete [ ] ( " + varname + " ) [,;]").c_str()))
-        return NewArray;
+        if (Token::Match(tok, std::string("delete [ ] ( " + varname + " ) [,;]").c_str()))
+            return NewArray;
+    }
 
     if (Token::simpleMatch(tok, std::string("free ( " + varname + " ) ;").c_str()) ||
         Token::simpleMatch(tok, std::string("kfree ( " + varname + " ) ;").c_str()) ||
         Token::simpleMatch(tok, std::string("realloc ( " + varname + " , 0 ) ;").c_str()))
         return Malloc;
 
-    if (Token::simpleMatch(tok, std::string("g_free ( " + varname + " ) ;").c_str()))
-        return gMalloc;
-
     if (Token::simpleMatch(tok, std::string("fclose ( " + varname + " )").c_str()) ||
         Token::simpleMatch(tok, "fcloseall ( )"))
         return File;
-	if (Token::simpleMatch(tok, std::string("fclose ( " + varname + " )").c_str()))
-		return Dll;
+
     if (Token::simpleMatch(tok, std::string("close ( " + varname + " )").c_str()))
         return Fd;
 
     if (Token::simpleMatch(tok, std::string("pclose ( " + varname + " )").c_str()))
         return Pipe;
 
-    if (Token::simpleMatch(tok, std::string("closedir ( " + varname + " )").c_str()))
-        return Dir;
+    if (Token::Match(tok, ("%type% ( " + varname + " )").c_str())) {
+        int type = settings1->library.dealloc(tok);
+        if (type > 0)
+            return Library::ismemory(type) ? OtherMem : OtherRes;
+    }
 
     return No;
 }
@@ -356,31 +355,27 @@ void CheckMemoryLeak::memoryLeak(const Token *tok, const std::string &varname, A
     if (alloctype == CheckMemoryLeak::File ||
         alloctype == CheckMemoryLeak::Pipe ||
         alloctype == CheckMemoryLeak::Fd   ||
-        alloctype == CheckMemoryLeak::Dir  ||
-		alloctype == CheckMemoryLeak::Dll  
-
-		//alloctype == CheckMemoryLeak::Socket 
-		)
+        alloctype == CheckMemoryLeak::OtherRes)
         resourceLeakError(tok, varname);
     else
         memleakError(tok, varname);
 }
 //---------------------------------------------------------------------------
 
-
-void CheckMemoryLeak::reportErr(const Token *tok, Severity::SeverityType severity, const std::string &id, const std::string &subid,  const std::string &msg) const
+void CheckMemoryLeak::reportErr(const Token *tok, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string &id, const std::string &msg, unsigned int cwe) const
 {
     std::list<const Token *> callstack;
 
     if (tok)
         callstack.push_back(tok);
 
-    reportErr(callstack, severity, id,subid, msg);
+    reportErr(callstack, severity, type, id, msg, cwe);
 }
 
-void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, const std::string &id, const std::string &subid,const std::string &msg) const
+void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string &id, const std::string &msg, unsigned int cwe) const
 {
-    const ErrorLogger::ErrorMessage errmsg(callstack, tokenizer?&tokenizer->list:0, severity, id, subid,msg, false);
+	ErrorLogger::ErrorMessage errmsg(callstack, tokenizer ? &tokenizer->list : 0, severity, type, id, msg, false);
+    errmsg._cwe = cwe;
 
     if (errorLogger)
         errorLogger->reportErr(errmsg);
@@ -388,22 +383,38 @@ void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Sever
         Check::reportError(errmsg);
 }
 
+void CheckMemoryLeak::reportErr(const Token *tok, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type, const std::string &id,
+	const std::string &msg, unsigned int cwe, const std::string &identify) const
+{
+	std::list<const Token *> callstack;
+
+	if (tok)
+		callstack.push_back(tok);
+
+	reportErr(callstack, severity, type, id, msg, cwe, identify);
+}
+
+
+void CheckMemoryLeak::reportErr(const std::list<const Token *> &callstack, Severity::SeverityType severity, ErrorType::ErrorTypeEnum type,
+	const std::string &id, const std::string &msg, unsigned int cwe, const std::string &indentify) const
+{
+	ErrorLogger::ErrorMessage errmsg(callstack, tokenizer ? &tokenizer->list : 0, severity, type, id, msg, false);
+	errmsg._cwe = cwe;
+	errmsg.SetWebIdentity(indentify);
+	if (errorLogger)
+		errorLogger->reportErr(errmsg);
+	else
+		Check::reportError(errmsg);
+}
+
 void CheckMemoryLeak::memleakError(const Token *tok, const std::string &varname) const
 {
-#ifdef WINGUI
-    reportErr(tok, Severity::performance, "memleak","memleak", "Memory leak: " + varname + "; Errors may appear in other branches after the repair can continue to scan the other branches of the error");
-#else
-    reportErr(tok, Severity::error, "memleak","memleak", "Memory leak: " + varname + "; Errors may appear in other branches after the repair can continue to scan the other branches of the error");
-#endif
+    reportErr(tok, Severity::error, ErrorType::MemoryLeak, "memleak", "Memory leak: " + varname, 0U, ErrorLogger::GenWebIdentity(varname));
 }
 
 void CheckMemoryLeak::memleakUponReallocFailureError(const Token *tok, const std::string &varname) const
 {
-#ifdef WINGUI
-    reportErr(tok, Severity::performance,"memleak", "memleakOnRealloc", "Common realloc mistake: \'" + varname + "\' nulled but not freed upon failure");
-#else
-	reportErr(tok, Severity::error,"memleak", "memleakOnRealloc", "Common realloc mistake: \'" + varname + "\' nulled but not freed upon failure");
-#endif
+    reportErr(tok, Severity::error, ErrorType::MemoryLeak, "memleakOnRealloc", "Common realloc mistake: \'" + varname + "\' nulled but not freed upon failure", 0U, ErrorLogger::GenWebIdentity(varname));
 }
 
 void CheckMemoryLeak::resourceLeakError(const Token *tok, const std::string &varname) const
@@ -411,51 +422,32 @@ void CheckMemoryLeak::resourceLeakError(const Token *tok, const std::string &var
     std::string errmsg("Resource leak");
     if (!varname.empty())
         errmsg += ": " + varname;
-#ifdef WINGUI
-    reportErr(tok, Severity::performance,"memleak", "resourceLeak", errmsg);
-#else
- 	reportErr(tok, Severity::error,"memleak", "resourceLeak", errmsg);
-#endif
+    reportErr(tok, Severity::error, ErrorType::MemoryLeak, "resourceLeak", errmsg, 775U, ErrorLogger::GenWebIdentity(varname));
 }
 
 void CheckMemoryLeak::deallocDeallocError(const Token *tok, const std::string &varname) const
 {
-#ifdef WINGUI
-   	reportErr(tok, Severity::error, "memleak","deallocDealloc", "Deallocating a deallocated pointer: " + varname);
-#else
-	reportErr(tok, Severity::performance,"memleak","deallocDealloc", "Deallocating a deallocated pointer: " + varname);
-#endif
+    reportErr(tok, Severity::error, ErrorType::MemoryLeak, "deallocDealloc", "Deallocating a deallocated pointer: " + varname, 0U, ErrorLogger::GenWebIdentity(varname));
 }
+
 void CheckMemoryLeak::deallocuseError(const Token *tok, const std::string &varname) const
 {
-#ifdef WINGUI
-    reportErr(tok, Severity::performance,"memleak", "deallocuse", "Dereferencing '" + varname + "' after it is deallocated / released");
-#else
-    reportErr(tok, Severity::error,"memleak","deallocuse", "Dereferencing '" + varname + "' after it is deallocated / released");
-#endif
+    reportErr(tok, Severity::error, ErrorType::MemoryLeak, "deallocuse", "Dereferencing '" + varname + "' after it is deallocated / released", 0U, ErrorLogger::GenWebIdentity(varname));
 }
 
 void CheckMemoryLeak::mismatchSizeError(const Token *tok, const std::string &sz) const
 {
-#ifdef WINGUI
-	 reportErr(tok, Severity::performance, "memleak","mismatchSize", "The given size " + sz + " is mismatching");
-#else 
-	reportErr(tok, Severity::error,"memleak","mismatchSize", "The given size " + sz + " is mismatching");
-#endif
+    reportErr(tok, Severity::error, ErrorType::MemoryLeak, "mismatchSize", "The allocated size " + sz + " is not a multiple of the underlying type's size.", 0U);
 }
 
 void CheckMemoryLeak::mismatchAllocDealloc(const std::list<const Token *> &callstack, const std::string &varname) const
 {
-	#ifdef WINGUI
-	  reportErr(callstack, Severity::performance,"memleak", "mismatchAllocDealloc", "Mismatching allocation and deallocation: " + varname);
-#else
-	  reportErr(callstack, Severity::error,"memleak","mismatchAllocDealloc", "Mismatching allocation and deallocation: " + varname);
-#endif
+    reportErr(callstack, Severity::error, ErrorType::MemoryLeak, "mismatchAllocDealloc", "Mismatching allocation and deallocation: " + varname, 0U, ErrorLogger::GenWebIdentity(varname));
 }
 
 CheckMemoryLeak::AllocType CheckMemoryLeak::functionReturnType(const Function* func, std::list<const Function*> *callstack) const
 {
-    if (!func || !func->hasBody)
+    if (!func || !func->hasBody())
         return No;
 
     // Get return pointer..
@@ -469,7 +461,7 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::functionReturnType(const Function* f
                 return No;
             --indentlevel;
         }
-        if (Token::Match(tok2, "return %var% ;")) {
+        if (Token::Match(tok2, "return %name% ;")) {
             if (indentlevel != 1)
                 return No;
             varid = tok2->next()->varId();
@@ -485,14 +477,12 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::functionReturnType(const Function* f
     if (varid == 0)
         return No;
 
-    if (this != NULL) {
-        // If variable is not local then alloctype shall be "No"
-        // Todo: there can be false negatives about mismatching allocation/deallocation.
-        //       => Generate "alloc ; use ;" if variable is not local?
-        const Variable *var = tokenizer->getSymbolDatabase()->getVariableFromVarId(varid);
-        if (!var || !var->isLocal() || var->isStatic())
-            return No;
-    }
+    // If variable is not local then alloctype shall be "No"
+    // Todo: there can be false negatives about mismatching allocation/deallocation.
+    //       => Generate "alloc ; use ;" if variable is not local?
+    const Variable *var = tokenizer->getSymbolDatabase()->getVariableFromVarId(varid);
+    if (!var || !var->isLocal() || var->isStatic())
+        return No;
 
     // Check if return pointer is allocated..
     AllocType allocType = No;
@@ -509,8 +499,11 @@ CheckMemoryLeak::AllocType CheckMemoryLeak::functionReturnType(const Function* f
         if (Token::Match(tok, "[(,] %varid% [,)]", varid)) {
             return No;
         }
-        if (tok->str() == "return")
-            return allocType;
+        if (Token::Match(tok, "[(,] & %varid% [.,)]", varid)) {
+            return No;
+        }
+        if (allocType == No && tok->str() == "return")
+            return No;
     }
 
     return allocType;
@@ -522,6 +515,9 @@ const char *CheckMemoryLeak::functionArgAlloc(const Function *func, unsigned int
     allocType = No;
 
     if (!func || !func->functionScope)
+        return "";
+
+    if (!Token::simpleMatch(func->retDef, "void"))
         return "";
 
     std::list<Variable>::const_iterator arg = func->argumentList.begin();
@@ -536,8 +532,6 @@ const char *CheckMemoryLeak::functionArgAlloc(const Function *func, unsigned int
     if (!arg->isPointer())
         return "";
     const Token* tok = arg->typeEndToken();
-    if (tok->str() == "const")
-        tok = tok->previous();
     tok = tok->previous();
     if (tok->str() != "*")
         return "";
@@ -545,14 +539,14 @@ const char *CheckMemoryLeak::functionArgAlloc(const Function *func, unsigned int
     // Check if pointer is allocated.
     int realloc = 0;
     for (tok = func->functionScope->classStart; tok && tok != func->functionScope->classEnd; tok = tok->next()) {
-        if (tok->varId() == arg->varId()) {
-            if (Token::Match(tok->tokAt(-3), "free ( * %var% )")) {
+        if (tok->varId() == arg->declarationId()) {
+            if (Token::Match(tok->tokAt(-3), "free ( * %name% )")) {
                 realloc = 1;
                 allocType = No;
-            } else if (Token::Match(tok->previous(), "* %var% =")) {
-                allocType = getAllocationType(tok->tokAt(2), arg->varId());
+            } else if (Token::Match(tok->previous(), "* %name% =")) {
+                allocType = getAllocationType(tok->tokAt(2), arg->declarationId());
                 if (allocType == No) {
-                    allocType = getReallocationType(tok->tokAt(2), arg->varId());
+                    allocType = getReallocationType(tok->tokAt(2), arg->declarationId());
                 }
                 if (allocType != No) {
                     if (realloc)
@@ -570,64 +564,59 @@ const char *CheckMemoryLeak::functionArgAlloc(const Function *func, unsigned int
 }
 
 
-void CheckMemoryLeakInFunction::parse_noreturn()
+static bool notvar(const Token *tok, unsigned int varid)
 {
-    if (noreturn.empty()) {
-        noreturn.insert("exit");
-        noreturn.insert("_exit");
-        noreturn.insert("_Exit");
-        noreturn.insert("abort");
-        noreturn.insert("err");
-        noreturn.insert("verr");
-        noreturn.insert("errx");
-        noreturn.insert("verrx");
-        noreturn.insert("ExitProcess");
-        noreturn.insert("ExitThread");
-        noreturn.insert("pthread_exit");
-    }
-
-    // only check functions
-    const std::size_t functions = symbolDatabase->functionScopes.size();
-    for (std::size_t i = 0; i < functions; ++i) {
-        const Scope * scope = symbolDatabase->functionScopes[i];
-
-        // parse this function to check if it contains an "exit" call..
-        bool isNoreturn = false;
-        for (const Token *tok2 = scope->classStart->next(); tok2 != scope->classEnd; tok2 = tok2->next()) {
-            if (Token::Match(tok2->previous(), "[;{}] exit (")) {
-                isNoreturn = true;
-                break;
-            }
-        }
-
-        // This function is not a noreturn function
-        if (isNoreturn)
-            noreturn.insert(scope->className);
-        else
-            notnoreturn.insert(scope->className);
-    }
+    if (!tok)
+        return false;
+    if (Token::Match(tok, "&&|;"))
+        return notvar(tok->astOperand1(),varid) || notvar(tok->astOperand2(),varid);
+    if (tok->str() == "(" && Token::Match(tok->astOperand1(), "UNLIKELY|LIKELY"))
+        return notvar(tok->astOperand2(), varid);
+    const Token *vartok = astIsVariableComparison(tok, "==", "0");
+    return vartok && (vartok->varId() == varid);
 }
 
-
-bool CheckMemoryLeakInFunction::notvar(const Token *tok, unsigned int varid, bool endpar)
+static bool ifvar(const Token *tok, unsigned int varid, const std::string &comp, const std::string &rhs)
 {
-    const std::string end(endpar ? " &&|)" : " [;)&|]");
-    return bool(Token::Match(tok, ("! %varid%" + end).c_str(), varid) ||
-                Token::Match(tok, ("! ( %varid% )" + end).c_str(), varid));
+    if (!Token::simpleMatch(tok, "if ("))
+        return false;
+    const Token *condition = tok->next()->astOperand2();
+    if (condition && condition->str() == "(" && Token::Match(condition->astOperand1(), "UNLIKELY|LIKELY"))
+        condition = condition->astOperand2();
+    if (!condition || condition->str() == "&&")
+        return false;
+
+    const Token *vartok = astIsVariableComparison(condition, comp, rhs);
+    return (vartok && vartok->varId() == varid);
 }
 
-
-
-bool CheckMemoryLeakInFunction::test_white_list(const std::string &funcname)
+static bool alwaysTrue(const Token *tok)
 {
-    return (std::bsearch(funcname.c_str(), call_func_white_list,
-                         sizeof(call_func_white_list) / sizeof(call_func_white_list[0]),
-                         sizeof(call_func_white_list[0]), call_func_white_list_compare) != NULL);
+    if (!tok)
+        return false;
+    if (tok->values.size() == 1U &&
+        tok->values.front().intvalue != 0 &&
+        tok->values.front().isKnown())
+        return true;
+    if (tok->str() == "||")
+        return alwaysTrue(tok->astOperand1()) || alwaysTrue(tok->astOperand2());
+    if (tok->str() == "true")
+        return true;
+    return (tok->isComparisonOp() &&
+            tok->values.size() == 1U &&
+            tok->values.front().isKnown() &&
+            tok->values.front().intvalue != 0);
 }
+
+bool CheckMemoryLeakInFunction::test_white_list(const std::string &funcname, const Settings *settings, bool cpp)
+{
+    return ((call_func_white_list.find(funcname)!=call_func_white_list.end()) || (settings->library.leakignore.find(funcname) != settings->library.leakignore.end()) || (cpp && funcname == "delete"));
+}
+
 
 const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<const Token *> callstack, const unsigned int varid, AllocType &alloctype, AllocType &dealloctype, bool &allocpar, unsigned int sz)
 {
-    if (test_white_list(tok->str())) {
+    if (test_white_list(tok->str(), _settings, tokenizer->isCPP())) {
         if (tok->str() == "asprintf" ||
             tok->str() == "delete" ||
             tok->str() == "fclose" ||
@@ -637,13 +626,14 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
             tok->str() == "realloc" ||
             tok->str() == "return" ||
             tok->str() == "switch" ||
-            tok->str() == "while") {
+            tok->str() == "while" ||
+            tok->str() == "sizeof") {
             return 0;
         }
 
         // is the varid a parameter?
-        for (const Token *tok2 = tok->tokAt(2); tok2 && tok2 != tok->linkAt(1); tok2 = tok2->next()) {
-            if (tok2 && tok2->str() == "(") {
+        for (const Token *tok2 = tok->tokAt(2); tok2 != tok->linkAt(1); tok2 = tok2->next()) {
+            if (tok2->str() == "(") {
                 tok2 = tok2->nextArgument();
                 if (!tok2)
                     break;
@@ -653,6 +643,8 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
                     return "use";
                 else if (tok2->strAt(1) == "=")
                     return "assign";
+                else if (tok->str()=="printf")
+                    return "use"; // <- it is not certain printf dereference the pointer TODO: check the format string
                 else
                     return "use_";
             }
@@ -661,10 +653,10 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
         return 0;
     }
 
-    if (noreturn.find(tok->str()) != noreturn.end() && tok->strAt(-1) != "=")
+    if (_settings->library.isnoreturn(tok) && tok->strAt(-1) != "=")
         return "exit";
 
-    if (varid > 0 && (getAllocationType(tok, varid) != No || getReallocationType(tok, varid) != No || getDeallocationType(tok, varid) != No))
+    if (varid > 0 && (getReallocationType(tok, varid) != No || getDeallocationType(tok, varid) != No))
         return 0;
 
     if (callstack.size() > 2)
@@ -679,13 +671,13 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
 
     // lock/unlock..
     if (varid == 0) {
-        const Function* func = _tokenizer->getSymbolDatabase()->findFunctionByName(funcname, tok->scope());;
-        if (!func || !func->hasBody)
+        const Function* func = tok->function();
+        if (!func || !func->hasBody())
             return 0;
 
         Token *ftok = getcode(func->functionScope->classStart->next(), callstack, 0, alloctype, dealloctype, false, 1);
         simplifycode(ftok);
-        const char *ret = 0;
+        const char *ret = nullptr;
         if (Token::simpleMatch(ftok, "; alloc ; }"))
             ret = "alloc";
         else if (Token::simpleMatch(ftok, "; dealloc ; }"))
@@ -695,15 +687,19 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
     }
 
     // how many parameters is there in the function call?
-    unsigned int numpar = countParameters(tok);
+    const unsigned int numpar = countParameters(tok);
     if (numpar == 0) {
         // Taking return value => it is not a noreturn function
         if (tok->strAt(-1) == "=")
-            return NULL;
+            return nullptr;
 
         // Function is not noreturn
-        if (notnoreturn.find(funcname) != notnoreturn.end())
-            return NULL;
+        if (tok->function() && tok->function()->functionScope) {
+            std::string temp;
+            if (!_settings->library.isScopeNoReturn(tok->function()->functionScope->classEnd, &temp) && temp.empty())
+                return nullptr;
+        } else if (_settings->library.isnotnoreturn(tok))
+            return nullptr;
 
         return "callfunc";
     }
@@ -713,17 +709,19 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
     const bool dot(tok->previous()->str() == ".");
     const bool eq(tok->previous()->str() == "=");
 
+    const Token *functok = tok;
+
     tok = Token::findsimplematch(tok, "(");
     if (tok)
         tok = tok->next();
 
     for (; tok; tok = tok->nextArgument()) {
         ++par;
-        if (varid > 0 && Token::Match(tok, "%varid% [,()]", varid)) {
+        if (Token::Match(tok, "%varid% [,()]", varid)) {
             if (dot)
                 return "use";
 
-            const Function* function = _tokenizer->getSymbolDatabase()->findFunctionByName(funcname, tok->scope());;
+            const Function* function = functok->function();
             if (!function)
                 return "use";
 
@@ -731,18 +729,18 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
             if (numpar != function->argCount()) // TODO: Handle default parameters
                 return "recursive";
 
+            if (!function->functionScope)
+                return "use";
             const Variable* param = function->getArgumentVar(par-1);
             if (!param || !param->nameToken())
                 return "use";
-            if (!function->functionScope)
-                return "use";
-            Token *func = getcode(function->functionScope->classStart->next(), callstack, param->varId(), alloctype, dealloctype, false, sz);
+            Token *func = getcode(function->functionScope->classStart->next(), callstack, param->declarationId(), alloctype, dealloctype, false, sz);
             //simplifycode(func);
             const Token *func_ = func;
             while (func_ && func_->str() == ";")
                 func_ = func_->next();
 
-            const char *ret = 0;
+            const char *ret = nullptr;
             /** @todo handle "goto" */
             if (Token::findsimplematch(func_, "dealloc"))
                 ret = "dealloc";
@@ -754,8 +752,8 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
             TokenList::deleteTokens(func);
             return ret;
         }
-        if (varid > 0 && Token::Match(tok, "& %varid% [,()]", varid)) {
-            const Function *func = _tokenizer->getSymbolDatabase()->findFunctionByName(funcname, tok->scope());;
+        if (Token::Match(tok, "& %varid% [,()]", varid)) {
+            const Function *func = functok->function();
             if (func == 0)
                 continue;
             AllocType a;
@@ -770,7 +768,7 @@ const char * CheckMemoryLeakInFunction::call_func(const Token *tok, std::list<co
                 return ret;
             }
         }
-        if (varid > 0 && Token::Match(tok, "%varid% . %var% [,)]", varid))
+        if (Token::Match(tok, "%varid% . %name% [,)]", varid))
             return "use";
     }
     return (eq || _settings->experimental) ? 0 : "callfunc";
@@ -786,7 +784,7 @@ static void addtoken(Token **rettail, const Token *tok, const std::string &str)
 }
 
 
-Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Token *> callstack, const unsigned int varid, CheckMemoryLeak::AllocType &alloctype, CheckMemoryLeak::AllocType &dealloctype, bool classmember, unsigned int sz, bool isStandardType)
+Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Token *> callstack, const unsigned int varid, CheckMemoryLeak::AllocType &alloctype, CheckMemoryLeak::AllocType &dealloctype, bool classmember, unsigned int sz,bool isStandardType)
 {
     // variables whose value depends on if(!var). If one of these variables
     // is used in a if-condition then generate "ifv" instead of "if".
@@ -827,16 +825,16 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
 
             // function calls are interesting..
             const Token *tok2 = tok;
-            while (Token::Match(tok2->next(), "%var% ."))
+            while (Token::Match(tok2->next(), "%name% ."))
                 tok2 = tok2->tokAt(2);
-            if (Token::Match(tok2->next(), "%var% ("))
+            if (Token::Match(tok2->next(), "%name% ("))
                 ;
 
             else if (Token::Match(tok->next(), "continue|break|return|throw|goto|do|else"))
                 ;
 
             else {
-                const Token *skipToToken = 0;
+                const Token *skipToToken = nullptr;
 
                 // scan statement for interesting keywords / varid
                 for (tok2 = tok->next(); tok2; tok2 = tok2->next()) {
@@ -860,11 +858,11 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
         }
 
         if (varid == 0) {
-            if (!callstack.empty() && Token::Match(tok, "[;{}] __cppcheck_lock|__cppcheck_unlock ( ) ;")) {
+            if (!callstack.empty() && Token::Match(tok, "[;{}] __tscancode_lock|__tscancode_unlock ( ) ;")) {
                 // Type of leak = Resource leak
                 alloctype = dealloctype = CheckMemoryLeak::File;
 
-                if (tok->next()->str() == "__cppcheck_lock") {
+                if (tok->next()->str() == "__tscancode_lock") {
                     addtoken(&rettail, tok, "alloc");
                 } else {
                     addtoken(&rettail, tok, "dealloc");
@@ -927,7 +925,7 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                         //TODO: this assignment is redundant, should be fixed
                         //realloc = true;
                         tok = tok->tokAt(2);
-                        if (Token::Match(tok, "%var% ("))
+                        if (Token::Match(tok, "%name% ("))
                             tok = tok->next()->link();
                         continue;
                     }
@@ -964,18 +962,17 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                         alloc = Many;
 
                     if (alloc != Many && dealloctype != No && dealloctype != Many && dealloctype != alloc) {
-						// modified by TSC, 20141113
-						if(!isStandardType || alloctype != NewArray)
+						if (!isStandardType || alloctype != NewArray)
 						{
-						    callstack.push_back(tok);
+							callstack.push_back(tok);
 							mismatchAllocDealloc(callstack, Token::findmatch(_tokenizer->tokens(), "%varid%", varid)->str());
-					        callstack.pop_back();
+							callstack.pop_back();
 						}
                     }
 
                     alloctype = alloc;
 
-                    if (Token::Match(tok, "%var% = %type% (")) {
+                    if (Token::Match(tok, "%name% = %type% (")) {
                         tok = tok->linkAt(3);
                         continue;
                     }
@@ -985,29 +982,42 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                 else {
                     // is the pointer in rhs?
                     bool rhs = false;
+                    bool trailingSemicolon = false;
+                    bool used = false;
                     for (const Token *tok2 = tok->next(); tok2; tok2 = tok2->next()) {
                         if (tok2->str() == ";") {
+                            trailingSemicolon = true;
                             if (rhs)
                                 tok = tok2;
                             break;
                         }
 
-                        if (Token::Match(tok2, "[=+(,] %varid%", varid)) {
-                            if (!rhs && Token::Match(tok2, "[(,]")) {
-                                addtoken(&rettail, tok, "use");
-                                addtoken(&rettail, tok, ";");
+                        if (!used && !rhs) {
+                            if (Token::Match(tok2, "[=+(,] %varid%", varid)) {
+                                if (Token::Match(tok2, "[(,]")) {
+                                    used = true;
+                                    addtoken(&rettail, tok, "use");
+                                    addtoken(&rettail, tok, ";");
+                                }
+                                rhs = true;
                             }
-                            rhs = true;
                         }
                     }
 
-                    if (!rhs)
-                        addtoken(&rettail, tok, "assign");
+                    if (!used) {
+                        if (!rhs)
+                            addtoken(&rettail, tok, "assign");
+                        else {
+                            addtoken(&rettail, tok, "use_");
+                            if (trailingSemicolon)
+                                addtoken(&rettail, tok, ";");
+                        }
+                    }
                     continue;
                 }
             }
 
-            if (Token::Match(tok->previous(), "[;{})=|] ::| %var%")) {
+            if (Token::Match(tok->previous(), "%op%|;|{|}|) ::| %name%") || (Token::Match(tok->previous(), "( ::| %name%") && (!rettail || rettail->str() != "loop"))) {
                 if (Token::Match(tok, "%varid% ?", varid))
                     tok = tok->tokAt(2);
 
@@ -1024,10 +1034,10 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                         dealloc = Many;
 
                     if (dealloc != Many && alloctype != No && alloctype != Many && alloctype != dealloc) {
-						if(!isStandardType || alloctype != NewArray)
+						if (!isStandardType || alloctype != NewArray)
 						{
-							callstack.push_back(tok);	
-							mismatchAllocDealloc(callstack, Token::findmatch(_tokenizer->tokens(), "%varid%", varid)->str());	
+							callstack.push_back(tok);
+							mismatchAllocDealloc(callstack, Token::findmatch(_tokenizer->tokens(), "%varid%", varid)->str());
 							callstack.pop_back();
 						}
                     }
@@ -1042,26 +1052,28 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
             // if else switch
             if (Token::simpleMatch(tok, "if (")) {
                 if (alloctype == Fd) {
-                    if (Token::Match(tok, "if ( 0|-1 <=|< %varid% )", varid) ||
-                        Token::Match(tok, "if ( %varid% != -1 )", varid)) {
+                    if (ifvar(tok, varid, ">",  "-1") ||
+                        ifvar(tok, varid, ">=", "0") ||
+                        ifvar(tok, varid, ">",  "0") ||
+                        ifvar(tok, varid, "!=", "-1")) {
                         addtoken(&rettail, tok, "if(var)");
                         tok = tok->next()->link();
                         continue;
-                    } else if (Token::Match(tok, "if ( %varid% == -1 )", varid) ||
-                               Token::Match(tok, "if ( %varid% < 0 )", varid)) {
+                    } else if (ifvar(tok, varid, "==", "-1") ||
+                               ifvar(tok, varid, "<", "0")) {
                         addtoken(&rettail, tok, "if(!var)");
                         tok = tok->next()->link();
                         continue;
                     }
                 }
 
-                if (Token::Match(tok, "if ( %varid% )", varid)) {
+                if (ifvar(tok, varid, "!=", "0")) {
                     addtoken(&rettail, tok, "if(var)");
 
                     // Make sure the "use" will not be added
                     tok = tok->next()->link();
                     continue;
-                } else if (Token::simpleMatch(tok, "if (") && notvar(tok->tokAt(2), varid, true)) {
+                } else if (ifvar(tok, varid, "==", "0")) {
                     addtoken(&rettail, tok, "if(!var)");
 
                     // parse the if-body.
@@ -1091,15 +1103,12 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                             dep = true;
                         } else if (Token::Match(tok2, "! %varid%", varid)) {
                             dep = true;
-                        } else if (Token::Match(tok2, "%var% (") && !test_white_list(tok2->str())) {
+                        } else if (Token::Match(tok2, "%name% (") && !test_white_list(tok2->str(), _settings, tokenizer->isCPP())) {
                             bool use = false;
                             for (const Token *tok3 = tok2->tokAt(2); tok3; tok3 = tok3->nextArgument()) {
                                 if (Token::Match(tok3->previous(), "(|, &| %varid% ,|)", varid)) {
-									if(!(alloctype==Socket))
-									{
-										use = true;
-										break;
-									}
+                                    use = true;
+                                    break;
                                 }
                             }
                             if (use) {
@@ -1110,19 +1119,15 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                             }
                         } else if (tok2->varId() && extravar.find(tok2->varId()) != extravar.end()) {
                             dep = true;
-                        } else if (tok2->varId() == varid && tok2->next()->isOp())
+                        } else if (tok2->varId() == varid &&
+                                   (tok2->next()->isConstOp() || tok2->previous()->isConstOp()))
                             dep = true;
                     }
 
-                    if (Token::Match(tok, "if ( ! %varid% &&", varid)) {
+                    if (notvar(tok->next()->astOperand2(), varid))
                         addtoken(&rettail, tok, "if(!var)");
-                    } else if (tok->next() &&
-                               tok->next()->link() &&
-                               Token::Match(tok->next()->link()->tokAt(-3), "&& ! %varid%", varid)) {
-                        addtoken(&rettail, tok, "if(!var)");
-                    } else {
+                    else
                         addtoken(&rettail, tok, (dep ? "ifv" : "if"));
-                    }
 
                     tok = tok->next()->link();
                     continue;
@@ -1136,11 +1141,7 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                 tok = tok->next()->link();
             continue;
         }
-		if (Token::Match(tok, "else if (")) {
-			addtoken(&rettail, tok->next(), "if");
-			tok = tok->tokAt(2)->link();
-			continue;
-		}
+
         if ((tok->str() == "case")) {
             addtoken(&rettail, tok, "case");
             addtoken(&rettail, tok, ";");
@@ -1159,7 +1160,7 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
         else if ((tok->str() == "for") || (tok->str() == "while")) {
             const Token* const end = tok->linkAt(1);
 
-            if (Token::simpleMatch(tok, "while ( true )") ||
+            if ((Token::simpleMatch(tok, "while (") && alwaysTrue(tok->next()->astOperand2())) ||
                 Token::simpleMatch(tok, "for ( ; ; )")) {
                 addtoken(&rettail, tok, "while1");
                 tok = end;
@@ -1173,12 +1174,16 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
 
             else if (alloctype == Fd && varid) {
                 if (Token::Match(tok, "while ( 0 <= %varid% )", varid) ||
-                    Token::Match(tok, "while ( %varid% != -1 )", varid)) {
+                    Token::Match(tok, "while ( %varid% >= 0 )", varid) ||
+                    Token::Match(tok, "while ( %varid% != -1 )", varid) ||
+                    Token::Match(tok, "while ( -1 != %varid% )", varid)) {
                     addtoken(&rettail, tok, "while(var)");
                     tok = end;
                     continue;
                 } else if (Token::Match(tok, "while ( %varid% == -1 )", varid) ||
-                           Token::Match(tok, "while ( %varid% < 0 )", varid)) {
+                           Token::Match(tok, "while ( -1 == %varid% )", varid) ||
+                           Token::Match(tok, "while ( %varid% < 0 )", varid) ||
+                           Token::Match(tok, "while ( 0 > %varid% )", varid)) {
                     addtoken(&rettail, tok, "while(!var)");
                     tok = end;
                     continue;
@@ -1189,7 +1194,7 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                 addtoken(&rettail, tok, "while(var)");
                 tok = end;
                 continue;
-            } else if (varid && Token::simpleMatch(tok, "while (") && notvar(tok->tokAt(2), varid, true)) {
+            } else if (varid && Token::simpleMatch(tok, "while (") && notvar(tok->next()->astOperand2(), varid)) {
                 addtoken(&rettail, tok, "while(!var)");
                 tok = end;
                 continue;
@@ -1197,14 +1202,8 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
 
             addtoken(&rettail, tok, "loop");
 
-            if (varid > 0) {
-                for (const Token *tok2 = tok->tokAt(2); tok2 && tok2 != end; tok2 = tok2->next()) {
-                    if (notvar(tok2, varid)) {
-                        addtoken(&rettail, tok2, "!var");
-                        break;
-                    }
-                }
-            }
+            if (varid > 0 && notvar(tok->next()->astOperand2(), varid))
+                addtoken(&rettail, tok, "!var");
 
             continue;
         }
@@ -1251,7 +1250,7 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
             else {
                 bool use = false;
 
-                std::stack<const Token *> f;
+                std::stack<const Token *> functions;
 
                 for (const Token *tok2 = tok->next(); tok2; tok2 = tok2->next()) {
                     if (tok2->str() == ";") {
@@ -1260,17 +1259,18 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                     }
 
                     if (tok2->str() == "(")
-                        f.push(tok2->previous());
-                    else if (!f.empty() && tok2->str() == ")")
-                        f.pop();
+                        functions.push(tok2->previous());
+                    else if (!functions.empty() && tok2->str() == ")")
+                        functions.pop();
 
                     if (tok2->varId() == varid) {
                         // Read data..
                         if (!Token::Match(tok2->previous(), "&|(") &&
-                            Token::simpleMatch(tok2->next(), "[")) {
-                        } else if (f.empty() ||
-                                   !test_white_list(f.top()->str()) ||
-                                   getDeallocationType(f.top(),varid)) {
+                            tok2->strAt(1) == "[") {
+                            ;
+                        } else if (functions.empty() ||
+                                   !test_white_list(functions.top()->str(), _settings, tokenizer->isCPP()) ||
+                                   getDeallocationType(functions.top(),varid)) {
                             use = true;
                         }
                     }
@@ -1282,8 +1282,11 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
         }
 
         // throw..
-        else if (Token::Match(tok, "try|throw|catch"))
+        else if (tokenizer->isCPP() && Token::Match(tok, "try|throw|catch")) {
             addtoken(&rettail, tok, tok->str());
+            if (tok->strAt(1) == "(")
+                tok = tok->next()->link();
+        }
 
         // Assignment..
         if (varid) {
@@ -1305,19 +1308,20 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
                 }
             }
 
-            if (Token::Match(tok, "& %var% = %varid% ;", varid)) {
+            if (Token::Match(tok, "& %name% = %varid% ;", varid)) {
                 while (rethead->next())
                     rethead->deleteNext();
                 return rethead;
             }
             if (Token::Match(tok, "[)=] %varid% [+;)]", varid) ||
-                Token::Match(tok, "%var% + %varid%", varid) ||
-                Token::Match(tok, "%varid% +=|-=", varid) ||
-                Token::Match(tok, "+=|<< %varid% ;", varid) ||
+                (Token::Match(tok, "%name% + %varid%", varid) &&
+                 tok->strAt(3) != "[" &&
+                 tok->strAt(3) != ".") ||
+                Token::Match(tok, "<< %varid% ;", varid) ||
                 Token::Match(tok, "= strcpy|strcat|memmove|memcpy ( %varid% ,", varid) ||
-                Token::Match(tok, "[;{}] %var% [ %varid% ]", varid)) {
+                Token::Match(tok, "[;{}] %name% [ %varid% ]", varid)) {
                 addtoken(&rettail, tok, "use");
-            } else if (Token::Match(tok->previous(), ";|{|}|=|(|,|%op% %varid% [", varid)) {
+            } else if (Token::Match(tok->previous(), ";|{|}|=|(|,|%cop% %varid% .|[", varid)) {
                 // warning is written for "dealloc ; use_ ;".
                 // but this use doesn't affect the leak-checking
                 addtoken(&rettail, tok, "use_");
@@ -1325,7 +1329,7 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
         }
 
         // Investigate function calls..
-        if (Token::Match(tok, "%var% (")) {
+        if (Token::Match(tok, "%name% (")) {
             // A function call should normally be followed by ";"
             if (Token::simpleMatch(tok->next()->link(), ") {")) {
                 if (!Token::Match(tok, "if|for|while|switch")) {
@@ -1347,27 +1351,22 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
             // just add a "::use"
             // The "::use" means that a member function was probably called but it wasn't analysed further
             else if (classmember) {
-                if (noreturn.find(tok->str()) != noreturn.end())
+                if (_settings->library.isnoreturn(tok))
                     addtoken(&rettail, tok, "exit");
 
-                else if (!test_white_list(tok->str())) {
+                else if (!test_white_list(tok->str(), _settings, tokenizer->isCPP())) {
                     const Token* const end2 = tok->linkAt(1);
                     for (const Token *tok2 = tok->tokAt(2); tok2 != end2; tok2 = tok2->next()) {
                         if (tok2->varId() == varid) {
-							//from TSC 20140818
-							/*when find socket,don't add ::use*/
-							if(!(alloctype==Socket))
-							{
-								addtoken(&rettail, tok, "::use");
-								break;
-							}
+                            addtoken(&rettail, tok, "::use");
+                            break;
                         }
                     }
                 }
             }
 
             else {
-                if (varid > 0 && Token::Match(tok, "%var% ( close|fclose|pclose ( %varid% ) ) ;", varid)) {
+                if (varid > 0 && Token::Match(tok, "%name% ( close|fclose|pclose ( %varid% ) ) ;", varid)) {
                     addtoken(&rettail, tok, "dealloc");
                     tok = tok->next()->link();
                     continue;
@@ -1375,27 +1374,15 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
 
                 bool allocpar = false;
                 const char *str = call_func(tok, callstack, varid, alloctype, dealloctype, allocpar, sz);
-				if (str) 
-				{
-					if ((string)str=="use"&&(alloctype==Socket))
-					{
-					}
-					else
-					{
-						if (allocpar) 
-						{
-							addtoken(&rettail, tok, str);
-							tok = tok->next()->link();
-						}
-						else if (varid == 0 || str != std::string("alloc"))
-						{
-							addtoken(&rettail, tok, str);
-						}
-						else if (Token::Match(tok->tokAt(-2), "%varid% =", varid))
-						{
-							addtoken(&rettail, tok, str);
-						}
-					} 
+                if (str) {
+                    if (allocpar) {
+                        addtoken(&rettail, tok, str);
+                        tok = tok->next()->link();
+                    } else if (varid == 0 || str != std::string("alloc")) {
+                        addtoken(&rettail, tok, str);
+                    } else if (Token::Match(tok->tokAt(-2), "%varid% =", varid)) {
+                        addtoken(&rettail, tok, str);
+                    }
                 } else if (varid > 0 &&
                            getReallocationType(tok, varid) != No &&
                            tok->tokAt(2)->varId() == varid) {
@@ -1411,13 +1398,13 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
         }
 
         // Callback..
-        if (Token::Match(tok, "( *| %var%") && Token::simpleMatch(tok->link(),") (")) {
+        if (Token::Match(tok, "( *| %name%") && Token::simpleMatch(tok->link(),") (")) {
             const Token *tok2 = tok->next();
             if (tok2->str() == "*")
                 tok2 = tok2->next();
             tok2 = tok2->next();
 
-            while (Token::Match(tok2, ". %var%"))
+            while (Token::Match(tok2, ". %name%"))
                 tok2 = tok2->tokAt(2);
 
             if (Token::simpleMatch(tok2, ") (")) {
@@ -1433,8 +1420,22 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
         }
 
         // Linux lists..
-        if (varid > 0 && Token::Match(tok, "[=(,] & %varid% [.[,)]", varid)) {
-            addtoken(&rettail, tok, "&use");
+        if (varid > 0 && Token::Match(tok, "[=(,] & (| %varid% [.[,)]", varid)) {
+            // Is variable passed to a "leak-ignore" function?
+            bool leakignore = false;
+            if (Token::Match(tok, "[(,]")) {
+                const Token *parent = tok;
+                while (parent && parent->str() != "(")
+                    parent = parent->astParent();
+                if (parent && parent->astOperand1() && parent->astOperand1()->isName()) {
+                    const std::string &functionName = parent->astOperand1()->str();
+                    if (_settings->library.leakignore.find(functionName) != _settings->library.leakignore.end())
+                        leakignore = true;
+                }
+            }
+            // Not passed to "leak-ignore" function, add "&use".
+            if (!leakignore)
+                addtoken(&rettail, tok, "&use");
         }
     }
 
@@ -1449,9 +1450,12 @@ Token *CheckMemoryLeakInFunction::getcode(const Token *tok, std::list<const Toke
     return rethead;
 }
 
+
+
+
 void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
 {
-    {
+    if (_tokenizer->isCPP()) {
         // Replace "throw" that is not in a try block with "return"
         int indentlevel = 0;
         int trylevel = -1;
@@ -1469,10 +1473,12 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
         }
     }
 
+    const bool printExperimental = _settings->experimental;
+
     // Insert extra ";"
     for (Token *tok2 = tok; tok2; tok2 = tok2->next()) {
         if (!tok2->previous() || Token::Match(tok2->previous(), "[;{}]")) {
-            if (Token::Match(tok2, "assign|callfunc|use assign|callfunc|use")) {
+            if (Token::Match(tok2, "assign|callfunc|use assign|callfunc|use|}")) {
                 tok2->insertToken(";");
             }
         }
@@ -1555,7 +1561,7 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
         }
 
         // Main inner simplification loop
-        for (Token *tok2 = tok; tok2; tok2 = tok2 ? tok2->next() : NULL) {
+        for (Token *tok2 = tok; tok2; tok2 = tok2 ? tok2->next() : nullptr) {
             // Delete extra ";"
             while (Token::Match(tok2, "[;{}] ;")) {
                 tok2->deleteNext();
@@ -1570,12 +1576,12 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
             }
 
             // Delete braces around a single instruction..
-            if (Token::Match(tok2->next(), "{ %var% ; }")) {
+            if (Token::Match(tok2->next(), "{ %name% ; }")) {
                 tok2->deleteNext();
                 tok2->tokAt(2)->deleteNext();
                 done = false;
             }
-            if (Token::Match(tok2->next(), "{ %var% %var% ; }")) {
+            if (Token::Match(tok2->next(), "{ %name% %name% ; }")) {
                 tok2->deleteNext();
                 tok2->tokAt(3)->deleteNext();
                 done = false;
@@ -1602,7 +1608,7 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
                 }
 
                 // Reduce "if X ; else X ;" => "X ;"
-                else if (Token::Match(tok2->next(), "if %var% ; else %var% ;") &&
+                else if (Token::Match(tok2->next(), "if %name% ; else %name% ;") &&
                          tok2->strAt(2) == tok2->strAt(5)) {
                     tok2->deleteNext(4);
                     done = false;
@@ -1629,8 +1635,8 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
                     done = false;
                 }
 
-                // Reduce "if ; else %var% ;" => "if %var% ;"
-                else if (Token::Match(tok2->next(), "if ; else %var% ;")) {
+                // Reduce "if ; else %name% ;" => "if %name% ;"
+                else if (Token::Match(tok2->next(), "if ; else %name% ;")) {
                     tok2->next()->deleteNext(2);
                     done = false;
                 }
@@ -1781,7 +1787,7 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
             }
 
             // Remove the "if break|continue ;" that follows "dealloc ; alloc ;"
-            if (! _settings->experimental && Token::Match(tok2, "dealloc ; alloc ; if break|continue ;")) {
+            if (!printExperimental && Token::Match(tok2, "dealloc ; alloc ; if break|continue ;")) {
                 tok2->tokAt(3)->deleteNext(2);
                 done = false;
             }
@@ -1876,8 +1882,8 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
                 done = false;
             }
 
-            // Reduce "[;{}] return use ; %var%" => "[;{}] return use ;"
-            if (Token::Match(tok2, "[;{}] return use ; %var%")) {
+            // Reduce "[;{}] return use ; %name%" => "[;{}] return use ;"
+            if (Token::Match(tok2, "[;{}] return use ; %name%")) {
                 tok2->tokAt(3)->deleteNext();
                 done = false;
             }
@@ -1902,8 +1908,33 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
             }
 
             // use use => use
-            if (Token::simpleMatch(tok2, "use use")) {
+            while (Token::simpleMatch(tok2, "use use")) {
                 tok2->deleteNext();
+                done = false;
+            }
+
+            // use use_ => use
+            if (Token::simpleMatch(tok2, "use use_")) {
+                tok2->deleteNext();
+                done = false;
+            }
+
+            // use_ use => use
+            if (Token::simpleMatch(tok2, "use_ use")) {
+                tok2->deleteThis();
+                done = false;
+            }
+
+            // use & use => use
+            while (Token::simpleMatch(tok2, "use & use")) {
+                tok2->deleteNext(2);
+                done = false;
+            }
+
+            // & use use => use
+            while (Token::simpleMatch(tok2, "& use use")) {
+                tok2->deleteThis();
+                tok2->deleteThis();
                 done = false;
             }
 
@@ -1962,8 +1993,8 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
                     if (Token::Match(_tok, "if return|break use| ;"))
                         _tok = _tok->tokAt(2);
 
-                    incase |= (_tok->str() == "case");
-                    incase &= (_tok->str() != "break" && _tok->str() != "return");
+                    incase = incase || (_tok->str() == "case");
+                    incase = incase && (_tok->str() != "break" && _tok->str() != "return");
                 }
 
                 if (!incase && valid) {
@@ -2008,7 +2039,7 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
         }
 
         // If "--all" is given, remove all "callfunc"..
-        if (done && _settings->experimental) {
+        if (done &&  printExperimental) {
             for (Token *tok2 = tok; tok2; tok2 = tok2->next()) {
                 if (tok2->str() == "callfunc") {
                     tok2->deleteThis();
@@ -2021,124 +2052,38 @@ void CheckMemoryLeakInFunction::simplifycode(Token *tok) const
 
 
 
-
-
-int CheckMemoryLeakInFunction::findleak(Token *tokens,const std::string &varname, AllocType alloctype)
+const Token *CheckMemoryLeakInFunction::findleak(const Token *tokens)
 {
     const Token *result;
-	Token *results;
-    if ((result = Token::findsimplematch(tokens, "loop alloc ;")) != NULL) {
-		memoryLeak(result,varname,alloctype);
-        return 2;
+
+    if (Token::Match(tokens, "alloc ; if|if(var)|ifv break|continue|return ;")) {
+        return tokens->tokAt(3);
     }
 
-    if ((result=Token::findmatch(tokens, "alloc ; if|if(var)|ifv break|continue|return ;"))!= NULL) {
-		/*fix bug:false positive of resourceleak because of do{...}while(0) struct.
-		 *when tokenizing,tsc remove the do... while(0) to simplify .
-		 */
-		if(result->tokAt(3)->str()!="break")
-		{
-			memoryLeak(result->tokAt(3),varname,alloctype);
-		}
-		results = (Token*)result->tokAt(2);
-		if(results)
-		{
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		}
-        return 1;
-    }
-	if ((result=Token::findmatch(tokens, "alloc ; {")) !=NULL)
-	{
-		const Token* temp=result->tokAt(3);
-		while(temp && temp->str() != "{")
-		{
-			temp=temp->next();
-		}
-		if (temp)
-		{
-			results=(Token*)Token::findmatch(temp, "if|if(var)|ifv break|continue|return ;");
-			if (results)
-			{
-				result=results->next();
-				memoryLeak(result,varname,alloctype);
-				results->deleteThis();
-				results->deleteThis();
-				results->deleteThis();
-				return 1;
-			}
-			
-		}
-	}
-	
-	if ((result=Token::findmatch(tokens, "alloc ; { if|if(var)|ifv break|continue|return ;")) !=NULL) {
-		if(result->tokAt(4)->str()!="break")
-		{
-			memoryLeak(result->tokAt(4),varname,alloctype);
-		}
-		results=(Token*)result->tokAt(2);
-		if(results)
-		{
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		}
-		return 1;
-	}
-    if ((result = Token::findmatch(tokens, "alloc ; if|if(var)|ifv return ;")) != NULL) {
-		memoryLeak(result->tokAt(3),varname,alloctype);
-		results=(Token*)result->tokAt(2);
-		if(results)
-		{
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		}
-        return 1;
-    }
-    if ((result = Token::findmatch(tokens, "alloc ; alloc|assign|return callfunc| ;")) != NULL) {
- 		memoryLeak(result->tokAt(2),varname,alloctype);
-		results=(Token*)result->tokAt(2);
-		if(results)
-		{
-		results->deleteThis();
-		results->deleteThis();
-		}
-        return 1;
+    if ((result = Token::findsimplematch(tokens, "loop alloc ;")) != nullptr) {
+        return result;
     }
 
-    if ((result = Token::findsimplematch(tokens, "; alloc ; if assign ;")) != NULL) {
-		memoryLeak(result->tokAt(4),varname,alloctype);
-		results=(Token*)result->tokAt(3);
-		if(results)
-		{
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		}
-        return 1;
+    if ((result = Token::findmatch(tokens, "alloc ; if|if(var)|ifv return ;")) != nullptr) {
+        return result->tokAt(3);
     }
 
-    if (((result = Token::findsimplematch(tokens, "; alloc ; if dealloc ; }")) != NULL) &&
+    if ((result = Token::findmatch(tokens, "alloc ; alloc|assign|return callfunc| ;")) != nullptr) {
+        return result->tokAt(2);
+    }
+
+    if ((result = Token::findsimplematch(tokens, "; alloc ; if assign ;")) != nullptr) {
+        return result->tokAt(4);
+    }
+
+    if (((result = Token::findsimplematch(tokens, "; alloc ; if dealloc ; }")) != nullptr) &&
         !result->tokAt(7)) {
-		memoryLeak(result->tokAt(6),varname,alloctype);
-		results=(Token*)result->tokAt(3);
-		if(results)
-		{
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		results->deleteThis();
-		}
-        return 1;
+        return result->tokAt(6);
     }
 
-    if ((result = Token::findsimplematch(tokens, "alloc ; }")) != NULL) {
-        if (result->tokAt(3) == NULL)
-			memoryLeak(result->tokAt(2),varname,alloctype);
-            return 2;
+    if ((result = Token::findsimplematch(tokens, "alloc ; }")) != nullptr) {
+        if (result->tokAt(3) == nullptr)
+            return result->tokAt(2);
     }
 
     // No deallocation / usage => report leak at the last token
@@ -2149,14 +2094,15 @@ int CheckMemoryLeakInFunction::findleak(Token *tokens,const std::string &varname
 
         // not a leak if exit is called before the end of the function
         if (!Token::Match(last->tokAt(-2), "exit|callfunc ; }"))
-			memoryLeak(last,varname,alloctype);
-            return 2;
+            return last;
     }
-    return 0;
+
+    return nullptr;
 }
 
+
 // Check for memory leaks for a function variable.
-void CheckMemoryLeakInFunction::checkScope(const Token *Tok1, const std::string &varname, unsigned int varid, bool classmember, unsigned int sz, bool isStandardType)
+void CheckMemoryLeakInFunction::checkScope(const Token *startTok, const std::string &varname, unsigned int varid, bool classmember, unsigned int sz,bool isStandardType)
 {
     std::list<const Token *> callstack;
 
@@ -2165,17 +2111,17 @@ void CheckMemoryLeakInFunction::checkScope(const Token *Tok1, const std::string 
 
     const Token *result;
 
-    Token *tok = getcode(Tok1, callstack, varid, alloctype, dealloctype, classmember, sz, isStandardType);
+	Token *tok = getcode(startTok, callstack, varid, alloctype, dealloctype, classmember, sz, isStandardType);
     //tok->printOut((std::string("Checkmemoryleak: getcode result for: ") + varname).c_str());
 
-    const bool use_addr = bool(Token::findsimplematch(tok, "&use") != NULL);
+    const bool use_addr = bool(Token::findsimplematch(tok, "&use") != nullptr);
 
     // Simplify the code and check if freed memory is used..
     for (Token *tok2 = tok; tok2; tok2 = tok2->next()) {
         while (Token::Match(tok2, "[;{}] ;"))
             tok2->deleteNext();
     }
-    if ((result = Token::findmatch(tok, "[;{}] dealloc ; use_ ;")) != NULL) {
+    if ((result = Token::findmatch(tok, "[;{}] dealloc ; use_ ;")) != nullptr) {
         deallocuseError(result->tokAt(3), varname);
     }
 
@@ -2205,10 +2151,10 @@ void CheckMemoryLeakInFunction::checkScope(const Token *Tok1, const std::string 
         TokenList::deleteTokens(tok);
         return;
     }
-	if(tok)
+
     simplifycode(tok);
 
-    if (tok && _settings->debug && _settings->_verbose) {
+    if (_settings->_verbose) {
         tok->printOut(("Checkmemoryleak: simplifycode result for: " + varname).c_str());
     }
 
@@ -2223,50 +2169,46 @@ void CheckMemoryLeakInFunction::checkScope(const Token *Tok1, const std::string 
         TokenList::deleteTokens(tok);
         return;
     }
-	int a=0;
-	int re=0;
-    while ((re = findleak(tok,varname, alloctype)) != 0 && re != 2 && tok != NULL) {
-        //memoryLeak(result, varname, alloctype);
-		a=1;
+
+    if ((result = findleak(tok)) != nullptr) {
+        memoryLeak(result, varname, alloctype);
     }
-	if (a==0)
-	{
-     if (!use_addr && (result = Token::findsimplematch(tok, "dealloc ; dealloc ;")) != NULL) {
+
+    else if (!use_addr && (result = Token::findsimplematch(tok, "dealloc ; dealloc ;")) != nullptr) {
         deallocDeallocError(result->tokAt(2), varname);
     }
 
     // detect cases that "simplifycode" don't handle well..
-    else if (_settings->debugwarnings) {
+    else if (tok && _settings->debugwarnings) {
         Token *first = tok;
         while (first && first->str() == ";")
             first = first->next();
 
         bool noerr = false;
-        noerr |= Token::simpleMatch(first, "alloc ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; dealloc ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; return use ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; use ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; use ; return ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; dealloc ; return ; }");
-        noerr |= Token::simpleMatch(first, "if alloc ; dealloc ; }");
-        noerr |= Token::simpleMatch(first, "if alloc ; return use ; }");
-        noerr |= Token::simpleMatch(first, "if alloc ; use ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; ifv return ; dealloc ; }");
-        noerr |= Token::simpleMatch(first, "alloc ; if return ; dealloc; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; dealloc ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; return use ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; use ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; use ; return ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; dealloc ; return ; }");
+        noerr = noerr || Token::simpleMatch(first, "if alloc ; dealloc ; }");
+        noerr = noerr || Token::simpleMatch(first, "if alloc ; return use ; }");
+        noerr = noerr || Token::simpleMatch(first, "if alloc ; use ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; ifv return ; dealloc ; }");
+        noerr = noerr || Token::simpleMatch(first, "alloc ; if return ; dealloc; }");
 
         // Unhandled case..
-        if (!noerr && tok) {
+        if (!noerr) {
             std::ostringstream errmsg;
             errmsg << "inconclusive leak of " << varname << ": ";
             errmsg << tok->stringifyList(false, false, false, false, false, 0, 0);
-            reportError(first, Severity::debug, "debug","debug",  errmsg.str());
+			reportError(first, Severity::debug, ErrorType::None, "debug", errmsg.str(), ErrorLogger::GenWebIdentity(first->str()));
         }
-	}
     }
+
     TokenList::deleteTokens(tok);
 }
 //---------------------------------------------------------------------------
-
 
 
 //---------------------------------------------------------------------------
@@ -2275,6 +2217,7 @@ void CheckMemoryLeakInFunction::checkScope(const Token *Tok1, const std::string 
 //   allocate the requested memory:
 //     a = malloc(10); a = realloc(a, 100);
 //---------------------------------------------------------------------------
+
 static bool isNoArgument(const SymbolDatabase* symbolDatabase, unsigned int varid)
 {
     const Variable* var = symbolDatabase->getVariableFromVarId(varid);
@@ -2287,36 +2230,35 @@ void CheckMemoryLeakInFunction::checkReallocUsage()
     const std::size_t functions = symbolDatabase->functionScopes.size();
     for (std::size_t i = 0; i < functions; ++i) {
         const Scope * scope = symbolDatabase->functionScopes[i];
-		if(!scope)	
-			continue;
+
         // Search for the "var = realloc(var, 100" pattern within this function
         for (const Token *tok = scope->classStart->next(); tok != scope->classEnd; tok = tok->next()) {
             if (tok->varId() > 0 &&
-                Token::Match(tok, "%var% = realloc|g_try_realloc ( %var% , %any%") &&
+                Token::Match(tok, "%name% = realloc|g_try_realloc ( %name% , %any%") &&
                 tok->varId() == tok->tokAt(4)->varId() &&
                 isNoArgument(symbolDatabase, tok->varId())) {
                 // Check that another copy of the pointer wasn't saved earlier in the function
-                if (Token::findmatch(scope->classStart, "%var% = %varid% ;", tok, tok->varId()) ||
-                    Token::findmatch(scope->classStart, "[{};] %varid% = %var% [;=]", tok, tok->varId()))
+                if (Token::findmatch(scope->classStart, "%name% = %varid% ;", tok, tok->varId()) ||
+                    Token::findmatch(scope->classStart, "[{};] %varid% = %name% [;=]", tok, tok->varId()))
                     continue;
 
                 const Token* tokEndRealloc = tok->linkAt(3);
                 // Check that the allocation isn't followed immediately by an 'if (!var) { error(); }' that might handle failure
-                if (Token::Match(tokEndRealloc->next(), "; if ( ! %varid% ) {", tok->varId())) {
-                    const Token* tokEndBrace = tokEndRealloc->linkAt(7);
-                    if (tokEndBrace && Token::simpleMatch(tokEndBrace->tokAt(-2), ") ;") &&
-                        Token::Match(tokEndBrace->linkAt(-2)->tokAt(-2), "{|}|; %var% ("))
+                if (Token::simpleMatch(tokEndRealloc->next(), "; if (") &&
+                    notvar(tokEndRealloc->tokAt(3)->astOperand2(), tok->varId())) {
+                    const Token* tokEndBrace = tokEndRealloc->linkAt(3)->linkAt(1);
+                    if (tokEndBrace && _tokenizer->IsScopeNoReturn(tokEndBrace))
                         continue;
                 }
 
                 memleakUponReallocFailureError(tok, tok->str());
             } else if (tok->next()->varId() > 0 &&
-                       (Token::Match(tok, "* %var% = realloc|g_try_realloc ( * %var% , %any%") &&
+                       (Token::Match(tok, "* %name% = realloc|g_try_realloc ( * %name% , %any%") &&
                         tok->next()->varId() == tok->tokAt(6)->varId()) &&
                        isNoArgument(symbolDatabase, tok->next()->varId())) {
                 // Check that another copy of the pointer wasn't saved earlier in the function
-                if (Token::findmatch(scope->classStart, "%var% = * %varid% ;", tok, tok->next()->varId()) ||
-                    Token::findmatch(scope->classStart, "[{};] * %varid% = %var% [;=]", tok, tok->next()->varId()))
+                if (Token::findmatch(scope->classStart, "%name% = * %varid% ;", tok, tok->next()->varId()) ||
+                    Token::findmatch(scope->classStart, "[{};] * %varid% = %name% [;=]", tok, tok->next()->varId()))
                     continue;
 
                 const Token* tokEndRealloc = tok->linkAt(4);
@@ -2324,7 +2266,7 @@ void CheckMemoryLeakInFunction::checkReallocUsage()
                 if (Token::Match(tokEndRealloc->next(), "; if ( ! * %varid% ) {", tok->next()->varId())) {
                     const Token* tokEndBrace = tokEndRealloc->linkAt(8);
                     if (tokEndBrace && Token::simpleMatch(tokEndBrace->tokAt(-2), ") ;") &&
-                        Token::Match(tokEndBrace->linkAt(-2)->tokAt(-2), "{|}|; %var% ("))
+                        Token::Match(tokEndBrace->linkAt(-2)->tokAt(-2), "{|}|; %name% ("))
                         continue;
                 }
                 memleakUponReallocFailureError(tok->next(), tok->strAt(1));
@@ -2333,8 +2275,6 @@ void CheckMemoryLeakInFunction::checkReallocUsage()
     }
 }
 //---------------------------------------------------------------------------
-
-
 
 
 //---------------------------------------------------------------------------
@@ -2351,20 +2291,16 @@ static bool isInMemberFunc(const Scope* scope)
 
 void CheckMemoryLeakInFunction::check()
 {
-    // fill the "noreturn"
-    parse_noreturn();
-
     // Check locking/unlocking of global resources..
     const std::size_t functions = symbolDatabase->functionScopes.size();
     for (std::size_t i = 0; i < functions; ++i) {
         const Scope * scope = symbolDatabase->functionScopes[i];
-        if(!scope)
-			continue;
-        checkScope(scope->classStart->next(), "", 0, scope->functionOf != NULL, 1);
+
+        checkScope(scope->classStart->next(), "", 0, scope->functionOf != nullptr, 1);
     }
 
     // Check variables..
-    for (unsigned int i = 0; i < symbolDatabase->getVariableListSize(); i++) {
+    for (unsigned int i = 1; i < symbolDatabase->getVariableListSize(); i++) {
         const Variable* var = symbolDatabase->getVariableFromVarId(i);
         if (!var || (!var->isLocal() && !var->isArgument()) || var->isStatic() || !var->scope())
             continue;
@@ -2375,18 +2311,21 @@ void CheckMemoryLeakInFunction::check()
         if (!var->isPointer() && var->typeStartToken()->str() != "int")
             continue;
 
+        // check for known class without implementation (forward declaration)
+        if (var->isPointer() && var->type() && !var->typeScope())
+            continue;
+
         unsigned int sz = _tokenizer->sizeOfType(var->typeStartToken());
         if (sz < 1)
             sz = 1;
 
         if (var->isArgument())
-            checkScope(var->scope()->classStart->next(), var->name(), i, isInMemberFunc(var->scope()), sz, var->typeStartToken()->isStandardType());
+			checkScope(var->scope()->classStart->next(), var->name(), i, isInMemberFunc(var->scope()), sz, var->typeStartToken()->isStandardType());
         else
-            checkScope(var->nameToken(), var->name(), i, isInMemberFunc(var->scope()), sz, var->typeStartToken()->isStandardType());
+			checkScope(var->nameToken(), var->name(), i, isInMemberFunc(var->scope()), sz, var->typeStartToken()->isStandardType());
     }
 }
 //---------------------------------------------------------------------------
-
 
 
 //---------------------------------------------------------------------------
@@ -2394,29 +2333,27 @@ void CheckMemoryLeakInFunction::check()
 //---------------------------------------------------------------------------
 
 
-
 void CheckMemoryLeakInClass::check()
 {
+	if (!_settings->IsCheckIdOpened(ErrorType::ToString(ErrorType::UserCustom).c_str(), "unsafeClassCanLeak"))
+		return;
+
     const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
 
     // only check classes and structures
     const std::size_t classes = symbolDatabase->classAndStructScopes.size();
     for (std::size_t i = 0; i < classes; ++i) {
         const Scope * scope = symbolDatabase->classAndStructScopes[i];
-		if(!scope)
-			continue;
         std::list<Variable>::const_iterator var;
         for (var = scope->varlist.begin(); var != scope->varlist.end(); ++var) {
             if (!var->isStatic() && var->isPointer()) {
                 // allocation but no deallocation of private variables in public function..
                 const Token *tok = var->typeStartToken();
-                if (tok->str() == "const")
-                    tok = tok->next();
                 if (tok->isStandardType()) {
                     if (var->isPrivate())
-                        checkPublicFunctions(&(*scope), var->nameToken());
+                        checkPublicFunctions(scope, var->nameToken());
 
-                    variable(&(*scope), var->nameToken());
+                    variable(scope, var->nameToken());
                 }
 
                 // known class?
@@ -2424,9 +2361,9 @@ void CheckMemoryLeakInClass::check()
                     // not derived?
                     if (var->type()->derivedFrom.empty()) {
                         if (var->isPrivate())
-                            checkPublicFunctions(&(*scope), var->nameToken());
+                            checkPublicFunctions(scope, var->nameToken());
 
-                        variable(&(*scope), var->nameToken());
+                        variable(scope, var->nameToken());
                     }
                 }
             }
@@ -2451,10 +2388,15 @@ void CheckMemoryLeakInClass::variable(const Scope *scope, const Token *tokVarnam
     // Inspect member functions
     std::list<Function>::const_iterator func;
     for (func = scope->functionList.begin(); func != scope->functionList.end(); ++func) {
-        if (!func->hasBody)
+        const bool constructor = func->isConstructor();
+        const bool destructor = func->isDestructor();
+        if (!func->hasBody()) {
+            if (destructor) { // implementation for destructor is not seen => assume it deallocates all variables properly
+                deallocInDestructor = true;
+                Dealloc = CheckMemoryLeak::Many;
+            }
             continue;
-        const bool constructor = func->type == Function::eConstructor;
-        const bool destructor = func->type == Function::eDestructor;
+        }
         bool body = false;
         const Token *end = func->functionScope->classEnd;
         for (const Token *tok = func->arg->link(); tok != end; tok = tok->next()) {
@@ -2487,8 +2429,8 @@ void CheckMemoryLeakInClass::variable(const Scope *scope, const Token *tokVarnam
                         if (Alloc != No && Alloc != alloc)
                             alloc = CheckMemoryLeak::Many;
 
-                        std::list<const Token *> callstack;
                         if (alloc != CheckMemoryLeak::Many && Dealloc != CheckMemoryLeak::No && Dealloc != CheckMemoryLeak::Many && Dealloc != alloc) {
+                            std::list<const Token *> callstack;
                             callstack.push_back(tok);
                             mismatchAllocDealloc(callstack, classname + "::" + varname);
                         }
@@ -2522,8 +2464,8 @@ void CheckMemoryLeakInClass::variable(const Scope *scope, const Token *tokVarnam
                     if (Dealloc != CheckMemoryLeak::No && Dealloc != dealloc)
                         dealloc = CheckMemoryLeak::Many;
 
-                    std::list<const Token *> callstack;
                     if (dealloc != CheckMemoryLeak::Many && Alloc != CheckMemoryLeak::No &&  Alloc != Many && Alloc != dealloc) {
+                        std::list<const Token *> callstack;
                         callstack.push_back(tok);
                         mismatchAllocDealloc(callstack, classname + "::" + varname);
                     }
@@ -2532,8 +2474,8 @@ void CheckMemoryLeakInClass::variable(const Scope *scope, const Token *tokVarnam
                 }
 
                 // Function call .. possible deallocation
-                else if (Token::Match(tok->previous(), "[{};] %var% (")) {
-                    if (!CheckMemoryLeakInFunction::test_white_list(tok->str())) {
+                else if (Token::Match(tok->previous(), "[{};] %name% (")) {
+                    if (!CheckMemoryLeakInFunction::test_white_list(tok->str(), _settings, tokenizer->isCPP())) {
                         return;
                     }
                 }
@@ -2550,9 +2492,11 @@ void CheckMemoryLeakInClass::variable(const Scope *scope, const Token *tokVarnam
 
 void CheckMemoryLeakInClass::unsafeClassError(const Token *tok, const std::string &classname, const std::string &varname)
 {
-    reportError(tok, Severity::style, "memleak","unsafeClassCanLeak",
-                "Class '" + classname + "' is unsafe, '" + varname + "' can leak by wrong usage.\n"
-                "The class '" + classname + "' is unsafe, wrong usage can cause memory/resource leaks for '" + varname + "'. This can for instance be fixed by adding proper cleanup in the destructor.");
+//#ifdef  TSCANCODE_RULE_OPEN
+    reportError(tok, Severity::style, ErrorType::UserCustom, "unsafeClassCanLeak",
+                "Class '" + classname + "' is unsafe, as '" + varname + "' is allocated in constructor or functions, but not deallocated in destructor.\n"
+                "The class '" + classname + "' is unsafe, wrong usage can cause memory/resource leaks for '" + varname + "'. This can for instance be fixed by adding proper cleanup in the destructor.", ErrorLogger::GenWebIdentity(varname));
+//#endif
 }
 
 
@@ -2561,6 +2505,7 @@ void CheckMemoryLeakInClass::checkPublicFunctions(const Scope *scope, const Toke
     // Check that public functions deallocate the pointers that they allocate.
     // There is no checking how these functions are used and therefore it
     // isn't established if there is real leaks or not.
+
     const unsigned int varid = classtok->varId();
     if (varid == 0) {
         _tokenizer->getSymbolDatabase()->debugMessage(classtok, "CheckMemoryInClass::checkPublicFunctions found variable \'" + classtok->str() + "\' with varid 0");
@@ -2573,19 +2518,17 @@ void CheckMemoryLeakInClass::checkPublicFunctions(const Scope *scope, const Toke
 
     for (func = scope->functionList.begin(); func != scope->functionList.end(); ++func) {
         if ((func->type == Function::eFunction || func->type == Function::eOperatorEqual) &&
-            func->access == Public && func->hasBody) {
-            const Token *tok2 = func->token;
-            while (tok2 && tok2->str() != "{")
-                tok2 = tok2->next();
-            if (tok2 && Token::Match(tok2, "{|}|; %varid% =", varid)) {
-                const CheckMemoryLeak::AllocType alloc = getAllocationType(tok2->tokAt(3), varid);
+            func->access == Public && func->hasBody()) {
+            const Token *tok2 = func->functionScope->classStart->next();
+            if (Token::Match(tok2, "%varid% =", varid)) {
+                const CheckMemoryLeak::AllocType alloc = getAllocationType(tok2->tokAt(2), varid);
                 if (alloc != CheckMemoryLeak::No)
-                    publicAllocationError(tok2, tok2->strAt(1));
-            } else if (tok2 && Token::Match(tok2, "{|}|; %type% :: %varid% =", varid) &&
-                       tok2->next()->str() == scope->className) {
-                const CheckMemoryLeak::AllocType alloc = getAllocationType(tok2->tokAt(5), varid);
+                    publicAllocationError(tok2, tok2->str());
+            } else if (Token::Match(tok2, "%type% :: %varid% =", varid) &&
+                       tok2->str() == scope->className) {
+                const CheckMemoryLeak::AllocType alloc = getAllocationType(tok2->tokAt(4), varid);
                 if (alloc != CheckMemoryLeak::No)
-                    publicAllocationError(tok2, tok2->strAt(3));
+                    publicAllocationError(tok2, tok2->strAt(2));
             }
         }
     }
@@ -2593,14 +2536,16 @@ void CheckMemoryLeakInClass::checkPublicFunctions(const Scope *scope, const Toke
 
 void CheckMemoryLeakInClass::publicAllocationError(const Token *tok, const std::string &varname)
 {
-    reportError(tok, Severity::warning, "memleak","publicAllocationError", "Possible leak in public function. The pointer '" + varname + "' is not deallocated before it is allocated.");
+//#ifdef TSCANCODE_RULE_OPEN
+    reportError(tok, Severity::warning, ErrorType::MemoryLeak, "publicAllocationError", "Possible leak in public function. The pointer '" + varname + "' is not deallocated before it is allocated.", ErrorLogger::GenWebIdentity(varname));
+//#endif
 }
 
 
 void CheckMemoryLeakStructMember::check()
 {
     const SymbolDatabase* symbolDatabase = _tokenizer->getSymbolDatabase();
-    for (unsigned int i = 0; i < symbolDatabase->getVariableListSize(); i++) {
+    for (unsigned int i = 1; i < symbolDatabase->getVariableListSize(); i++) {
         const Variable* var = symbolDatabase->getVariableFromVarId(i);
         if (!var || !var->isLocal() || var->isStatic())
             continue;
@@ -2612,30 +2557,29 @@ void CheckMemoryLeakStructMember::check()
 
 bool CheckMemoryLeakStructMember::isMalloc(const Variable *variable)
 {
-    const unsigned int varid(variable->varId());
+    const unsigned int declarationId(variable->declarationId());
     bool alloc = false;
-    for (const Token *tok2 = variable->nameToken(); tok2 != variable->scope()->classEnd; tok2 = tok2->next()) {
-        if (Token::Match(tok2, "= %varid% [;=]", varid)) {
+    for (const Token *tok2 = variable->nameToken(); tok2 && tok2 != variable->scope()->classEnd; tok2 = tok2->next()) {
+        if (Token::Match(tok2, "= %varid% [;=]", declarationId)) {
             return false;
-        } else if (Token::Match(tok2, "%varid% = malloc|kmalloc (", varid)) {
+        } else if (Token::Match(tok2, "%varid% = malloc|kmalloc (", declarationId)) {
             alloc = true;
         }
     }
     return alloc;
 }
 
+namespace {
+    static const std::set<std::string> ignoredFunctions = make_container< std::set<std::string> > ()
+            << "if"
+            << "for"
+            << "while"
+            << "malloc"
+            ;
+}
 
 void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const variable)
 {
-    // This should be in the CheckMemoryLeak base class
-    static std::set<std::string> ignoredFunctions;
-    if (ignoredFunctions.empty()) {
-        ignoredFunctions.insert("if");
-        ignoredFunctions.insert("for");
-        ignoredFunctions.insert("while");
-        ignoredFunctions.insert("malloc");
-    }
-
     // Is struct variable a pointer?
     if (variable->isPointer()) {
         // Check that variable is allocated with malloc
@@ -2648,7 +2592,7 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
 
     // Check struct..
     unsigned int indentlevel2 = 0;
-    for (const Token *tok2 = variable->nameToken(); tok2 != variable->scope()->classEnd; tok2 = tok2->next()) {
+    for (const Token *tok2 = variable->nameToken(); tok2 && tok2 != variable->scope()->classEnd; tok2 = tok2->next()) {
         if (tok2->str() == "{")
             ++indentlevel2;
 
@@ -2660,12 +2604,13 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
 
         // Unknown usage of struct
         /** @todo Check how the struct is used. Only bail out if necessary */
-        else if (Token::Match(tok2, "[(,] %varid% [,)]", variable->varId()))
+        else if (Token::Match(tok2, "[(,] %varid% [,)]", variable->declarationId()))
             break;
 
         // Struct member is allocated => check if it is also properly deallocated..
-        else if (Token::Match(tok2->previous(), "[;{}] %varid% . %var% = malloc|strdup|kmalloc (", variable->varId())) {
-            const unsigned int structid(variable->varId());
+        else if (Token::Match(tok2->previous(), "[;{}] %varid% . %var% = malloc|strdup|kmalloc|fopen (", variable->declarationId())
+                 || Token::Match(tok2->previous(), "[;{}] %varid% . %var% = new", variable->declarationId())) {
+            const unsigned int structid(variable->declarationId());
             const unsigned int structmemberid(tok2->tokAt(2)->varId());
 
             // This struct member is allocated.. check that it is deallocated
@@ -2674,8 +2619,7 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
                 if (tok3->str() == "{")
                     ++indentlevel3;
 
-                else if (tok3->str() == "}") {
-                    if (indentlevel3 == 0) {
+                else if (tok3->str() == "}") {if (indentlevel3 == 0) {
                         memoryLeak(tok3, variable->name() + "." + tok2->strAt(2), Malloc);
                         break;
                     }
@@ -2683,7 +2627,10 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
                 }
 
                 // Deallocating the struct member..
-                else if (Token::Match(tok3, "free|kfree ( %var% . %varid% )", structmemberid)) {
+                else if (Token::Match(tok3, "free|kfree ( %var% . %varid% )", structmemberid)
+                         || Token::Match(tok3, "delete %var% . %varid%", structmemberid)
+                         || Token::Match(tok3, "delete [ ] %var% . %varid%", structmemberid)
+                         || Token::Match(tok3, "fclose ( %var% . %varid%", structmemberid)) {
                     // If the deallocation happens at the base level, don't check this member anymore
                     if (indentlevel3 == 0)
                         break;
@@ -2711,7 +2658,8 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
                 }
 
                 // failed allocation => skip code..
-                else if (Token::Match(tok3, "if ( ! %var% . %varid% )", structmemberid)) {
+                else if (Token::simpleMatch(tok3, "if (") &&
+                         notvar(tok3->next()->astOperand2(), structmemberid)) {
                     // Goto the ")"
                     tok3 = tok3->next()->link();
 
@@ -2724,7 +2672,7 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
                 }
 
                 // succeeded allocation
-                else if (Token::Match(tok3, "if ( %var% . %varid% ) {", structmemberid)) {
+                else if (ifvar(tok3, structmemberid, "!=", "0")) {
                     // goto the ")"
                     tok3 = tok3->next()->link();
 
@@ -2769,7 +2717,7 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
                     break;
 
                 // using struct in a function call..
-                else if (Token::Match(tok3, "%var% (")) {
+                else if (Token::Match(tok3, "%name% (")) {
                     // Calling non-function / function that doesn't deallocate?
                     if (ignoredFunctions.find(tok3->str()) != ignoredFunctions.end())
                         continue;
@@ -2784,7 +2732,7 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
                             break;
                         }
 
-                        if (Token::Match(tok4, "[(,] &| %varid% . %var% [,)]", structid)) {
+                        if (Token::Match(tok4, "[(,] &| %varid% . %name% [,)]", structid)) {
                             /** @todo check if the function deallocates the memory */
                             deallocated = true;
                             break;
@@ -2801,50 +2749,43 @@ void CheckMemoryLeakStructMember::checkStructVariable(const Variable * const var
 
 
 
-#include "checkuninitvar.h" // CheckUninitVar::analyse
-
 void CheckMemoryLeakNoVar::check()
 {
-    std::set<std::string> uvarFunctions;
-    {
-        const CheckUninitVar c(_tokenizer, _settings, _errorLogger);
-        c.analyse(_tokenizer->tokens(), uvarFunctions);
-    }
-
     const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
 
     // only check functions
     const std::size_t functions = symbolDatabase->functionScopes.size();
     for (std::size_t i = 0; i < functions; ++i) {
         const Scope * scope = symbolDatabase->functionScopes[i];
-		if(!scope)
-			continue;
+
+        // Checks if a call to an allocation function like malloc() is made and its return value is not assigned.
+        checkForUnusedReturnValue(scope);
+
+        // Checks to see if a function is called with memory allocated for an argument that
+        // could be leaked if a function called for another argument throws.
+        checkForUnsafeArgAlloc(scope);
+
         // goto the "}" that ends the executable scope..
         const Token *tok = scope->classEnd;
-		if(!tok)
-			continue;
+
         // parse the executable scope until tok is reached...
         for (const Token *tok2 = tok->link(); tok2 && tok2 != tok; tok2 = tok2->next()) {
             // allocating memory in parameter for function call..
-            if (Token::Match(tok2, "[(,] %var% (") && Token::Match(tok2->linkAt(2), ") [,)]")) {
+            if (Token::Match(tok2, "[(,] %name% (") && Token::Match(tok2->linkAt(2), ") [,)]")) {
                 const AllocType allocType = getAllocationType(tok2->next(), 0);
                 if (allocType != No) {
                     // locate outer function call..
                     for (const Token *tok3 = tok2; tok3; tok3 = tok3->previous()) {
                         if (tok3->str() == "(") {
                             // Is it a function call..
-                            if (Token::Match(tok3->tokAt(-2), "[;{}] %var% (")) {
+                            if (!Token::Match(tok3->tokAt(-2), "= %name% (")) {
                                 const std::string& functionName = tok3->strAt(-1);
-                                if (functionName == "delete" ||
+                                if ((tokenizer->isCPP() && functionName == "delete") ||
                                     functionName == "free" ||
                                     functionName == "fclose" ||
                                     functionName == "realloc")
                                     break;
-                                if (CheckMemoryLeakInFunction::test_white_list(functionName)) {
-                                    functionCallLeak(tok2, tok2->strAt(1), functionName);
-                                    break;
-                                }
-                                if (uvarFunctions.find(functionName) != uvarFunctions.end()) {
+                                if (CheckMemoryLeakInFunction::test_white_list(functionName, _settings, tokenizer->isCPP())) {
                                     functionCallLeak(tok2, tok2->strAt(1), functionName);
                                     break;
                                 }
@@ -2861,7 +2802,84 @@ void CheckMemoryLeakNoVar::check()
     }
 }
 
+//---------------------------------------------------------------------------
+// Checks if a call to an allocation function like malloc() is made and its return value is not assigned.
+//---------------------------------------------------------------------------
+void CheckMemoryLeakNoVar::checkForUnusedReturnValue(const Scope *scope)
+{
+    for (const Token *tok = scope->classStart; tok != scope->classEnd; tok = tok->next()) {
+        if (!tok->varId() && Token::Match(tok, "%name% (") && (!tok->function() || !Token::Match(tok->function()->retDef, "void %name%"))
+            && (!tok->next()->astParent() || tok->next()->astParent()->str() == "!" || tok->next()->astParent()->isComparisonOp()) && tok->next()->astOperand1() == tok) {
+            const AllocType allocType = getAllocationType(tok, 0);
+            if (allocType != No)
+                returnValueNotUsedError(tok, tok->str());
+        }
+    }
+}
+
+//---------------------------------------------------------------------------
+// Check if an exception could cause a leak in an argument constructed with
+// shared_ptr/unique_ptr. For example, in the following code, it is possible
+// that if g() throws an exception, the memory allocated by "new int(42)"
+// could be leaked. See stackoverflow.com/questions/19034538/
+// why-is-there-memory-leak-while-using-shared-ptr-as-a-function-parameter
+//
+// void x() {
+//    f(shared_ptr<int>(new int(42)), g());
+// }
+//---------------------------------------------------------------------------
+void CheckMemoryLeakNoVar::checkForUnsafeArgAlloc(const Scope *scope)
+{
+    // This test only applies to C++ source
+    if (!_tokenizer->isCPP() || !_settings->inconclusive || !_settings->isEnabled("warning"))
+        return;
+
+    for (const Token *tok = scope->classStart; tok != scope->classEnd; tok = tok->next()) {
+        if (Token::Match(tok, "%name% (")) {
+            const Token *endParamToken = tok->next()->link();
+            std::string pointerType;
+            std::string objectType;
+            std::string functionCalled;
+
+            // Scan through the arguments to the function call
+            for (const Token *tok2 = tok->tokAt(2); tok2 && tok2 != endParamToken; tok2 = tok2->nextArgument()) {
+                const Function *func = tok2->function();
+                const bool isNothrow = func && (func->isAttributeNothrow() || func->isThrow());
+
+                if (Token::Match(tok2, "shared_ptr|unique_ptr < %name% > ( new %name%")) {
+                    pointerType = tok2->str();
+                    objectType = tok2->strAt(6);
+                } else if (!isNothrow) {
+                    if (Token::Match(tok2, "%name% ("))
+                        functionCalled = tok2->str();
+                    else if (Token::Match(tok2, "%name% < %name% > ("))
+                        functionCalled = tok2->str() + "<" + tok2->strAt(2) + ">";
+                }
+            }
+
+            if (!pointerType.empty() && !functionCalled.empty())
+                unsafeArgAllocError(tok, functionCalled, pointerType, objectType);
+        }
+    }
+}
+
 void CheckMemoryLeakNoVar::functionCallLeak(const Token *loc, const std::string &alloc, const std::string &functionCall)
 {
-    reportError(loc, Severity::error,"memleak", "leakNoVarFunctionCall", "Allocation with " + alloc + ", " + functionCall + " doesn't release it.");
+    reportError(loc, Severity::error, ErrorType::MemoryLeak, "leakNoVarFunctionCall", "Allocation with " + alloc + ", " + functionCall + " doesn't release it.", ErrorLogger::GenWebIdentity(alloc));
+}
+
+void CheckMemoryLeakNoVar::returnValueNotUsedError(const Token *tok, const std::string &alloc)
+{
+#ifdef TSCANCODE_RULE_OPEN
+    reportError(tok, Severity::error, ErrorType::MemoryLeak, "leakReturnValNotUsed", "Return value of allocation function '" + alloc + "' is not stored.", ErrorLogger::GenWebIdentity(alloc));
+#endif
+}
+
+void CheckMemoryLeakNoVar::unsafeArgAllocError(const Token *tok, const std::string &funcName, const std::string &ptrType, const std::string& objType)
+{
+    const std::string factoryFunc = ptrType == "shared_ptr" ? "make_shared" : "make_unique";
+    reportError(tok, Severity::warning, ErrorType::MemoryLeak, "leakUnsafeArgAlloc",
+                "Unsafe allocation. If " + funcName + "() throws, memory could be leaked. Use " + factoryFunc + "<" + objType + ">() instead.",
+                0U,
+                true, ErrorLogger::GenWebIdentity(funcName)); // Inconclusive because funcName may never throw
 }

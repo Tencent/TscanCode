@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,8 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
 //---------------------------------------------------------------------------
@@ -27,27 +25,27 @@
 #include <istream>
 #include <string>
 #include <list>
+#include <set>
 #include "config.h"
-#include "FileDepend.h"
-#include "dealconfig.h"
+#include "config.h"
+#include "filedepend.h"
+#include "tokenlist.h"
+
+#ifdef TSC_THREADING_MODEL_WIN
+#include <windows.h>
+#endif
 
 class ErrorLogger;
 class Settings;
-class PreprocessorMacro;
-
-//add SKIPMACROS such as NULL,TMALLOC,list_for_each_entry
-#define SKIPMACROS "NULL|BOOST_FOREACH|TMalloc|list_for_each_entry|curl_easy_setopt|curl_easy_getinfo|_curl_is_long|_curl_is_error_buffer"
-
-
 /// @addtogroup Core
 /// @{
 
 /**
- * @brief The cppcheck preprocessor.
+ * @brief The tscancode preprocessor.
  * The preprocessor has special functionality for extracting the various ifdef
  * configurations that exist in a source file.
  */
-class CPPCHECKLIB Preprocessor {
+class TSCANCODELIB Preprocessor {
 public:
 
     /**
@@ -59,31 +57,24 @@ public:
         SystemHeader
     };
 
-    /** character that is inserted in expanded macros */
-    static char macroChar;
-
-    Preprocessor(Settings *settings = 0, ErrorLogger *errorLogger = 0);
+    Preprocessor(Settings& settings, ErrorLogger *errorLogger = nullptr);
 
     static bool missingIncludeFlag;
-
-	inline dealconfig* getCheckConfig()
-	{
-		return dealconfig::instance();
-	}
+    static bool missingSystemIncludeFlag;
 
     /**
      * Extract the code for each configuration
      * @param istr The (file/string) stream to read from.
      * @param result The map that will get the results
      * @param filename The name of the file to check e.g. "src/main.cpp"
-     * @param includePaths List of paths where incude files should be searched from,
+     * @param includePaths List of paths where include files should be searched from,
      * single path can be e.g. in format "include/".
      * There must be a path separator at the end. Default parameter is empty list.
      * Note that if path from given filename is also extracted and that is used as
      * a last include path if include file was not found from earlier paths.
      */
-    void preprocess(std::istream &istr, std::map<std::string, std::string> &result, const std::string &filename, const std::list<std::string> &includePaths = std::list<std::string>());
-	
+	void preprocess(std::istream &istr, std::map<std::string, std::string> &result, const std::string &filename, const std::list<std::string> &includePaths = std::list<std::string>());
+
     /**
      * Extract the code for each configuration. Use this with getcode() to get the
      * file data for each individual configuration.
@@ -95,26 +86,30 @@ public:
      * @param resultConfigurations List of configurations. Pass these one by one
      * to getcode() with processedFile.
      * @param filename The name of the file to check e.g. "src/main.cpp"
-     * @param includePaths List of paths where incude files should be searched from,
+     * @param includePaths List of paths where include files should be searched from,
      * single path can be e.g. in format "include/".
      * There must be a path separator at the end. Default parameter is empty list.
      * Note that if path from given filename is also extracted and that is used as
      * a last include path if include file was not found from earlier paths.
      */
-	 // TSC:from TSC 20140117: add arg 'flag'
-    void preprocess(bool flag,std::istream &srcCodeStream, std::string &processedFile, std::list<std::string> &resultConfigurations, const std::string &filename, const std::list<std::string> &includePaths);
+    void preprocess(std::istream &srcCodeStream, std::string &processedFile, std::list<std::string> &resultConfigurations, const std::string &filename, const std::list<std::string> &includePaths);
 
     /** Just read the code into a string. Perform simple cleanup of the code */
     std::string read(std::istream &istr, const std::string &filename);
+
+    /** read preprocessor statements into a string. */
+    static std::string readpreprocessor(std::istream &istr, const unsigned int bom);
+
+    /** should __cplusplus be defined? */
+    static bool cplusplus(const Settings *settings, const std::string &filename);
 
     /**
      * Get preprocessed code for a given configuration
      * @param filedata file data including preprocessing 'if', 'define', etc
      * @param cfg configuration to read out
      * @param filename name of source file
-     * @param validate true => perform validation that empty configuration macros are not used in the code
      */
-    std::string getcode(const std::string &filedata, const std::string &cfg, const std::string &filename, const bool validate = false);
+    std::string getcode(const std::string &filedata, const std::string &cfg, const std::string &filename);
 
     /**
      * simplify condition
@@ -137,7 +132,7 @@ public:
      * @return true => configuration is valid
      */
     bool validateCfg(const std::string &code, const std::string &cfg);
-    void validateCfgError(const std::string &cfg);
+    void validateCfgError(const std::string &cfg, const std::string &macro);
 
     void handleUndef(std::list<std::string> &configurations) const;
 
@@ -149,23 +144,14 @@ public:
      * @param errorType id string for error
      * @param errorText Plain text
      */
-	// TSC:from TSC 20130617: add arg 'errorsubType'
-    static void writeError(const std::string &fileName, const unsigned int linenr, ErrorLogger *errorLogger, const std::string &errorType, const std::string &errorsubType,const std::string &errorText);
+    static void writeError(const std::string &fileName, const unsigned int linenr, ErrorLogger *errorLogger, const std::string &errorType, const std::string &errorText);
 
     /**
      * Replace "#if defined" with "#ifdef" where possible
      *
      * @param str The string to be converted
-     * @return The replaced string
      */
-    static std::string replaceIfDefined(const std::string &str);
-
-	static std::string removeIfDefined(const std::string &str); // from TSC 20140116 remove #ifdef #ifndef #else #endif
-	static std::string replaceTypedef(const std::string &str);  // from TSC 20140109  Replace "typedef" with "#define " to replace tokenize's simplifyTypedef()
-
-	static void TrimRight(std::string &s);
-
-	static std::string replaceTypeDef2(const std::string &str); // kktodo: exact
+    void replaceIfDefined(std::string &str) const;
 
     /**
      * expand macros in code. ifdefs etc are ignored so the code must be a single configuration
@@ -175,15 +161,10 @@ public:
      * @param errorLogger Error logger to write errors to (if any)
      * @return the expanded string
      */
-	//add by TSC 20140910 expand Macros with global macros
-	std::string expandMacros_global(const std::string &code, std::string filename, const std::string &cfg, ErrorLogger *errorLogger);
-	//add by TSC 20140909 get macros from one file
-	 void getMacros(CCodeFile* pCodeFile);
-	 void GetUserMacros(const std::string& cfg);
-	 //add by TSC 20141111 check if the macros should skiped?
-	 bool isSkipMacros(std::string macrosname);
+	static std::string expandMacros_global(const std::string &code, std::string filename, const std::string &cfg, ErrorLogger *errorLogger);
 
-	 void DumpMacros();
+	void getMacros(CCodeFile* pFile);
+
     /**
      * Remove comments from code. This should only be called from read().
      * If there are inline suppressions, the _settings member is modified
@@ -232,15 +213,15 @@ private:
      */
     static std::string removeSpaceNearNL(const std::string &str);
 
+    static std::string getdef(std::string line, bool def);
+
+public:
+
     /**
      * Get all possible configurations sorted in alphabetical order.
      * By looking at the ifdefs and ifndefs in filedata
      */
-    std::list<std::string> getcfgs(const std::string &filedata, const std::string &filename);
-
-    static std::string getdef(std::string line, bool def);
-
-public:
+    std::list<std::string> getcfgs(const std::string &filedata, const std::string &filename, const std::map<std::string, std::string> &defs);
 
     /**
      * Remove asm(...) from a string
@@ -256,6 +237,8 @@ public:
      */
     bool match_cfg_def(std::map<std::string, std::string> cfg, std::string def);
 
+	bool is_cfg_def(std::map<std::string, std::string>& cfg, std::string def, CCodeFile* pCodeFile);
+
     static void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings);
 
     /**
@@ -264,53 +247,44 @@ public:
      * @param filePath filename of code
      * @param includePaths Paths where headers might be
      * @param defs defines (only values)
+     * @param pragmaOnce includes that has already been included and contains a \#pragma once statement
      * @param includes provide a empty list. this is just used to prevent recursive inclusions.
      * \return resulting string
      */
-    std::string handleIncludes(const std::string &code, const std::string &filePath, const std::list<std::string> &includePaths, std::map<std::string,std::string> &defs, std::list<std::string> includes = std::list<std::string>());
+    std::string handleIncludes(const std::string &code, const std::string &filePath, const std::list<std::string> &includePaths, std::map<std::string,std::string> &defs, std::set<std::string> &pragmaOnce, std::list<std::string> includes);
+
 
     void setFile0(const std::string &f) {
         file0 = f;
     }
 
 private:
-    void missingInclude(const std::string &filename, unsigned int linenr, const std::string &header, bool userheader);
+    void missingInclude(const std::string &filename, unsigned int linenr, const std::string &header, HeaderTypes headerType);
 
     void error(const std::string &filename, unsigned int linenr, const std::string &msg);
 
     /**
      * Search includes from code and append code from the included
      * file
-     * @param code The source code to modify
+     * @param[in,out] code The source code to modify
      * @param filePath Relative path to file to check e.g. "src/main.cpp"
-     * @param includePaths List of paths where incude files should be searched from,
+     * @param includePaths List of paths where include files should be searched from,
      * single path can be e.g. in format "include/".
      * There must be a path separator at the end. Default parameter is empty list.
      * Note that if path from given filename is also extracted and that is used as
      * a last include path if include file was not found from earlier paths.
-     * @return modified source code
      */
     void handleIncludes(std::string &code, const std::string &filePath, const std::list<std::string> &includePaths);
 
-    Settings *_settings;
+    Settings& _settings;
     ErrorLogger *_errorLogger;
 
     /** filename for cpp/c file - useful when reporting errors */
     std::string file0;
 
-public:
-	static std::map< CCodeFile*, std::map<std::string, PreprocessorMacro *> > s_global_macros;
-	static std::map<std::string, std::string> s_global_arrays;
-	static CFileDependTable* s_fileDependTable;
-
-	void ClearGlobalMacros();
-	static PreprocessorMacro* FindMacro(const std::string& macroName, CCodeFile* pFile);
-
-private:
-	static std::map<std::string, PreprocessorMacro*> s_macroBuffer;
+	std::string removeIfDefined(const std::string &str) const;
 };
 
 /// @}
-
 //---------------------------------------------------------------------------
-#endif
+#endif // preprocessorH

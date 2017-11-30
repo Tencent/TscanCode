@@ -1,0 +1,647 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		39E60EB91270DE3A00AC0D02 /* checkautovariables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E8D1270DE3A00AC0D02 /* checkautovariables.cpp */; };
+		39E60EBA1270DE3A00AC0D02 /* checkbufferoverrun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E8F1270DE3A00AC0D02 /* checkbufferoverrun.cpp */; };
+		39E60EBB1270DE3A00AC0D02 /* checkclass.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E911270DE3A00AC0D02 /* checkclass.cpp */; };
+		39E60EBC1270DE3A00AC0D02 /* checkexceptionsafety.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E931270DE3A00AC0D02 /* checkexceptionsafety.cpp */; };
+		39E60EBD1270DE3A00AC0D02 /* checkmemoryleak.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E951270DE3A00AC0D02 /* checkmemoryleak.cpp */; };
+		39E60EBE1270DE3A00AC0D02 /* checkobsolescentfunctions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E971270DE3A00AC0D02 /* checkobsolescentfunctions.cpp */; };
+		39E60EBF1270DE3A00AC0D02 /* checkother.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E991270DE3A00AC0D02 /* checkother.cpp */; };
+		39E60EC01270DE3A00AC0D02 /* checkpostfixoperator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E9B1270DE3A00AC0D02 /* checkpostfixoperator.cpp */; };
+		39E60EC11270DE3A00AC0D02 /* checkstl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E9D1270DE3A00AC0D02 /* checkstl.cpp */; };
+		39E60EC21270DE3A00AC0D02 /* checkunusedfunctions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60E9F1270DE3A00AC0D02 /* checkunusedfunctions.cpp */; };
+		39E60EC31270DE3A00AC0D02 /* tscancode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EA11270DE3A00AC0D02 /* tscancode.cpp */; };
+		39E60EC41270DE3A00AC0D02 /* errorlogger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EA31270DE3A00AC0D02 /* errorlogger.cpp */; };
+		39E60EC81270DE3A00AC0D02 /* mathlib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EAB1270DE3A00AC0D02 /* mathlib.cpp */; };
+		39E60ECA1270DE3A00AC0D02 /* preprocessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EAF1270DE3A00AC0D02 /* preprocessor.cpp */; };
+		39E60ECB1270DE3A00AC0D02 /* settings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EB11270DE3A00AC0D02 /* settings.cpp */; };
+		39E60ECC1270DE3A00AC0D02 /* timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EB31270DE3A00AC0D02 /* timer.cpp */; };
+		39E60ECD1270DE3A00AC0D02 /* token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EB51270DE3A00AC0D02 /* token.cpp */; };
+		39E60ECE1270DE3A00AC0D02 /* tokenize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60EB71270DE3A00AC0D02 /* tokenize.cpp */; };
+		39E60ED61270DE5000AC0D02 /* cmdlineparser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60ECF1270DE5000AC0D02 /* cmdlineparser.cpp */; };
+		39E60ED71270DE5000AC0D02 /* tscexecutor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60ED11270DE5000AC0D02 /* tscexecutor.cpp */; };
+		39E60ED81270DE5000AC0D02 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 39E60ED31270DE5000AC0D02 /* main.cpp */; };
+		AB1087EB1C3A6165008559FA /* utilities.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB1087E91C3A6165008559FA /* utilities.cpp */; };
+		AB5A3B431C151B2C0022D04B /* tokenex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB5A3B411C151B2C0022D04B /* tokenex.cpp */; };
+		AB610D741C0448E200DFC64E /* tscthreadexecutor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB610D721C0448E100DFC64E /* tscthreadexecutor.cpp */; };
+		AB8107731DF3C6E800966906 /* executionpath.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB8107711DF3C6E800966906 /* executionpath.cpp */; };
+		AB8CF8881C0D4625000C8F11 /* globalsymboldatabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB8CF8861C0D4625000C8F11 /* globalsymboldatabase.cpp */; };
+		ABAF65C01C50D674008B81A6 /* checktsccompute.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABAF65B81C50D674008B81A6 /* checktsccompute.cpp */; };
+		ABAF65C11C50D674008B81A6 /* checktscinvalidvarargs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABAF65BA1C50D674008B81A6 /* checktscinvalidvarargs.cpp */; };
+		ABAF65C21C50D674008B81A6 /* checktsclogic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABAF65BC1C50D674008B81A6 /* checktsclogic.cpp */; };
+		ABAF65C31C50D674008B81A6 /* checkTSCSuspicious.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABAF65BE1C50D674008B81A6 /* checkTSCSuspicious.cpp */; };
+		ABB057F71F2F0993001A5579 /* checkreadability.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057E91F2F0993001A5579 /* checkreadability.cpp */; };
+		ABB057FA1F2F0993001A5579 /* checktscoverrun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057EF1F2F0993001A5579 /* checktscoverrun.cpp */; };
+		ABB057FC1F2F0993001A5579 /* globalmacros.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABB057F41F2F0993001A5579 /* globalmacros.cpp */; };
+		ABEE8FDC1BFDB47C0082ACAB /* astutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABEE8FDA1BFDB47C0082ACAB /* astutils.cpp */; };
+		ABFCB7291C05972F001A1B2E /* globaltokenizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABFCB7281C05972F001A1B2E /* globaltokenizer.cpp */; };
+		BA0B2EDE1C805DD1001C2148 /* checktscnullpointer2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BA0B2EDC1C805DD1001C2148 /* checktscnullpointer2.cpp */; };
+		BA1DC9091D525419003C95E1 /* filedepend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BA1DC9011D525419003C95E1 /* filedepend.cpp */; };
+		BA1DC90A1D525419003C95E1 /* filelister.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BA1DC9031D525419003C95E1 /* filelister.cpp */; };
+		BA1DC90B1D525419003C95E1 /* path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BA1DC9051D525419003C95E1 /* path.cpp */; };
+		BA1DC90C1D525419003C95E1 /* pathmatch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BA1DC9071D525419003C95E1 /* pathmatch.cpp */; };
+		F4043DD7177F093300CD5A40 /* check64bit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DB3177F093300CD5A40 /* check64bit.cpp */; };
+		F4043DD8177F093300CD5A40 /* checkassert.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DB5177F093300CD5A40 /* checkassert.cpp */; };
+		F4043DDA177F093300CD5A40 /* checkbool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DB9177F093300CD5A40 /* checkbool.cpp */; };
+		F4043DDB177F093300CD5A40 /* checkboost.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DBB177F093300CD5A40 /* checkboost.cpp */; };
+		F4043DDC177F093300CD5A40 /* checkinternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DBD177F093300CD5A40 /* checkinternal.cpp */; };
+		F4043DDD177F093300CD5A40 /* checkio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DBF177F093300CD5A40 /* checkio.cpp */; };
+		F4043DDE177F093300CD5A40 /* checkleakautovar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DC1177F093300CD5A40 /* checkleakautovar.cpp */; };
+		F4043DDF177F093300CD5A40 /* checknonreentrantfunctions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DC3177F093300CD5A40 /* checknonreentrantfunctions.cpp */; };
+		F4043DE0177F093300CD5A40 /* checknullpointer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DC5177F093300CD5A40 /* checknullpointer.cpp */; };
+		F4043DE1177F093300CD5A40 /* checksizeof.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DC7177F093300CD5A40 /* checksizeof.cpp */; };
+		F4043DE2177F093300CD5A40 /* checkuninitvar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DC9177F093300CD5A40 /* checkuninitvar.cpp */; };
+		F4043DE3177F093300CD5A40 /* checkunusedvar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DCB177F093300CD5A40 /* checkunusedvar.cpp */; };
+		F4043DE4177F093300CD5A40 /* suppressions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DCE177F093300CD5A40 /* suppressions.cpp */; };
+		F4043DE5177F093300CD5A40 /* symboldatabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DD0177F093300CD5A40 /* symboldatabase.cpp */; };
+		F4043DE6177F093300CD5A40 /* templatesimplifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DD2177F093300CD5A40 /* templatesimplifier.cpp */; };
+		F4043DE7177F093300CD5A40 /* tokenlist.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4043DD4177F093300CD5A40 /* tokenlist.cpp */; };
+		F47E508317896AEB00C684DC /* tinyxml2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F47E508117896AEB00C684DC /* tinyxml2.cpp */; };
+		F497C28C1AB41D5C003B96CF /* check.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F497C2831AB41D5C003B96CF /* check.cpp */; };
+		F497C28D1AB41D5C003B96CF /* checkcondition.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F497C2841AB41D5C003B96CF /* checkcondition.cpp */; };
+		F497C28E1AB41D5C003B96CF /* checkstring.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F497C2861AB41D5C003B96CF /* checkstring.cpp */; };
+		F497C28F1AB41D5C003B96CF /* checktype.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F497C2881AB41D5C003B96CF /* checktype.cpp */; };
+		F497C2901AB41D5C003B96CF /* checkvaarg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F497C2891AB41D5C003B96CF /* checkvaarg.cpp */; };
+		F4CDD6981880888F006CF685 /* valueflow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4CDD6961880888F006CF685 /* valueflow.cpp */; };
+		F4CF847D17B6504100522F24 /* library.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F4CF847C17B6504100522F24 /* library.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8DD76F690486A84900D96B5E /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 8;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		39E60E8C1270DE3A00AC0D02 /* check.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = check.h; path = lib/check.h; sourceTree = "<group>"; };
+		39E60E8D1270DE3A00AC0D02 /* checkautovariables.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkautovariables.cpp; path = lib/checkautovariables.cpp; sourceTree = "<group>"; };
+		39E60E8E1270DE3A00AC0D02 /* checkautovariables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkautovariables.h; path = lib/checkautovariables.h; sourceTree = "<group>"; };
+		39E60E8F1270DE3A00AC0D02 /* checkbufferoverrun.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkbufferoverrun.cpp; path = lib/checkbufferoverrun.cpp; sourceTree = "<group>"; };
+		39E60E901270DE3A00AC0D02 /* checkbufferoverrun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkbufferoverrun.h; path = lib/checkbufferoverrun.h; sourceTree = "<group>"; };
+		39E60E911270DE3A00AC0D02 /* checkclass.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkclass.cpp; path = lib/checkclass.cpp; sourceTree = "<group>"; };
+		39E60E921270DE3A00AC0D02 /* checkclass.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkclass.h; path = lib/checkclass.h; sourceTree = "<group>"; };
+		39E60E931270DE3A00AC0D02 /* checkexceptionsafety.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkexceptionsafety.cpp; path = lib/checkexceptionsafety.cpp; sourceTree = "<group>"; };
+		39E60E941270DE3A00AC0D02 /* checkexceptionsafety.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkexceptionsafety.h; path = lib/checkexceptionsafety.h; sourceTree = "<group>"; };
+		39E60E951270DE3A00AC0D02 /* checkmemoryleak.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkmemoryleak.cpp; path = lib/checkmemoryleak.cpp; sourceTree = "<group>"; };
+		39E60E961270DE3A00AC0D02 /* checkmemoryleak.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkmemoryleak.h; path = lib/checkmemoryleak.h; sourceTree = "<group>"; };
+		39E60E971270DE3A00AC0D02 /* checkobsolescentfunctions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkobsolescentfunctions.cpp; path = lib/checkobsolescentfunctions.cpp; sourceTree = "<group>"; };
+		39E60E981270DE3A00AC0D02 /* checkobsolescentfunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkobsolescentfunctions.h; path = lib/checkobsolescentfunctions.h; sourceTree = "<group>"; };
+		39E60E991270DE3A00AC0D02 /* checkother.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkother.cpp; path = lib/checkother.cpp; sourceTree = "<group>"; };
+		39E60E9A1270DE3A00AC0D02 /* checkother.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkother.h; path = lib/checkother.h; sourceTree = "<group>"; };
+		39E60E9B1270DE3A00AC0D02 /* checkpostfixoperator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkpostfixoperator.cpp; path = lib/checkpostfixoperator.cpp; sourceTree = "<group>"; };
+		39E60E9C1270DE3A00AC0D02 /* checkpostfixoperator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkpostfixoperator.h; path = lib/checkpostfixoperator.h; sourceTree = "<group>"; };
+		39E60E9D1270DE3A00AC0D02 /* checkstl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkstl.cpp; path = lib/checkstl.cpp; sourceTree = "<group>"; };
+		39E60E9E1270DE3A00AC0D02 /* checkstl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkstl.h; path = lib/checkstl.h; sourceTree = "<group>"; };
+		39E60E9F1270DE3A00AC0D02 /* checkunusedfunctions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkunusedfunctions.cpp; path = lib/checkunusedfunctions.cpp; sourceTree = "<group>"; };
+		39E60EA01270DE3A00AC0D02 /* checkunusedfunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkunusedfunctions.h; path = lib/checkunusedfunctions.h; sourceTree = "<group>"; };
+		39E60EA11270DE3A00AC0D02 /* tscancode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tscancode.cpp; path = lib/tscancode.cpp; sourceTree = "<group>"; };
+		39E60EA21270DE3A00AC0D02 /* tscancode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tscancode.h; path = lib/tscancode.h; sourceTree = "<group>"; };
+		39E60EA31270DE3A00AC0D02 /* errorlogger.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = errorlogger.cpp; path = lib/errorlogger.cpp; sourceTree = "<group>"; };
+		39E60EA41270DE3A00AC0D02 /* errorlogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = errorlogger.h; path = lib/errorlogger.h; sourceTree = "<group>"; };
+		39E60EAB1270DE3A00AC0D02 /* mathlib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mathlib.cpp; path = lib/mathlib.cpp; sourceTree = "<group>"; };
+		39E60EAC1270DE3A00AC0D02 /* mathlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mathlib.h; path = lib/mathlib.h; sourceTree = "<group>"; };
+		39E60EAF1270DE3A00AC0D02 /* preprocessor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = preprocessor.cpp; path = lib/preprocessor.cpp; sourceTree = "<group>"; };
+		39E60EB01270DE3A00AC0D02 /* preprocessor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = preprocessor.h; path = lib/preprocessor.h; sourceTree = "<group>"; };
+		39E60EB11270DE3A00AC0D02 /* settings.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = settings.cpp; path = lib/settings.cpp; sourceTree = "<group>"; };
+		39E60EB21270DE3A00AC0D02 /* settings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = settings.h; path = lib/settings.h; sourceTree = "<group>"; };
+		39E60EB31270DE3A00AC0D02 /* timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = timer.cpp; path = lib/timer.cpp; sourceTree = "<group>"; };
+		39E60EB41270DE3A00AC0D02 /* timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = timer.h; path = lib/timer.h; sourceTree = "<group>"; };
+		39E60EB51270DE3A00AC0D02 /* token.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = token.cpp; path = lib/token.cpp; sourceTree = "<group>"; };
+		39E60EB61270DE3A00AC0D02 /* token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = token.h; path = lib/token.h; sourceTree = "<group>"; };
+		39E60EB71270DE3A00AC0D02 /* tokenize.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tokenize.cpp; path = lib/tokenize.cpp; sourceTree = "<group>"; };
+		39E60EB81270DE3A00AC0D02 /* tokenize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tokenize.h; path = lib/tokenize.h; sourceTree = "<group>"; };
+		39E60ECF1270DE5000AC0D02 /* cmdlineparser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cmdlineparser.cpp; path = cli/cmdlineparser.cpp; sourceTree = "<group>"; };
+		39E60ED01270DE5000AC0D02 /* cmdlineparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmdlineparser.h; path = cli/cmdlineparser.h; sourceTree = "<group>"; };
+		39E60ED11270DE5000AC0D02 /* tscexecutor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tscexecutor.cpp; path = cli/tscexecutor.cpp; sourceTree = "<group>"; };
+		39E60ED21270DE5000AC0D02 /* tscexecutor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tscexecutor.h; path = cli/tscexecutor.h; sourceTree = "<group>"; };
+		39E60ED31270DE5000AC0D02 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = cli/main.cpp; sourceTree = "<group>"; };
+		39E60EDE1270DEB100AC0D02 /* tscancode */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tscancode; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB1087E91C3A6165008559FA /* utilities.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = utilities.cpp; path = lib/utilities.cpp; sourceTree = "<group>"; };
+		AB1087EA1C3A6165008559FA /* utilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utilities.h; path = lib/utilities.h; sourceTree = "<group>"; };
+		AB5A3B411C151B2C0022D04B /* tokenex.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tokenex.cpp; path = lib/tokenex.cpp; sourceTree = "<group>"; };
+		AB5A3B421C151B2C0022D04B /* tokenex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tokenex.h; path = lib/tokenex.h; sourceTree = "<group>"; };
+		AB610D721C0448E100DFC64E /* tscthreadexecutor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tscthreadexecutor.cpp; path = cli/tscthreadexecutor.cpp; sourceTree = "<group>"; };
+		AB610D731C0448E200DFC64E /* tscthreadexecutor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tscthreadexecutor.h; path = cli/tscthreadexecutor.h; sourceTree = "<group>"; };
+		AB8107711DF3C6E800966906 /* executionpath.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = executionpath.cpp; path = lib/executionpath.cpp; sourceTree = "<group>"; };
+		AB8107721DF3C6E800966906 /* executionpath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = executionpath.h; path = lib/executionpath.h; sourceTree = "<group>"; };
+		AB8CF8861C0D4625000C8F11 /* globalsymboldatabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = globalsymboldatabase.cpp; path = lib/globalsymboldatabase.cpp; sourceTree = "<group>"; };
+		AB8CF8871C0D4625000C8F11 /* globalsymboldatabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = globalsymboldatabase.h; path = lib/globalsymboldatabase.h; sourceTree = "<group>"; };
+		ABAF65B81C50D674008B81A6 /* checktsccompute.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktsccompute.cpp; path = lib/checktsccompute.cpp; sourceTree = "<group>"; };
+		ABAF65B91C50D674008B81A6 /* checktsccompute.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktsccompute.h; path = lib/checktsccompute.h; sourceTree = "<group>"; };
+		ABAF65BA1C50D674008B81A6 /* checktscinvalidvarargs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktscinvalidvarargs.cpp; path = lib/checktscinvalidvarargs.cpp; sourceTree = "<group>"; };
+		ABAF65BB1C50D674008B81A6 /* checktscinvalidvarargs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktscinvalidvarargs.h; path = lib/checktscinvalidvarargs.h; sourceTree = "<group>"; };
+		ABAF65BC1C50D674008B81A6 /* checktsclogic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktsclogic.cpp; path = lib/checktsclogic.cpp; sourceTree = "<group>"; };
+		ABAF65BD1C50D674008B81A6 /* checktsclogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktsclogic.h; path = lib/checktsclogic.h; sourceTree = "<group>"; };
+		ABAF65BE1C50D674008B81A6 /* checkTSCSuspicious.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkTSCSuspicious.cpp; path = lib/checkTSCSuspicious.cpp; sourceTree = "<group>"; };
+		ABAF65BF1C50D674008B81A6 /* checkTSCSuspicious.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkTSCSuspicious.h; path = lib/checkTSCSuspicious.h; sourceTree = "<group>"; };
+		ABB057E91F2F0993001A5579 /* checkreadability.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkreadability.cpp; path = lib/checkreadability.cpp; sourceTree = "<group>"; };
+		ABB057EA1F2F0993001A5579 /* checkreadability.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkreadability.h; path = lib/checkreadability.h; sourceTree = "<group>"; };
+		ABB057EF1F2F0993001A5579 /* checktscoverrun.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktscoverrun.cpp; path = lib/checktscoverrun.cpp; sourceTree = "<group>"; };
+		ABB057F01F2F0993001A5579 /* checktscoverrun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktscoverrun.h; path = lib/checktscoverrun.h; sourceTree = "<group>"; };
+		ABB057F11F2F0993001A5579 /* checktype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktype.h; path = lib/checktype.h; sourceTree = "<group>"; };
+		ABB057F41F2F0993001A5579 /* globalmacros.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = globalmacros.cpp; path = lib/globalmacros.cpp; sourceTree = "<group>"; };
+		ABB057F51F2F0993001A5579 /* globalmacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = globalmacros.h; path = lib/globalmacros.h; sourceTree = "<group>"; };
+		ABB057F61F2F0993001A5579 /* matchcompiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = matchcompiler.h; path = lib/matchcompiler.h; sourceTree = "<group>"; };
+		ABEE8FDA1BFDB47C0082ACAB /* astutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = astutils.cpp; path = lib/astutils.cpp; sourceTree = "<group>"; };
+		ABEE8FDB1BFDB47C0082ACAB /* astutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astutils.h; path = lib/astutils.h; sourceTree = "<group>"; };
+		ABFCB7271C059704001A1B2E /* globaltokenizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = globaltokenizer.h; path = lib/globaltokenizer.h; sourceTree = "<group>"; };
+		ABFCB7281C05972F001A1B2E /* globaltokenizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = globaltokenizer.cpp; path = lib/globaltokenizer.cpp; sourceTree = "<group>"; };
+		BA0B2EDC1C805DD1001C2148 /* checktscnullpointer2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktscnullpointer2.cpp; path = lib/checktscnullpointer2.cpp; sourceTree = "<group>"; };
+		BA0B2EDD1C805DD1001C2148 /* checktscnullpointer2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checktscnullpointer2.h; path = lib/checktscnullpointer2.h; sourceTree = "<group>"; };
+		BA1DC9001D525419003C95E1 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = config.h; path = common/config.h; sourceTree = "<group>"; };
+		BA1DC9011D525419003C95E1 /* filedepend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = filedepend.cpp; path = common/filedepend.cpp; sourceTree = "<group>"; };
+		BA1DC9021D525419003C95E1 /* filedepend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filedepend.h; path = common/filedepend.h; sourceTree = "<group>"; };
+		BA1DC9031D525419003C95E1 /* filelister.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = filelister.cpp; path = common/filelister.cpp; sourceTree = "<group>"; };
+		BA1DC9041D525419003C95E1 /* filelister.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filelister.h; path = common/filelister.h; sourceTree = "<group>"; };
+		BA1DC9051D525419003C95E1 /* path.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = path.cpp; path = common/path.cpp; sourceTree = "<group>"; };
+		BA1DC9061D525419003C95E1 /* path.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = path.h; path = common/path.h; sourceTree = "<group>"; };
+		BA1DC9071D525419003C95E1 /* pathmatch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = pathmatch.cpp; path = common/pathmatch.cpp; sourceTree = "<group>"; };
+		BA1DC9081D525419003C95E1 /* pathmatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pathmatch.h; path = common/pathmatch.h; sourceTree = "<group>"; };
+		F4043DB3177F093300CD5A40 /* check64bit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = check64bit.cpp; path = lib/check64bit.cpp; sourceTree = "<group>"; };
+		F4043DB4177F093300CD5A40 /* check64bit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = check64bit.h; path = lib/check64bit.h; sourceTree = "<group>"; };
+		F4043DB5177F093300CD5A40 /* checkassert.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkassert.cpp; path = lib/checkassert.cpp; sourceTree = "<group>"; };
+		F4043DB6177F093300CD5A40 /* checkassert.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkassert.h; path = lib/checkassert.h; sourceTree = "<group>"; };
+		F4043DB9177F093300CD5A40 /* checkbool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkbool.cpp; path = lib/checkbool.cpp; sourceTree = "<group>"; };
+		F4043DBA177F093300CD5A40 /* checkbool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkbool.h; path = lib/checkbool.h; sourceTree = "<group>"; };
+		F4043DBB177F093300CD5A40 /* checkboost.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkboost.cpp; path = lib/checkboost.cpp; sourceTree = "<group>"; };
+		F4043DBC177F093300CD5A40 /* checkboost.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkboost.h; path = lib/checkboost.h; sourceTree = "<group>"; };
+		F4043DBD177F093300CD5A40 /* checkinternal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkinternal.cpp; path = lib/checkinternal.cpp; sourceTree = "<group>"; };
+		F4043DBE177F093300CD5A40 /* checkinternal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkinternal.h; path = lib/checkinternal.h; sourceTree = "<group>"; };
+		F4043DBF177F093300CD5A40 /* checkio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkio.cpp; path = lib/checkio.cpp; sourceTree = "<group>"; };
+		F4043DC0177F093300CD5A40 /* checkio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkio.h; path = lib/checkio.h; sourceTree = "<group>"; };
+		F4043DC1177F093300CD5A40 /* checkleakautovar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkleakautovar.cpp; path = lib/checkleakautovar.cpp; sourceTree = "<group>"; };
+		F4043DC2177F093300CD5A40 /* checkleakautovar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkleakautovar.h; path = lib/checkleakautovar.h; sourceTree = "<group>"; };
+		F4043DC3177F093300CD5A40 /* checknonreentrantfunctions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checknonreentrantfunctions.cpp; path = lib/checknonreentrantfunctions.cpp; sourceTree = "<group>"; };
+		F4043DC4177F093300CD5A40 /* checknonreentrantfunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checknonreentrantfunctions.h; path = lib/checknonreentrantfunctions.h; sourceTree = "<group>"; };
+		F4043DC5177F093300CD5A40 /* checknullpointer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checknullpointer.cpp; path = lib/checknullpointer.cpp; sourceTree = "<group>"; };
+		F4043DC6177F093300CD5A40 /* checknullpointer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checknullpointer.h; path = lib/checknullpointer.h; sourceTree = "<group>"; };
+		F4043DC7177F093300CD5A40 /* checksizeof.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checksizeof.cpp; path = lib/checksizeof.cpp; sourceTree = "<group>"; };
+		F4043DC8177F093300CD5A40 /* checksizeof.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checksizeof.h; path = lib/checksizeof.h; sourceTree = "<group>"; };
+		F4043DC9177F093300CD5A40 /* checkuninitvar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkuninitvar.cpp; path = lib/checkuninitvar.cpp; sourceTree = "<group>"; };
+		F4043DCA177F093300CD5A40 /* checkuninitvar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkuninitvar.h; path = lib/checkuninitvar.h; sourceTree = "<group>"; };
+		F4043DCB177F093300CD5A40 /* checkunusedvar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkunusedvar.cpp; path = lib/checkunusedvar.cpp; sourceTree = "<group>"; };
+		F4043DCC177F093300CD5A40 /* checkunusedvar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkunusedvar.h; path = lib/checkunusedvar.h; sourceTree = "<group>"; };
+		F4043DCD177F093300CD5A40 /* standards.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = standards.h; path = lib/standards.h; sourceTree = "<group>"; };
+		F4043DCE177F093300CD5A40 /* suppressions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = suppressions.cpp; path = lib/suppressions.cpp; sourceTree = "<group>"; };
+		F4043DCF177F093300CD5A40 /* suppressions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = suppressions.h; path = lib/suppressions.h; sourceTree = "<group>"; };
+		F4043DD0177F093300CD5A40 /* symboldatabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = symboldatabase.cpp; path = lib/symboldatabase.cpp; sourceTree = "<group>"; };
+		F4043DD1177F093300CD5A40 /* symboldatabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = symboldatabase.h; path = lib/symboldatabase.h; sourceTree = "<group>"; };
+		F4043DD2177F093300CD5A40 /* templatesimplifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = templatesimplifier.cpp; path = lib/templatesimplifier.cpp; sourceTree = "<group>"; };
+		F4043DD3177F093300CD5A40 /* templatesimplifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = templatesimplifier.h; path = lib/templatesimplifier.h; sourceTree = "<group>"; };
+		F4043DD4177F093300CD5A40 /* tokenlist.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tokenlist.cpp; path = lib/tokenlist.cpp; sourceTree = "<group>"; };
+		F4043DD5177F093300CD5A40 /* tokenlist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tokenlist.h; path = lib/tokenlist.h; sourceTree = "<group>"; };
+		F4043DD6177F093300CD5A40 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = version.h; path = lib/version.h; sourceTree = "<group>"; };
+		F47E508117896AEB00C684DC /* tinyxml2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tinyxml2.cpp; path = externals/tinyxml/tinyxml2.cpp; sourceTree = "<group>"; };
+		F47E508217896AEB00C684DC /* tinyxml2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tinyxml2.h; path = externals/tinyxml/tinyxml2.h; sourceTree = "<group>"; };
+		F497C2831AB41D5C003B96CF /* check.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = check.cpp; path = lib/check.cpp; sourceTree = "<group>"; };
+		F497C2841AB41D5C003B96CF /* checkcondition.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkcondition.cpp; path = lib/checkcondition.cpp; sourceTree = "<group>"; };
+		F497C2851AB41D5C003B96CF /* checkcondition.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkcondition.h; path = lib/checkcondition.h; sourceTree = "<group>"; };
+		F497C2861AB41D5C003B96CF /* checkstring.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkstring.cpp; path = lib/checkstring.cpp; sourceTree = "<group>"; };
+		F497C2871AB41D5C003B96CF /* checkstring.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkstring.h; path = lib/checkstring.h; sourceTree = "<group>"; };
+		F497C2881AB41D5C003B96CF /* checktype.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checktype.cpp; path = lib/checktype.cpp; sourceTree = "<group>"; };
+		F497C2891AB41D5C003B96CF /* checkvaarg.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = checkvaarg.cpp; path = lib/checkvaarg.cpp; sourceTree = "<group>"; };
+		F497C28A1AB41D5C003B96CF /* checkvaarg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checkvaarg.h; path = lib/checkvaarg.h; sourceTree = "<group>"; };
+		F497C28B1AB41D5C003B96CF /* cxx11emu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cxx11emu.h; path = lib/cxx11emu.h; sourceTree = "<group>"; };
+		F4CDD6961880888F006CF685 /* valueflow.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = valueflow.cpp; path = lib/valueflow.cpp; sourceTree = "<group>"; };
+		F4CDD6971880888F006CF685 /* valueflow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = valueflow.h; path = lib/valueflow.h; sourceTree = "<group>"; };
+		F4CF847B17B6504100522F24 /* library.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = library.h; path = lib/library.h; sourceTree = "<group>"; };
+		F4CF847C17B6504100522F24 /* library.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = library.cpp; path = lib/library.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8DD76F660486A84900D96B5E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		08FB7794FE84155DC02AAC07 /* tscancode */ = {
+			isa = PBXGroup;
+			children = (
+				08FB7795FE84155DC02AAC07 /* Source */,
+				1AB674ADFE9D54B511CA2CBB /* Products */,
+			);
+			name = tscancode;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				BA1DC8FF1D525397003C95E1 /* common */,
+				F47E507F17896AC700C684DC /* Externals */,
+				2C21A45D1178BB0B00D35009 /* Library */,
+				2C21A45C1178BB0400D35009 /* Command */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		1AB674ADFE9D54B511CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				39E60EDE1270DEB100AC0D02 /* tscancode */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2C21A45C1178BB0400D35009 /* Command */ = {
+			isa = PBXGroup;
+			children = (
+				AB610D721C0448E100DFC64E /* tscthreadexecutor.cpp */,
+				AB610D731C0448E200DFC64E /* tscthreadexecutor.h */,
+				39E60ECF1270DE5000AC0D02 /* cmdlineparser.cpp */,
+				39E60ED01270DE5000AC0D02 /* cmdlineparser.h */,
+				39E60ED11270DE5000AC0D02 /* tscexecutor.cpp */,
+				39E60ED21270DE5000AC0D02 /* tscexecutor.h */,
+				39E60ED31270DE5000AC0D02 /* main.cpp */,
+			);
+			name = Command;
+			sourceTree = "<group>";
+		};
+		2C21A45D1178BB0B00D35009 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				ABB057E91F2F0993001A5579 /* checkreadability.cpp */,
+				ABB057EA1F2F0993001A5579 /* checkreadability.h */,
+				ABB057EF1F2F0993001A5579 /* checktscoverrun.cpp */,
+				ABB057F01F2F0993001A5579 /* checktscoverrun.h */,
+				ABB057F11F2F0993001A5579 /* checktype.h */,
+				ABB057F41F2F0993001A5579 /* globalmacros.cpp */,
+				ABB057F51F2F0993001A5579 /* globalmacros.h */,
+				ABB057F61F2F0993001A5579 /* matchcompiler.h */,
+				AB8107711DF3C6E800966906 /* executionpath.cpp */,
+				AB8107721DF3C6E800966906 /* executionpath.h */,
+				ABAF65B81C50D674008B81A6 /* checktsccompute.cpp */,
+				ABAF65B91C50D674008B81A6 /* checktsccompute.h */,
+				ABAF65BA1C50D674008B81A6 /* checktscinvalidvarargs.cpp */,
+				ABAF65BB1C50D674008B81A6 /* checktscinvalidvarargs.h */,
+				ABAF65BC1C50D674008B81A6 /* checktsclogic.cpp */,
+				ABAF65BD1C50D674008B81A6 /* checktsclogic.h */,
+				ABAF65BE1C50D674008B81A6 /* checkTSCSuspicious.cpp */,
+				ABAF65BF1C50D674008B81A6 /* checkTSCSuspicious.h */,
+				AB1087E91C3A6165008559FA /* utilities.cpp */,
+				AB1087EA1C3A6165008559FA /* utilities.h */,
+				AB5A3B411C151B2C0022D04B /* tokenex.cpp */,
+				AB5A3B421C151B2C0022D04B /* tokenex.h */,
+				ABEE8FDA1BFDB47C0082ACAB /* astutils.cpp */,
+				ABEE8FDB1BFDB47C0082ACAB /* astutils.h */,
+				F497C2831AB41D5C003B96CF /* check.cpp */,
+				F497C2841AB41D5C003B96CF /* checkcondition.cpp */,
+				F497C2851AB41D5C003B96CF /* checkcondition.h */,
+				F497C2861AB41D5C003B96CF /* checkstring.cpp */,
+				F497C2871AB41D5C003B96CF /* checkstring.h */,
+				F497C2881AB41D5C003B96CF /* checktype.cpp */,
+				F497C2891AB41D5C003B96CF /* checkvaarg.cpp */,
+				F497C28A1AB41D5C003B96CF /* checkvaarg.h */,
+				F497C28B1AB41D5C003B96CF /* cxx11emu.h */,
+				F4CDD6961880888F006CF685 /* valueflow.cpp */,
+				F4CDD6971880888F006CF685 /* valueflow.h */,
+				F4CF847B17B6504100522F24 /* library.h */,
+				F4CF847C17B6504100522F24 /* library.cpp */,
+				39E60E8C1270DE3A00AC0D02 /* check.h */,
+				F4043DB3177F093300CD5A40 /* check64bit.cpp */,
+				F4043DB4177F093300CD5A40 /* check64bit.h */,
+				F4043DB5177F093300CD5A40 /* checkassert.cpp */,
+				F4043DB6177F093300CD5A40 /* checkassert.h */,
+				39E60E8D1270DE3A00AC0D02 /* checkautovariables.cpp */,
+				39E60E8E1270DE3A00AC0D02 /* checkautovariables.h */,
+				F4043DB9177F093300CD5A40 /* checkbool.cpp */,
+				F4043DBA177F093300CD5A40 /* checkbool.h */,
+				F4043DBB177F093300CD5A40 /* checkboost.cpp */,
+				F4043DBC177F093300CD5A40 /* checkboost.h */,
+				39E60E8F1270DE3A00AC0D02 /* checkbufferoverrun.cpp */,
+				39E60E901270DE3A00AC0D02 /* checkbufferoverrun.h */,
+				39E60E911270DE3A00AC0D02 /* checkclass.cpp */,
+				39E60E921270DE3A00AC0D02 /* checkclass.h */,
+				39E60E931270DE3A00AC0D02 /* checkexceptionsafety.cpp */,
+				39E60E941270DE3A00AC0D02 /* checkexceptionsafety.h */,
+				F4043DBD177F093300CD5A40 /* checkinternal.cpp */,
+				F4043DBE177F093300CD5A40 /* checkinternal.h */,
+				F4043DBF177F093300CD5A40 /* checkio.cpp */,
+				F4043DC0177F093300CD5A40 /* checkio.h */,
+				F4043DC1177F093300CD5A40 /* checkleakautovar.cpp */,
+				F4043DC2177F093300CD5A40 /* checkleakautovar.h */,
+				39E60E951270DE3A00AC0D02 /* checkmemoryleak.cpp */,
+				39E60E961270DE3A00AC0D02 /* checkmemoryleak.h */,
+				F4043DC3177F093300CD5A40 /* checknonreentrantfunctions.cpp */,
+				F4043DC4177F093300CD5A40 /* checknonreentrantfunctions.h */,
+				F4043DC5177F093300CD5A40 /* checknullpointer.cpp */,
+				F4043DC6177F093300CD5A40 /* checknullpointer.h */,
+				39E60E971270DE3A00AC0D02 /* checkobsolescentfunctions.cpp */,
+				39E60E981270DE3A00AC0D02 /* checkobsolescentfunctions.h */,
+				39E60E991270DE3A00AC0D02 /* checkother.cpp */,
+				39E60E9A1270DE3A00AC0D02 /* checkother.h */,
+				39E60E9B1270DE3A00AC0D02 /* checkpostfixoperator.cpp */,
+				39E60E9C1270DE3A00AC0D02 /* checkpostfixoperator.h */,
+				F4043DC7177F093300CD5A40 /* checksizeof.cpp */,
+				F4043DC8177F093300CD5A40 /* checksizeof.h */,
+				39E60E9D1270DE3A00AC0D02 /* checkstl.cpp */,
+				39E60E9E1270DE3A00AC0D02 /* checkstl.h */,
+				F4043DC9177F093300CD5A40 /* checkuninitvar.cpp */,
+				F4043DCA177F093300CD5A40 /* checkuninitvar.h */,
+				39E60E9F1270DE3A00AC0D02 /* checkunusedfunctions.cpp */,
+				39E60EA01270DE3A00AC0D02 /* checkunusedfunctions.h */,
+				F4043DCB177F093300CD5A40 /* checkunusedvar.cpp */,
+				F4043DCC177F093300CD5A40 /* checkunusedvar.h */,
+				39E60EA11270DE3A00AC0D02 /* tscancode.cpp */,
+				39E60EA21270DE3A00AC0D02 /* tscancode.h */,
+				39E60EA31270DE3A00AC0D02 /* errorlogger.cpp */,
+				39E60EA41270DE3A00AC0D02 /* errorlogger.h */,
+				39E60EAB1270DE3A00AC0D02 /* mathlib.cpp */,
+				39E60EAC1270DE3A00AC0D02 /* mathlib.h */,
+				39E60EAF1270DE3A00AC0D02 /* preprocessor.cpp */,
+				39E60EB01270DE3A00AC0D02 /* preprocessor.h */,
+				39E60EB11270DE3A00AC0D02 /* settings.cpp */,
+				39E60EB21270DE3A00AC0D02 /* settings.h */,
+				F4043DCD177F093300CD5A40 /* standards.h */,
+				F4043DCE177F093300CD5A40 /* suppressions.cpp */,
+				F4043DCF177F093300CD5A40 /* suppressions.h */,
+				F4043DD0177F093300CD5A40 /* symboldatabase.cpp */,
+				F4043DD1177F093300CD5A40 /* symboldatabase.h */,
+				F4043DD2177F093300CD5A40 /* templatesimplifier.cpp */,
+				F4043DD3177F093300CD5A40 /* templatesimplifier.h */,
+				39E60EB31270DE3A00AC0D02 /* timer.cpp */,
+				39E60EB41270DE3A00AC0D02 /* timer.h */,
+				39E60EB51270DE3A00AC0D02 /* token.cpp */,
+				39E60EB61270DE3A00AC0D02 /* token.h */,
+				39E60EB71270DE3A00AC0D02 /* tokenize.cpp */,
+				39E60EB81270DE3A00AC0D02 /* tokenize.h */,
+				F4043DD4177F093300CD5A40 /* tokenlist.cpp */,
+				F4043DD5177F093300CD5A40 /* tokenlist.h */,
+				F4043DD6177F093300CD5A40 /* version.h */,
+				ABFCB7271C059704001A1B2E /* globaltokenizer.h */,
+				ABFCB7281C05972F001A1B2E /* globaltokenizer.cpp */,
+				AB8CF8861C0D4625000C8F11 /* globalsymboldatabase.cpp */,
+				AB8CF8871C0D4625000C8F11 /* globalsymboldatabase.h */,
+				BA0B2EDC1C805DD1001C2148 /* checktscnullpointer2.cpp */,
+				BA0B2EDD1C805DD1001C2148 /* checktscnullpointer2.h */,
+			);
+			name = Library;
+			sourceTree = "<group>";
+		};
+		BA1DC8FF1D525397003C95E1 /* common */ = {
+			isa = PBXGroup;
+			children = (
+				BA1DC9001D525419003C95E1 /* config.h */,
+				BA1DC9011D525419003C95E1 /* filedepend.cpp */,
+				BA1DC9021D525419003C95E1 /* filedepend.h */,
+				BA1DC9031D525419003C95E1 /* filelister.cpp */,
+				BA1DC9041D525419003C95E1 /* filelister.h */,
+				BA1DC9051D525419003C95E1 /* path.cpp */,
+				BA1DC9061D525419003C95E1 /* path.h */,
+				BA1DC9071D525419003C95E1 /* pathmatch.cpp */,
+				BA1DC9081D525419003C95E1 /* pathmatch.h */,
+			);
+			name = common;
+			sourceTree = "<group>";
+		};
+		F47E507F17896AC700C684DC /* Externals */ = {
+			isa = PBXGroup;
+			children = (
+				F47E508017896AD200C684DC /* tinyxml */,
+			);
+			name = Externals;
+			sourceTree = "<group>";
+		};
+		F47E508017896AD200C684DC /* tinyxml */ = {
+			isa = PBXGroup;
+			children = (
+				F47E508117896AEB00C684DC /* tinyxml2.cpp */,
+				F47E508217896AEB00C684DC /* tinyxml2.h */,
+			);
+			name = tinyxml;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8DD76F620486A84900D96B5E /* tscancode */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "tscancode" */;
+			buildPhases = (
+				8DD76F640486A84900D96B5E /* Sources */,
+				8DD76F660486A84900D96B5E /* Frameworks */,
+				8DD76F690486A84900D96B5E /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = tscancode;
+			productInstallPath = "$(HOME)/bin";
+			productName = tscancode;
+			productReference = 39E60EDE1270DEB100AC0D02 /* tscancode */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		08FB7793FE84155DC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0620;
+			};
+			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "tscancode" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 08FB7794FE84155DC02AAC07 /* tscancode */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8DD76F620486A84900D96B5E /* tscancode */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8DD76F640486A84900D96B5E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB8107731DF3C6E800966906 /* executionpath.cpp in Sources */,
+				AB5A3B431C151B2C0022D04B /* tokenex.cpp in Sources */,
+				39E60EB91270DE3A00AC0D02 /* checkautovariables.cpp in Sources */,
+				39E60EBA1270DE3A00AC0D02 /* checkbufferoverrun.cpp in Sources */,
+				39E60EBB1270DE3A00AC0D02 /* checkclass.cpp in Sources */,
+				F4CDD6981880888F006CF685 /* valueflow.cpp in Sources */,
+				39E60EBC1270DE3A00AC0D02 /* checkexceptionsafety.cpp in Sources */,
+				F497C28E1AB41D5C003B96CF /* checkstring.cpp in Sources */,
+				39E60EBD1270DE3A00AC0D02 /* checkmemoryleak.cpp in Sources */,
+				39E60EBE1270DE3A00AC0D02 /* checkobsolescentfunctions.cpp in Sources */,
+				39E60EBF1270DE3A00AC0D02 /* checkother.cpp in Sources */,
+				39E60EC01270DE3A00AC0D02 /* checkpostfixoperator.cpp in Sources */,
+				39E60EC11270DE3A00AC0D02 /* checkstl.cpp in Sources */,
+				39E60EC21270DE3A00AC0D02 /* checkunusedfunctions.cpp in Sources */,
+				39E60EC31270DE3A00AC0D02 /* tscancode.cpp in Sources */,
+				39E60EC41270DE3A00AC0D02 /* errorlogger.cpp in Sources */,
+				F497C28C1AB41D5C003B96CF /* check.cpp in Sources */,
+				F497C28D1AB41D5C003B96CF /* checkcondition.cpp in Sources */,
+				39E60EC81270DE3A00AC0D02 /* mathlib.cpp in Sources */,
+				ABEE8FDC1BFDB47C0082ACAB /* astutils.cpp in Sources */,
+				BA1DC90B1D525419003C95E1 /* path.cpp in Sources */,
+				AB1087EB1C3A6165008559FA /* utilities.cpp in Sources */,
+				ABAF65C11C50D674008B81A6 /* checktscinvalidvarargs.cpp in Sources */,
+				39E60ECA1270DE3A00AC0D02 /* preprocessor.cpp in Sources */,
+				39E60ECB1270DE3A00AC0D02 /* settings.cpp in Sources */,
+				39E60ECC1270DE3A00AC0D02 /* timer.cpp in Sources */,
+				39E60ECD1270DE3A00AC0D02 /* token.cpp in Sources */,
+				39E60ECE1270DE3A00AC0D02 /* tokenize.cpp in Sources */,
+				39E60ED61270DE5000AC0D02 /* cmdlineparser.cpp in Sources */,
+				39E60ED71270DE5000AC0D02 /* tscexecutor.cpp in Sources */,
+				39E60ED81270DE5000AC0D02 /* main.cpp in Sources */,
+				F4043DD7177F093300CD5A40 /* check64bit.cpp in Sources */,
+				ABAF65C01C50D674008B81A6 /* checktsccompute.cpp in Sources */,
+				F4043DD8177F093300CD5A40 /* checkassert.cpp in Sources */,
+				ABFCB7291C05972F001A1B2E /* globaltokenizer.cpp in Sources */,
+				F497C2901AB41D5C003B96CF /* checkvaarg.cpp in Sources */,
+				AB8CF8881C0D4625000C8F11 /* globalsymboldatabase.cpp in Sources */,
+				BA1DC9091D525419003C95E1 /* filedepend.cpp in Sources */,
+				F4043DDA177F093300CD5A40 /* checkbool.cpp in Sources */,
+				F4043DDB177F093300CD5A40 /* checkboost.cpp in Sources */,
+				AB610D741C0448E200DFC64E /* tscthreadexecutor.cpp in Sources */,
+				ABAF65C31C50D674008B81A6 /* checkTSCSuspicious.cpp in Sources */,
+				F4043DDC177F093300CD5A40 /* checkinternal.cpp in Sources */,
+				F4043DDD177F093300CD5A40 /* checkio.cpp in Sources */,
+				ABAF65C21C50D674008B81A6 /* checktsclogic.cpp in Sources */,
+				F4043DDE177F093300CD5A40 /* checkleakautovar.cpp in Sources */,
+				ABB057FC1F2F0993001A5579 /* globalmacros.cpp in Sources */,
+				F4043DDF177F093300CD5A40 /* checknonreentrantfunctions.cpp in Sources */,
+				F4043DE0177F093300CD5A40 /* checknullpointer.cpp in Sources */,
+				F4043DE1177F093300CD5A40 /* checksizeof.cpp in Sources */,
+				F4043DE2177F093300CD5A40 /* checkuninitvar.cpp in Sources */,
+				F4043DE3177F093300CD5A40 /* checkunusedvar.cpp in Sources */,
+				F4043DE4177F093300CD5A40 /* suppressions.cpp in Sources */,
+				ABB057FA1F2F0993001A5579 /* checktscoverrun.cpp in Sources */,
+				F4043DE5177F093300CD5A40 /* symboldatabase.cpp in Sources */,
+				ABB057F71F2F0993001A5579 /* checkreadability.cpp in Sources */,
+				BA1DC90C1D525419003C95E1 /* pathmatch.cpp in Sources */,
+				F497C28F1AB41D5C003B96CF /* checktype.cpp in Sources */,
+				BA0B2EDE1C805DD1001C2148 /* checktscnullpointer2.cpp in Sources */,
+				F4043DE6177F093300CD5A40 /* templatesimplifier.cpp in Sources */,
+				F4043DE7177F093300CD5A40 /* tokenlist.cpp in Sources */,
+				F47E508317896AEB00C684DC /* tinyxml2.cpp in Sources */,
+				BA1DC90A1D525419003C95E1 /* filelister.cpp in Sources */,
+				F4CF847D17B6504100522F24 /* library.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB923208733DC60010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_MODEL_TUNING = "";
+				GCC_OPTIMIZATION_LEVEL = 0;
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "CFGDIR=\\\"$SRCROOT/cfg/\\\"";
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = (
+					externals/tinyxml,
+					glog/mac/include,
+				);
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_LIBTOOLFLAGS = "";
+				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = NO;
+				PRODUCT_NAME = tscancode;
+			};
+			name = Debug;
+		};
+		1DEB923308733DC60010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_MODEL_TUNING = "";
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "CFGDIR=\\\"$SRCROOT/cfg/\\\"";
+				HEADER_SEARCH_PATHS = (
+					externals/tinyxml,
+					glog/mac/include,
+				);
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_LIBTOOLFLAGS = "";
+				PRODUCT_NAME = tscancode;
+			};
+			name = Release;
+		};
+		1DEB923608733DC60010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = "";
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = "";
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		1DEB923708733DC60010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = "";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "tscancode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB923208733DC60010E9CD /* Debug */,
+				1DEB923308733DC60010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "tscancode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB923608733DC60010E9CD /* Debug */,
+				1DEB923708733DC60010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 08FB7793FE84155DC02AAC07 /* Project object */;
+}

@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,8 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
 
@@ -27,10 +25,19 @@
 #include "config.h"
 #include "check.h"
 
+#include <map>
+#include <set>
 
-class CPPCHECKLIB VarInfo {
+
+class TSCANCODELIB VarInfo {
 public:
-    std::map<unsigned int, std::string> alloctype;
+    enum AllocStatus { DEALLOC = -1, NOALLOC = 0, ALLOC = 1 };
+    struct AllocInfo {
+        AllocStatus status;
+        int type;
+        AllocInfo(int type_ = 0, AllocStatus status_ = NOALLOC) : status(status_), type(type_) {}
+    };
+    std::map<unsigned int, AllocInfo> alloctype;
     std::map<unsigned int, std::string> possibleUsage;
     std::set<unsigned int> conditionalAlloc;
     std::set<unsigned int> referenced;
@@ -69,7 +76,7 @@ public:
  * @brief Check for leaks
  */
 
-class CPPCHECKLIB CheckLeakAutoVar : public Check {
+class TSCANCODELIB CheckLeakAutoVar : public Check {
 public:
     /** This constructor is used when registering the CheckLeakAutoVar */
     CheckLeakAutoVar() : Check(myName()) {
@@ -82,34 +89,13 @@ public:
 
     /** @brief Run checks against the simplified token list */
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		//获取checklist.ini配置
-        //getconf();
-		if(getCheckConfig()->memleak)
-		{
-			CheckLeakAutoVar checkLeakAutoVar(tokenizer, settings, errorLogger);
-			checkLeakAutoVar.parseConfigurationFile("cppcheck.cfg");
-			checkLeakAutoVar.check();
-		}
-		/*
-       #ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
-		CheckLeakAutoVar checkLeakAutoVar(tokenizer, settings, errorLogger);
-        checkLeakAutoVar.parseConfigurationFile("cppcheck.cfg");
+        CheckLeakAutoVar checkLeakAutoVar(tokenizer, settings, errorLogger);
+#ifdef TSCANCODE_RULE_OPEN
         checkLeakAutoVar.check();
 #endif
-		*/
     }
 
 private:
-
-    std::map<std::string,std::string> cfgalloc;
-    std::map<std::string,std::string> cfgdealloc;
-    std::set<std::string> cfgignore;
-    std::set<std::string> cfguse;
-    std::set<std::string> cfgnoreturn;
-
-    void parseConfigurationFile(const std::string &filename);
 
     /** check for leaks in all scopes */
     void check();
@@ -120,7 +106,10 @@ private:
                     std::set<unsigned int> notzero);
 
     /** parse function call */
-    void functionCall(const Token *tok, VarInfo *varInfo, const std::string &dealloc);
+    void functionCall(const Token *tok, VarInfo *varInfo, const VarInfo::AllocInfo& allocation);
+
+    /** parse changes in allocation status */
+    void changeAllocStatus(VarInfo *varInfo, const VarInfo::AllocInfo& allocation, const Token* tok, const Token* arg);
 
     /** return. either "return" or end of variable scope is seen */
     void ret(const Token *tok, const VarInfo &varInfo);
@@ -128,10 +117,11 @@ private:
     /** if variable is allocated then there is a leak */
     void leakIfAllocated(const Token *vartok, const VarInfo &varInfo);
 
-    void leakError(const Token* tok, const std::string &varname, const std::string &type);
+    void leakError(const Token* tok, const std::string &varname, int type);
     void mismatchError(const Token* tok, const std::string &varname);
     void deallocUseError(const Token *tok, const std::string &varname);
     void deallocReturnError(const Token *tok, const std::string &varname);
+    void doubleFreeError(const Token *tok, const std::string &varname, int type);
 
     /** message: user configuration is needed to complete analysis */
     void configurationInfo(const Token* tok, const std::string &functionName);
@@ -140,16 +130,17 @@ private:
         CheckLeakAutoVar c(0, settings, errorLogger);
         c.deallocReturnError(0, "p");
         c.configurationInfo(0, "f");  // user configuration is needed to complete analysis
+        c.doubleFreeError(0, "varname", 0);
     }
 
     static std::string myName() {
-        return "leakautovar";
+        return "Leaks (auto variables)";
     }
 
     std::string classInfo() const {
-        return "Detect when a auto variable is allocated but not deallocated.\n";
+        return "Detect when a auto variable is allocated but not deallocated or deallocated twice.\n";
     }
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // checkleakautovarH

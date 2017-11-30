@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,8 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
 
@@ -35,7 +33,7 @@
  * @brief Check for 64-bit portability issues
  */
 
-class CPPCHECKLIB Check64BitPortability : public Check {
+class TSCANCODELIB Check64BitPortability : public Check {
 public:
     /** This constructor is used when registering the Check64BitPortability */
     Check64BitPortability() : Check(myName()) {
@@ -48,42 +46,17 @@ public:
 
     /** @brief Run checks against the normal token list */
     void runChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		//getconf();
-		if(getCheckConfig()->Suspicious)
-		{
-			if(getCheckConfig()->portability64)
-			{
-			Check64BitPortability check64BitPortability(tokenizer, settings, errorLogger);
-			check64BitPortability.pointerassignment();
-			}
-		}
-#ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
         Check64BitPortability check64BitPortability(tokenizer, settings, errorLogger);
+#ifdef TSCANCODE_RULE_OPEN
         check64BitPortability.pointerassignment();
 #endif
     }
 
     /** @brief Run checks against the simplified token list */
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		//getconf();
-		if(getCheckConfig()->Suspicious)
-		{
-			if(getCheckConfig()->portability64)
-			{
-				(void)tokenizer;
-				(void)settings;
-				(void)errorLogger;
-			}
-		}
-#ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
         (void)tokenizer;
         (void)settings;
         (void)errorLogger;
-#endif
     }
 
     /** Check for pointer assignment */
@@ -105,15 +78,15 @@ private:
     }
 
     static std::string myName() {
-        return "64-bit";
+        return "64-bit portability";
     }
 
     std::string classInfo() const {
         return "Check if there is 64-bit portability issues:\n"
-               "* assign address to/from int/long\n"
-               "* casting address from/to integer when returning from function\n";
+               "- assign address to/from int/long\n"
+               "- casting address from/to integer when returning from function\n";
     }
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // check64bitH

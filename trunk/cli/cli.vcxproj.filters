@@ -12,62 +12,62 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{6d3be647-edb6-43e6-a7eb-3031a2c7b655}</UniqueIdentifier>
     </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{d91d2376-f71a-4f12-9589-8c2aa87aa171}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdlineparser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="threadexecutor.h">
+    <ClInclude Include="tscexecutor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cppcheckexecutor.h">
+    <ClInclude Include="tscthreadexecutor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pathmatch.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\common\filelister.h">
+      <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\externals\tinyxml\tinystr.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\common\path.h">
+      <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\externals\tinyxml\tinyxml.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\common\pathmatch.h">
+      <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\FileDepend.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\common\filedepend.h">
+      <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\common\config.h">
-      <Filter>Header Files</Filter>
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\crashhelp.h">
+      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="threadexecutor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cppcheckexecutor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="cmdlineparser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\externals\tinyxml\tinyxmlerror.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\externals\tinyxml\tinyxmlparser.cpp">
+    <ClCompile Include="tscthreadexecutor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\common\filelister.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\common\FileDepend.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\common\pathmatch.cpp">
+      <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\externals\tinyxml\tinyxml.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\common\filedepend.cpp">
+      <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\externals\tinyxml\tinystr.cpp">
+    <ClCompile Include="..\common\crashhelp.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="tscexecutor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

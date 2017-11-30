@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,14 +14,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * The above software in this distribution may have been modified by THL A29 Limited (“Tencent Modifications”).
- * All Tencent Modifications are Copyright (C) 2015 THL A29 Limited.
  */
 
 
 //---------------------------------------------------------------------------
-#ifndef CHECKBOOST_H
-#define CHECKBOOST_H
+#ifndef checkboostH
+#define checkboostH
 //---------------------------------------------------------------------------
 
 #include "config.h"
@@ -34,28 +32,22 @@ class Token;
 
 
 /** @brief %Check Boost usage */
-class CPPCHECKLIB CheckBoost : public Check {
+class TSCANCODELIB CheckBoost : public Check {
 public:
     /** This constructor is used when registering the CheckClass */
-    CheckBoost() : Check(myName())
-    { }
+    CheckBoost() : Check(myName()) {
+    }
 
     /** This constructor is used when running checks. */
     CheckBoost(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger)
-        : Check(myName(), tokenizer, settings, errorLogger)
-    { }
+        : Check(myName(), tokenizer, settings, errorLogger) {
+    }
 
     /** Simplified checks. The token list is simplified. */
     void runSimplifiedChecks(const Tokenizer *tokenizer, const Settings *settings, ErrorLogger *errorLogger) {
-		(void)tokenizer;
-        (void)settings;
-        (void)errorLogger;
-       #ifdef TSC_IGNORE_LOWCHECK
-		;
-#else
-		if (tokenizer && !tokenizer->isCPP())
+        if (!tokenizer->isCPP())
             return;
-
+#ifdef TSCANCODE_RULE_OPEN
         CheckBoost checkBoost(tokenizer, settings, errorLogger);
 
         checkBoost.checkBoostForeachModification();
@@ -74,14 +66,14 @@ private:
     }
 
     static std::string myName() {
-        return "Boostusage";
+        return "Boost usage";
     }
 
     std::string classInfo() const {
         return "Check for invalid usage of Boost:\n"
-               "* container modification during BOOST_FOREACH\n";
+               "- container modification during BOOST_FOREACH\n";
     }
 };
 /// @}
 //---------------------------------------------------------------------------
-#endif
+#endif // checkboostH

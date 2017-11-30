@@ -1,45 +1,83 @@
-## TscanCode十月版本发布
-[TscanCodeV1.10.1027.windows.exe](./release/windows/TscanCodeV1.10.1027.windows.exe)
+# **TscanCode** 
 
-更新列表：
-1. 新增基于统计的函数返回值判空检查项；
-2. 空指针、越界、未初始化误报、漏报修复；
-3. 检查项优化了规则说明和Demo，规则内容一目了然；
-4. UI 界面优化&bugfix；
+![Release version](https://img.shields.io/badge/version-2.11.27-blue.svg)
 
+## A fast and accurate static analysis solution for C/C++, C#, Lua codes
 
-# TscanCode
-**TscanCode**是针对**C++/C#/Lua**代码的静态代码扫描解决方案，能精确发现C++空指针、Unity性能、Lua手误等问题，提高代码质量，降低代码错误修复成本。另外，TscanCode还支持C#&Lua，C++&Lua语言混合扫描，有效挖掘Unity项目跨语言交互问题。
-TscanCode单机工具无需构建复杂的编译环境，一键扫描，支持用户根据不同需求自定义配置检查项，有良好的扩展性和可维护性。
+Tencent is pleased to support the open source community by making TscanCode available.
 
-TscanCode支持以下类型规则扫描：
+Copyright (C) 2017 Tencent company and TscanCode Team. All rights reserved.
 
-## C++
-* 空指针错误(7): 可能导致程序空指针解引用的错误
-* 越界错误(7): 数组、缓冲区访问越界
-* 资源泄漏错误(8): 内存或者资源（文件、管道等）泄漏错误
-* 运算错误(11): sizeof, ++等运算符导致的代码错误
-* 可疑错误(16): 可疑的代码错误，比如assert中进行赋值操作
-* 逻辑错误(26): 不符合正常代码逻辑的代码场景
-* 未初始化错误(10): 变量、结构体、指针未初始化，然后使用
+## Introduction
 
-## C#
-* 空引用错误(6): 可能导致空对象解引用的错误场景
-* 逻辑错误(22): 不符合正常代码逻辑的代码场景
-* Unity特性检查(14): 针对Unity项目性能、常见错误的检查项
+TscanCode is devoted to help programmers to find out code defects at the very beginning.  
+* TscanCode supports multi-language: `C/C++`, `C#` and `Lua` codes;
+* TscanCode is `fast` and `accurate`, The performance can be 200K lines per minute and  the accuracy rate is about 90%;   
+* TscanCode is `easy to use`, It doesn't require strict compiling enviroment and one single command can make it work; 
+* TscanCode is `extensible`, you can implement your own checks with TscanCode.
 
-## Lua					 
-* 未初始化(11): 检查变量初始化相关问题
-* 语法错误(1): 检查语法相关问题。目前只检查括号，if-end匹配等有限的语法错误
-* 跨语言交互(3): 检查Lua和C++、C#交互相关的问题
-* 逻辑错误(17): 除以上三种错误以外的其他问题，如函数参数匹配，变量重名，变量类型混用等
+## Highlights in v2.11.27 (2017-12-01)
+* Add new check `CS_UnityMessgeSpellWrong`, check typo errors of Unity message functions;
+* Add new check `lua_VarSpellWrongError` and `lua_KeywordSpellWrongError`, check typo errors of Lua variable and keyword;
 
-## Docs
-* [用户手册](./document/TscanCode_Manual.pdf)
-* [安装系统说明](./document/TscanCode_Setup.txt)
-* [现有功能&未来规划](./document/TscanCode_Plan.txt)
-* [已知故障](./document/TscanCode_Bug.txt)
+For other changes please refer to [change log](CHANGELOG.md).
 
-## FAQ
-[TscanCode常见问题](https://github.com/Tencent/TscanCode/wiki/TscanCode常见问题)
+## Compiling
+
+Any C++11 compiler should work. For compilers with partial C++11 support it may work. If your compiler has the C++11 features that are available in Visual Studio 2015 then it will work. If nullptr is not supported by your compiler then this can be emulated using the header lib/cxx11emu.h.
+
+There are multiple compilation choices:
+* Windows: Visual Studio (Visual Studio 2015 and above)
+* Linux: g++ 4.6 (or later)
+* Mac: clang++
+
+### Visual Studio
+
+Use the tsancode.sln file. The file is configured for Visual Studio 2015, but the platform toolset can be changed easily to older or newer versions. The solution contains platform targets for both x86 and x64.
+
+Select option `Release` to build release version.
+
+### g++ or clang++
+
+Simple build (no dependencies):
+
+```shell
+make
+```
+
+## Usage at a glance
+
+This simple example contains a potential null pointer defect. Checking if p is null indicates that p might be null, so dereferencing p `*p` is not safe outside the `if-scope`.
+
+~~~~~~~~~~cpp
+// func.cpp
+void func(int* p) {
+    if(p == NULL) {
+        printf("p is null!");
+    }
+
+    printf("p is %d", *p);
+}
+~~~~~~~~~~
+
+Run TscanCode:
+```shell
+./tscancode --xml func.cpp 2>result.xml
+```
+Error list, result.xml:
+
+~~~~~~~~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<results>
+    <error file="func.cpp" line="7" id="nullpointer" subid="dereferenceAfterCheck" severity="error" 
+           msg="Comparing [p] to null at line 3 implies [p] might be null. Dereferencing null pointer [p]." />
+</results>
+~~~~~~~~~~
+
+There are more examples:
+* [CPP samples](samples/cpp);
+* [C# samples](samples/csharp);
+* [Lua samples](samples/lua);
+
+For now, codes under [trunk](trunk) are only for TscanCode `CPP` version, `C#` and `Lua` version are in the internal review process. Sorry for the inconvenience.
 

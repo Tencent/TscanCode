@@ -1,6 +1,6 @@
 /*
- * Cppcheck - A tool for static C/C++ code analysis
- * Copyright (C) 2007-2012 Daniel Marjamäki and Cppcheck team.
+ * TscanCode - A tool for static C/C++ code analysis
+ * Copyright (C) 2017 TscanCode team.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#ifndef SUPPRESSIONS_H
-#define SUPPRESSIONS_H
+//---------------------------------------------------------------------------
+#ifndef suppressionsH
+#define suppressionsH
+//---------------------------------------------------------------------------
 
 #include <list>
 #include <string>
@@ -29,9 +30,9 @@
 /// @{
 
 /** @brief class for handling suppressions */
-class CPPCHECKLIB Suppressions {
+class TSCANCODELIB Suppressions {
 private:
-    class CPPCHECKLIB FileMatcher {
+    class TSCANCODELIB FileMatcher {
         friend class Suppressions;
     private:
         /** @brief List of filenames suppressed, bool flag indicates whether suppression matched. */
@@ -91,14 +92,14 @@ public:
     std::string addSuppressionLine(const std::string &line);
 
     /**
-     * @brief Don't show this error. If file and/or line are optional. In which case
+     * @brief Don't show this error. File and/or line are optional. In which case
      * the errorId alone is used for filtering.
      * @param errorId the id for the error, e.g. "arrayIndexOutOfBounds"
      * @param file File name with the path, e.g. "src/main.cpp"
      * @param line number, e.g. "123"
      * @return error message. empty upon success
      */
-    std::string addSuppression(const std::string &errorId, const std::string &file = "", unsigned int line = 0);
+    std::string addSuppression(const std::string &errorId, const std::string &file = emptyString, unsigned int line = 0);
 
     /**
      * @brief Returns true if this message should not be shown to the user.
@@ -120,8 +121,8 @@ public:
 
     struct SuppressionEntry {
         SuppressionEntry(const std::string &aid, const std::string &afile, unsigned int aline)
-            : id(aid), file(afile), line(aline)
-        { }
+            : id(aid), file(afile), line(aline) {
+        }
 
         std::string id;
         std::string file;
@@ -132,15 +133,15 @@ public:
      * @brief Returns list of unmatched local (per-file) suppressions.
      * @return list of unmatched suppressions
      */
-    std::list<SuppressionEntry> getUnmatchedLocalSuppressions(const std::string &file) const;
+    std::list<SuppressionEntry> getUnmatchedLocalSuppressions(const std::string &file, const bool unusedFunctionChecking) const;
 
     /**
      * @brief Returns list of unmatched global (glob pattern) suppressions.
      * @return list of unmatched suppressions
      */
-    std::list<SuppressionEntry> getUnmatchedGlobalSuppressions() const;
+    std::list<SuppressionEntry> getUnmatchedGlobalSuppressions(const bool unusedFunctionChecking) const;
 };
 
 /// @}
-
-#endif // SUPPRESSIONS_H
+//---------------------------------------------------------------------------
+#endif // suppressionsH
