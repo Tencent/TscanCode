@@ -33,7 +33,7 @@ There are multiple compilation choices:
 
 ### Visual Studio
 
-Use the tsancode.sln file. The file is configured for Visual Studio 2015, but the platform toolset can be changed easily to older or newer versions. The solution contains platform targets for both x86 and x64.
+Use the tscancode.sln file. The file is configured for Visual Studio 2015, but the platform toolset can be changed easily to older or newer versions. The solution contains platform targets for both x86 and x64.
 
 Select option `Release` to build release version.
 
