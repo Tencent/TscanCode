@@ -18,3 +18,4 @@
 .DS_Store
 trunk/tscancode.xcodeproj/project.xcworkspace
 trunk/tscancode.xcodeproj/xcuserdata
+*.o
