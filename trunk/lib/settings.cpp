@@ -70,6 +70,7 @@ Settings::Settings()
 	  _no_check(false),
 	  _big_file_token_size(512 * 1024),
 	  _big_header_file_size(-1),
+	_large_includes(-1),
 	_recordFuncinfo(false),
 	_e2o(false)
 
@@ -480,6 +481,16 @@ bool Settings::IsCheckIdOpened(const char* szId, const char* szSubid) const
 	return false;
 }
 
+std::string Settings::GetCheckSeverity(const std::string& szSubid) const
+{
+	std::map<std::string, std::string>::const_iterator I = _checkSeverity.find(szSubid);
+
+	if (I != _checkSeverity.end())
+		return I->second;
+	else
+		return "";
+}
+
 bool Settings::LoadCustomCfgXml(const std::string &filePath, const char szExeName[])
 {
 	OpenCodeTrace = false;//init false
@@ -712,6 +723,13 @@ bool Settings::LoadCustomCfgXml(const std::string &filePath, const char szExeNam
 								{
 									bool bOpen = subid->BoolAttribute("value");
 									subidSet[szCheck] = bOpenId ? bOpen : false;
+
+									const char* szSeverity = subid->Attribute("severity");
+									if (szSeverity)
+										_checkSeverity[szCheck] = szSeverity;
+									else
+										_checkSeverity[szCheck] = "Warning";
+									
 								}
 							}
 						}
@@ -738,6 +756,11 @@ bool Settings::LoadCustomCfgXml(const std::string &filePath, const char szExeNam
 						{
 							int iValue = id2->IntAttribute("value");
 							_big_header_file_size = iValue;
+						}
+						else if (0 == strcmp(szEntry, "large_includes"))
+						{
+							int iValue = id2->IntAttribute("value");
+							_large_includes = iValue;
 						}
 					}
 				}

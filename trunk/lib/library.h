@@ -324,7 +324,7 @@ public:
         return (it != podtypes.end()) ? &(it->second) : nullptr;
     }
 
-	const std::map<std::string, struct PodType> getPodTypes()const{
+	const std::map<std::string, struct PodType>& getPodTypes()const{
 		return podtypes; // pod types
 	}
 

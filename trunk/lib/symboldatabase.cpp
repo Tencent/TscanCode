@@ -1359,21 +1359,21 @@ bool SymbolDatabase::isFunction(const Token *tok, const Scope* outerScope, const
         return false;
 
     // function returning function pointer? '... ( ... %name% ( ... ))( ... ) {'
-    if (tok->str() == "(" &&
-        tok->link()->previous()->str() == ")") {
-        const Token* tok2 = tok->link()->next();
-        if (tok2 && tok2->str() == "(" && Token::Match(tok2->link()->next(), "{|;|const|=")) {
-            const Token* argStartTok = tok->link()->previous()->link();
-            *funcStart = argStartTok->previous();
-            *argStart = argStartTok;
-            return true;
-        }
-    }
+	if (tok->str() == "(" &&
+		tok->link()->previous()->str() == ")") {
+		const Token* tok2 = tok->link()->next();
+		if (tok2 && tok2->str() == "(" && Token::Match(tok2->link()->next(), "{|;|const|=")) {
+			const Token* argStartTok = tok->link()->previous()->link();
+			*funcStart = argStartTok->previous();
+			*argStart = argStartTok;
+			return true;
+		}
+	}
 
-    // regular function?
-    else if (Token::Match(tok, "%name% (") && !isReservedName(tok->str()) && tok->previous() &&
-             (tok->previous()->isName() || tok->strAt(-1) == ">" || tok->strAt(-1) == "&" || tok->strAt(-1) == "*" || // Either a return type in front of tok
-              tok->strAt(-1) == "::" || tok->strAt(-1) == "~" || // or a scope qualifier in front of tok
+	// regular function?
+	else if (Token::Match(tok, "%name% (") && !isReservedName(tok->str()) && tok->previous() &&
+		(tok->previous()->isName() || tok->strAt(-1) == ">" || tok->strAt(-1) == "&" || tok->strAt(-1) == "*" || // Either a return type in front of tok
+			tok->strAt(-1) == "::" || tok->strAt(-1) == "~" || // or a scope qualifier in front of tok
               outerScope->isClassOrStruct())) { // or a ctor/dtor
         const Token* tok1 = tok->previous();
 
@@ -2600,8 +2600,12 @@ void Function::addArguments(const SymbolDatabase *symbolDatabase, const Scope *s
 
             do {
                 if (tok->varId() != 0) {
-                    nameTok = tok;
-                    endTok = tok->previous();
+					//foo(xx, xx cannot be name
+					if (tok->previous() != start)
+					{
+						nameTok = tok;
+						endTok = tok->previous();
+					}
                 } else if (tok->str() == "[") {
                     // skip array dimension(s)
                     tok = tok->link();

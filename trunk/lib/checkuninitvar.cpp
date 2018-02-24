@@ -662,15 +662,11 @@ int CheckUninitVar::isVariableUsage(const Token *vartok, bool pointer, Alloc all
 #else
 		if (_tokenizer->isCPP())
 		{
-			if (Token::simpleMatch(vartok->previous(), ">>"))
+			//warning: both operator is treated as initializer
+			if (Token::Match(vartok->astParent(), ">>|<<"))
 			{
 				return false;
 			}
-			if (Token::simpleMatch(vartok->previous(), "<<"))
-			{
-				return true;
-			}
-
 		}
 #endif
         // is there something like: ; "*((&var ..expr.. ="  => the variable is assigned
@@ -694,6 +690,18 @@ int CheckUninitVar::isVariableUsage(const Token *vartok, bool pointer, Alloc all
 					&& alloc != NO_ALLOC
 					&& Token::simpleMatch(vartok->astParent(), "*")
 					&& !Token::simpleMatch(vartok->astParent()->astParent(), "*")
+					)
+				{
+					return false;
+				}
+				//memset(&*req,xxx,xxx)
+				if (Token::simpleMatch(vartok->astParent(), "*") 
+					&& Token::simpleMatch(vartok->astParent()->astParent(), "&")
+					&& !Token::simpleMatch(vartok->astParent()->astParent()->astParent(), "*")
+					&&
+						(!vartok->variable()
+							|| !Token::Match(vartok->variable()->typeEndToken(), "iterator|const_iterator|reverse_iterator|move_iterator")
+						)
 					)
 				{
 					return false;
@@ -742,6 +750,12 @@ int CheckUninitVar::isVariableUsage(const Token *vartok, bool pointer, Alloc all
             return true;
     } else if (alloc != NO_ALLOC && Token::Match(vartok, "%var% [")) {
         const Token *parent = vartok->next()->astParent();
+		if (parent == nullptr 
+			&& Token::simpleMatch(vartok->next(), "[") 
+			&& Token::simpleMatch(vartok->next()->link(), "] ="))
+		{
+			return false;
+		}
         while (Token::Match(parent, "[|."))
             parent = parent->astParent();
         if (Token::simpleMatch(parent, "&") && !parent->astOperand2())
@@ -1102,7 +1116,8 @@ bool CheckUninitVar::isMemberVariableAssignment(const Token *tok, const std::str
 		}
 		return true;
 	}
-	else if (Token::simpleMatch(tok->astParent(), ">>"))
+	//warning: both operator is treated as initializing
+	else if (Token::simpleMatch(tok->astParent(), ">>|<<"))
 	{
 		return true;
 	}
@@ -1354,10 +1369,18 @@ const Token *CheckUninitVar::FindNextCase(const Token *tok) const
 {
 	int countScope = 0;
 REWIND_CASE:
-	while (tok && tok->str() != "case" && tok->str() != "default")
+	while (tok && tok->str() != "case" && tok->str() != "default" && tok->next())
 	{
 		tok = tok->next();
-		if (tok->str() == "{")
+		//skip inner switch
+		if (tok->str() == "switch")
+		{
+			if (Token::simpleMatch(tok->next(), "(") && Token::simpleMatch(tok->next()->link(), ") {"))
+			{
+				tok = tok->next()->link()->next()->link();				
+			}
+		}
+		else if (tok->str() == "{")
 		{
 			++countScope;
 		}

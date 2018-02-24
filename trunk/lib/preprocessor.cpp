@@ -34,7 +34,7 @@
 #include <cctype>
 #include <vector>
 #include <set>
-#include <stack>
+
 #include "tscancode.h"
 #include "globaltokenizer.h"
 #include "globalmacros.h"
@@ -1070,6 +1070,8 @@ void Preprocessor::preprocessWhitespaces(std::string &processedFile)
     processedFile = removeSpaceNearNL(processedFile);
 }
 
+
+
 void Preprocessor::preprocess(std::istream &srcCodeStream, std::string &processedFile, std::list<std::string> &resultConfigurations, const std::string &filename, const std::list<std::string> &includePaths)
 {
     std::string forcedIncludes;
@@ -1873,14 +1875,6 @@ bool Preprocessor::match_cfg_def(std::map<std::string, std::string> cfg, std::st
     return false;
 }
 
-struct SPackInfo
-{
-	int Line;
-	std::string Code;
-	std::string FileName;
-	SPackInfo(int line, const std::string& code, const std::string& filename)
-		: Line(line), Code(code), FileName(filename) {}
-};
 
 std::string Preprocessor::getcode(const std::string &filedata, const std::string &cfg, const std::string &filename)
 {
@@ -1895,6 +1889,7 @@ std::string Preprocessor::getcode(const std::string &filedata, const std::string
 
 
 	std::stack<SPackInfo> packStack;
+	packStack.push(SPackInfo::Default);
 	if (!bAnalyze &&
 		_settings.IsCheckIdOpened(ErrorType::ToString(ErrorType::UserCustom).c_str(), "pragmaPackNotMatch"))
 		bPackMatch = true;
@@ -2159,41 +2154,13 @@ std::string Preprocessor::getcode(const std::string &filedata, const std::string
 			{
 				if (line.size() >= 12 && line.compare(0, 12, "#pragma pack") == 0)
 				{
-					std::string sPack = line.substr(12);
-					// remove spaces
-					std::size_t pos = sPack.find(' ');
-					while (pos != std::string::npos)
+					SPackInfo temp(lineno, line, filenames.top());
+					if (!parsePragmaPack(line, packStack, temp))
 					{
-						sPack.erase(pos, 1);
-						pos = sPack.find(' ');
-					}
-
-					if (sPack.compare(0, 5, "(push") == 0)
-					{
-						if (sPack[5] != ')')
-						{
-							packStack.push(SPackInfo(lineno, line, filenames.top()));
-						}
-					}
-					else if (sPack.compare(0, 5, "(pop)") == 0)
-					{
-						if (!packStack.empty())
-						{
-							packStack.pop();
-						}
-					}
-					else if (sPack.compare(0, 2, "()") == 0)
-					{
-						if (!packStack.empty())
-						{
-							packStack.pop();
-						}
-					}
-					else
-					{
-						packStack.push(SPackInfo(lineno, line, filenames.top()));
+						bPackMatch = false;
 					}
 				}
+					
 			}
 			
 			line = "";
@@ -2204,17 +2171,47 @@ std::string Preprocessor::getcode(const std::string &filedata, const std::string
 
     }
 
-	if (!packStack.empty())
+	if (bPackMatch && !packStack.empty())
 	{
-		// report error
-		const SPackInfo& pi = packStack.top();
-		ErrorLogger::ErrorMessage::FileLocation fl(pi.FileName, pi.Line);
-		std::list<ErrorLogger::ErrorMessage::FileLocation> callstack;
-		callstack.push_back(fl);
-		std::stringstream ss;
-		ss << "pack statement not match.";
-		ErrorLogger::ErrorMessage errMsg(callstack, Severity::warning, ss.str(), ErrorType::UserCustom, "pragmaPackNotMatch", false);
-		_errorLogger->reportErr(errMsg);
+		
+			// report error
+			const SPackInfo& pi = packStack.top();
+		
+			if (packStack.size() >= 2)
+			{
+				
+				if (Path::isHeader(pi.Pos.FileName))
+				{
+					ErrorLogger::ErrorMessage::FileLocation fl(pi.Pos.FileName, pi.Pos.Line);
+
+					std::list<ErrorLogger::ErrorMessage::FileLocation> callstack;
+					callstack.push_back(fl);
+
+					std::stringstream ss;
+					ss << "pack statement [" << pi.Pos.Code << "] without corresponding pop statement, e.g. add [#pragma pack(pop)] at the end of header, which may cause memory or performance issues.";
+					ErrorLogger::ErrorMessage errMsg(callstack, Severity::warning, ss.str(), ErrorType::UserCustom, "pragmaPackNotMatch", false);
+					_errorLogger->reportErr(errMsg);
+				}
+				
+			}
+			else if (pi.PackSize != "0" && pi.PackSize != "")
+			{
+				if (Path::isHeader(pi.PackPos.FileName))
+				{
+					ErrorLogger::ErrorMessage::FileLocation fl(pi.PackPos.FileName, pi.PackPos.Line);
+
+					std::list<ErrorLogger::ErrorMessage::FileLocation> callstack;
+					callstack.push_back(fl);
+
+					std::stringstream ss;
+					ss << "pack statement [" << pi.PackPos.Code << "] is not reset to default pack size, e.g. add [#pragma pack()] at the end of header, which may cause memory or performance issues.";
+					ErrorLogger::ErrorMessage errMsg(callstack, Severity::warning, ss.str(), ErrorType::UserCustom, "pragmaPackNotMatch", false);
+					_errorLogger->reportErr(errMsg);
+				}
+			}
+		
+
+		
 	}
 
 	if (!validateCfg(ret.str(), cfg)) {
@@ -2223,6 +2220,8 @@ std::string Preprocessor::getcode(const std::string &filedata, const std::string
 
     return expandMacros_global(ret.str(), filename, cfg, _errorLogger);
 }
+
+
 
 void Preprocessor::error(const std::string &filename, unsigned int linenr, const std::string &msg)
 {
@@ -2279,11 +2278,7 @@ static bool openHeader(std::string &filename, const std::list<std::string> &incl
 {
 	std::string headerPath = filePath + filename;
 	headerPath = Path::getAbsoluteFilePath(headerPath);
-	//sepecial case,  ../xx/../xx../xx + ../xx results in an empty path
-	if (headerPath.empty())
-	{
-		return false;
-	}
+	
 	CCodeFile* pCodeFile = dynamic_cast<CCodeFile*>(CGlobalMacros::GetFileTable()->FindFile(headerPath));
 	if (pCodeFile)
 	{
@@ -2304,11 +2299,11 @@ static bool openHeader(std::string &filename, const std::list<std::string> &incl
 		pCodeFile->AddExpandCount();
 	}
 
-    fin.open((filePath + filename).c_str());
-    if (fin.is_open()) {
-        filename = filePath + filename;
-        return true;
-    }
+	fin.open((filePath + filename).c_str());
+	if (fin.is_open()) {
+		filename = filePath + filename;
+		return true;
+	}
 
     std::list<std::string> includePaths2(includePaths);
     includePaths2.push_front("");
@@ -2328,6 +2323,26 @@ static bool openHeader(std::string &filename, const std::list<std::string> &incl
 
 std::string Preprocessor::handleIncludes(const std::string &code, const std::string &filePath, const std::list<std::string> &includePaths, std::map<std::string,std::string> &defs, std::set<std::string> &pragmaOnce, std::list<std::string> includes)
 {
+
+	// performance issues for UE4
+	if (_settings._large_includes > 0)
+	{
+		int count = 0;
+		size_t offset = 0;
+		offset = code.find("#include", offset);
+		while (offset != std::string::npos)
+		{
+			++offset;
+			++count;
+			offset = code.find("#include", offset);
+		}
+
+		if (count > _settings._large_includes)
+		{
+			return "";
+		}
+	}
+
 	CCodeFile* pCodeFile = dynamic_cast<CCodeFile*>(CGlobalMacros::GetFileTable()->FindFile(filePath));
 	TscanCode* tscanCode = dynamic_cast<TscanCode*>(_errorLogger);
 	std::set<CCodeFile*>& largeHeaderSet = tscanCode->GetLargeHeaderSet();
@@ -3427,3 +3442,135 @@ std::string Preprocessor::removeIfDefined(const std::string &str) const
 
 	return ret.str();
 }
+
+bool Preprocessor::parsePragmaPack(const std::string& pack, std::stack<SPackInfo>& packStack, SPackInfo& temp)
+{
+	if (packStack.empty())
+	{
+		return false;
+	}
+
+	std::string sPack = pack.substr(12);
+	// remove spaces
+	std::size_t pos = sPack.find(' ');
+	while (pos != std::string::npos)
+	{
+		sPack.erase(pos, 1);
+		pos = sPack.find(' ');
+	}
+
+	if (sPack[0] != '(' || *sPack.rbegin() != ')') 
+	{
+		return false;
+	}
+
+	std::vector<std::string> packItems;
+	std::size_t index = 1;
+	std::size_t iEnd = sPack.size() - 1;
+	std::size_t start = index;
+	while (index < iEnd)
+	{
+		if (sPack[index] == ',')
+		{
+			packItems.push_back(sPack.substr(start, index - start));
+			start = index + 1;
+		}
+		++index;
+	}
+	if (index > start)
+	{
+		packItems.push_back(sPack.substr(start, index - start));
+	}
+
+
+	if (packItems.size() >= 1)
+	{
+		if (packItems.size() > 3)
+		{
+			return false;
+		}
+
+		std::string& item = packItems[0];
+		if (item == "show")
+		{
+			// do nothing
+			return true;
+		}
+		else if (item == "push")
+		{
+			if (packItems.size() == 2)
+			{
+				temp.PackSize = packItems[1];
+			}
+			else if (packItems.size() == 3)
+			{
+				temp.Identifier = packItems[1];
+				temp.PackSize = packItems[2];
+			}
+			else if (packItems.size() == 1)
+			{
+				temp.PackSize = packStack.top().PackSize;
+			}
+			packStack.push(temp);
+		}
+		else if (item == "pop")
+		{
+			
+			if (packItems.size() == 2)
+			{
+				packStack.pop();
+				if (packStack.empty())
+				{
+					packStack.push(SPackInfo::Default);
+				}
+				packStack.top().PackSize = packItems[1];
+			}
+			else if (packItems.size() == 3)
+			{
+				while (!packStack.empty() && packStack.top().Identifier != packItems[1])
+				{
+					packStack.pop();
+				}
+
+				if (packStack.empty())
+				{
+					return false;
+				}
+				else
+				{
+					packStack.pop();
+					if (packStack.empty())
+					{
+						packStack.push(SPackInfo::Default);
+					}
+					packStack.top().PackSize = packItems[2];
+				}
+
+			}
+			else if (packItems.size() == 1)
+			{
+				packStack.pop();
+			}
+		}
+		else if (item == "0" || 
+			item == "1" ||
+			item == "2" ||
+			item == "4" ||
+			item == "8" ||
+			item == "16")
+		{
+			packStack.top().PackSize = item;
+			packStack.top().PackPos = temp.Pos;
+			
+		}
+	}
+	else
+	{
+		packStack.top().PackSize = "0";
+	}
+
+
+	return true;
+}
+
+SPackInfo SPackInfo::Default(0, "", "");

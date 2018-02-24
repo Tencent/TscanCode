@@ -640,6 +640,10 @@ bool PreprocessorMacro::code(const std::vector<std::string> &params2, std::map<s
 									optcomma = false;
 									str += givenparams[j];
 								}
+								if (stringify)
+								{
+									str = "\"" + str + "\"";
+								}
 							}
 							else if (i >= givenparams.size()) {
 								// Macro had more parameters than caller used.

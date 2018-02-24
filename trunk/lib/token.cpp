@@ -1405,17 +1405,24 @@ const Scope* Token::GetFuncScope() const
 {
 	const Scope *currScope = _scope;
 
-	if (currScope->functionOf)
+	if (currScope->isFunction())
 	{
-		return currScope->functionOf;
+		return currScope;
 	}
 	else
 	{
-		while (currScope && !currScope->isFunction())
+		if (currScope->functionOf)
 		{
-			currScope = currScope->nestedIn;
+			return currScope->functionOf;
 		}
-		return currScope;
+		else
+		{
+			while (currScope && !currScope->isFunction())
+			{
+				currScope = currScope->nestedIn;
+			}
+			return currScope;
+		}
 	}
 }
 

@@ -216,7 +216,6 @@ struct FuncRetInfo
 	static FuncRetInfo UnknownInfo;
 };
 
-
 struct FuncRetStatus
 {
 	struct ErrorMsg
@@ -242,34 +241,103 @@ struct FuncRetStatus
 	std::list<ErrorMsg> UsedList;
 };
 
+struct ArrayIndexInfo
+{
+	std::string BoundStr;
+	std::string BoundType;
+	unsigned BoundLine;
+	std::string ArrayStr;
+	std::string ArrayType;
+	unsigned ArrayLine;
+};
+
+
+struct ArrayIndexRetInfo
+{
+	
+};
+
+struct StatisticThreadData
+{
+	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > > FuncRetNullInfo;
+
+	std::map<std::string, std::list<ArrayIndexInfo> > OutOfBoundsInfo;
+
+	void Clear()
+	{
+		FuncRetNullInfo.clear();
+	}
+
+	void Dump(const std::string& file_suffix) const;
+	void DumpFuncRetNull(const std::string& file_suffix) const;
+	void DumpOutOfBounds(const std::string& file_suffix) const;
+
+};
+
+struct StatisticMergedData
+{
+	struct Pos
+	{
+		std::string FilePath;
+		unsigned BoundaryLine;
+		unsigned ArrayLine;
+	};
+
+	std::map<const gt::CFunction*, FuncRetStatus> FuncRetNullInfo;
+
+	std::map<std::string, std::map<std::string, std::vector<Pos> > > OutOfBoundsInfo;
+	
+	void Dump();
+
+	void DumpFuncRetNull();
+
+	void DumpOutOfBounds();
+
+};
+
+
+
 class TSCANCODELIB CGlobalStatisticData
 {
 public:
 	static CGlobalStatisticData* Instance();
 	static CGlobalStatisticData* s_instance;
 
-	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& GetThreadData(void* pKey);
+	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& GetFuncRetNullThreadData(void* pKey);
+	std::map<const gt::CFunction*, FuncRetStatus>& GetFuncRetNullMergedData();
 
-	std::map<const gt::CFunction*, FuncRetStatus>& GetStatisticData();
+	std::map<std::string, std::list<ArrayIndexInfo> >& GetOutOfBoundsThreadData(void* pKey);
 	
 	void Merge(bool bDump);
 
+	void MergeInternal(StatisticThreadData& tempData, bool bDump);
+
+	void HandleData(StatisticThreadData& tempData, bool bDump);
+
+	void HandleFuncRetNull(StatisticThreadData &tempData);
+	void HandleOutOfBound(StatisticThreadData &tempData);
+
 	void ReportErrors(Settings& setting, std::set<std::string>& errorList);
 
+	void ReportFuncRetNullErrors(Settings& setting, std::set<std::string>& errorList);
+	void ReportOutOfBoundsErrors(Settings& setting, std::set<std::string>& errorList);
+
 private:
-	void Dump();
-	void DumpThreadData(std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& data, const std::string& file_suffix);
+	void DumpMergedData();
+	void DumpThreadData(const StatisticThreadData& data, const std::string& file_suffix);
 
 private:
 
 	CGlobalStatisticData();
 	~CGlobalStatisticData();
 
-	std::map<void*, std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > > > m_threadData;
-	std::map<const gt::CFunction*, FuncRetStatus> m_statisticData;
+	std::map<void*, StatisticThreadData > m_threadData;
+	StatisticMergedData m_mergedData;
 
 	TSC_LOCK m_lock;
 };
+
+
 
 #ifdef USE_GLOG
 class TSCANCODELIB CLog

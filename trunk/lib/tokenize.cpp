@@ -2766,6 +2766,32 @@ void Tokenizer::fillTypeSizes()
 	_typeSize["*"] = _settings->sizeof_pointer;
 }
 
+
+static bool IsFuncCall(const Token *t)
+{
+	if (!t)
+	{
+		return false;
+	}
+	if (t->isName())
+	{
+		return true;
+	}
+	if (t->str() == ">")
+	{
+		if (t->link())
+		{
+			return true;
+		}
+		//*> (abc);
+		if (Token::Match(t->previous(), "*|&|&&|%type%"))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void Tokenizer::combineOperators()
 {
 	const bool cpp = isCPP();
@@ -2790,7 +2816,11 @@ void Tokenizer::combineOperators()
 			else if (c1 == '-' && c2 == '>') {
 				// If the preceding sequence is "( & %name% )", replace it by "%name%"
 				Token *t = tok->tokAt(-4);
-				if (t && Token::Match(t, "( & %name% )")) {
+				if (t 
+					&& Token::Match(t, "( & %name% )") 
+					&& !IsFuncCall(t->previous())
+					)
+				{
 					t->deleteThis();
 					t->deleteThis();
 					t->deleteNext();
@@ -3665,7 +3695,9 @@ void Tokenizer::setVarId()
 		}
 		else if (tok->str() == "{") {
 			// parse anonymous unions as part of the current scope
-			if (!(initlist && Token::Match(tok->previous(), "%name%|>|>>") && Token::Match(tok->link(), "} ,|{"))) {
+			if (!(initlist && Token::Match(tok->previous(), "%name%|>|>>") && Token::Match(tok->link(), "} ,|{"))
+				&& !Token::Match(tok->previous(), "union|struct|enum")) //anonymous unions
+			{
 				bool isExecutable;
 				if (tok->strAt(-1) == ")" || Token::Match(tok->tokAt(-2), ") %type%") ||
 					(initlist && tok->strAt(-1) == "}")) {
@@ -3682,7 +3714,7 @@ void Tokenizer::setVarId()
 		}
 		else if (tok->str() == "}") {
 			// parse anonymous unions/structs as part of the current scope
-			if (!(Token::simpleMatch(tok, "} ;") && tok->link() && Token::Match(tok->link()->previous(), "union|struct {")) &&
+			if (!(Token::simpleMatch(tok, "} ;") && tok->link() && Token::Match(tok->link()->previous(), "union|struct|enum {")) &&
 				!(initlist && Token::Match(tok, "} ,|{") && Token::Match(tok->link()->previous(), "%name%|>|>> {"))) {
 				// Set variable ids in class declaration..
 				if (!initlist && !isC() && !scopeStack.top().isExecutable && tok->link()) {
@@ -4039,8 +4071,15 @@ void Tokenizer::createLinks2()
 		}
 
 		else if (Token::Match(token, "%oror%|&&|;"))
+		{
+			if (Token::Match(token, "&& ,|>"))
+			{
+				// right-value reference
+				continue;
+			}
 			while (!type.empty() && type.top()->str() == "<")
 				type.pop();
+		}
 		else if (token->str() == "<" && token->previous() && token->previous()->isName() && !token->previous()->varId())
 			type.push(token);
 		else if (token->str() == ">") {
@@ -4318,7 +4357,7 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 	concatenateDoubleSharp();
 
 	createLinks();
-
+	
 	// if (x) MACRO() ..
 	for (const Token *tok = list.front(); tok; tok = tok->next()) {
 		if (Token::simpleMatch(tok, "if (")) {
@@ -4342,7 +4381,6 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 
 	// replace 'NULL' and similar '0'-defined macros with '0'
 	simplifyNull();
-
 #ifndef TSCANCODE2
 	// replace 'sin(0)' to '0' and other similar math expressions
 	simplifyMathExpressions();
@@ -4350,7 +4388,7 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 
 	// combine "- %num%"
 	concatenateNegativeNumberAndAnyPositive();
-
+	
 #ifndef TSCANCODE2
 	// simplify simple calculations
 	for (Token *tok = list.front() ? list.front()->next() : nullptr; tok; tok = tok->next()) {
@@ -4365,7 +4403,6 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 
 	// simplify weird but legal code: "[;{}] ( { code; } ) ;"->"[;{}] code;"
 	simplifyRoundCurlyParentheses();
-
 	// check for simple syntax errors..
 	for (const Token *tok = list.front(); tok; tok = tok->next()) {
 		if (Token::simpleMatch(tok, "> struct {") &&
@@ -4373,13 +4410,12 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 			syntaxError(tok);
 		}
 	}
-
 	if (!simplifyAddBraces())
 		return false;
-
+	
 	// Combine tokens..
 	combineOperators();
-
+	
 	sizeofAddParentheses();
 
 	// Simplify: 0[foo] -> *(foo)
@@ -4396,7 +4432,6 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 
 	// Remove "volatile", "inline", "register", and "restrict"
 	simplifyKeyword();
-
 	// Convert K&R function declarations to modern C
 	simplifyVarDecl(true);
 	simplifyFunctionParameters();
@@ -4409,7 +4444,7 @@ bool Tokenizer::simplifyTokenList1(const char FileName[])
 
 	// simplify '[;{}] * & ( %any% ) =' to '%any% ='
 	simplifyMulAndParens();
-
+	
 	// ";a+=b;" => ";a=a+b;"
 	simplifyCompoundAssignment();
 

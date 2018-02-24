@@ -441,7 +441,11 @@ void CheckCondition::oppositeInnerCondition()
                 ifToken = tok;
                 break;
             }
-			
+			if (Token::Match(tok, "%name% (")
+				&& (tok->str().compare(0, 4, "Init") == 0 || tok->str().compare(0, 4, "init") == 0))
+			{
+				break;
+			}
 			if (Token::Match(tok, "for ("))
 				break;
 			
@@ -470,7 +474,7 @@ void CheckCondition::oppositeInnerCondition()
                         break;
                 }
                 if (Token::Match(tok->previous(), "[(,] %name% [,)]") && isParameterChanged(tok))
-                    break;		
+                    break;
             }
         }
         if (!ifToken)
@@ -502,7 +506,10 @@ void CheckCondition::oppositeInnerCondition()
 				}
 
 			}
-			if (bError)
+			if (bError
+				&& !(cond2->isTemplateExpand())
+				&& !(cond2->astOperand2() && cond2->astOperand2()->isTemplateExpand()) 
+				&& !(cond2->astOperand1() && cond2->astOperand1()->isTemplateExpand()))
 			{
 				sameInnerConditionError(scope->classDef, cond2);
 			}

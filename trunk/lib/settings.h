@@ -67,6 +67,7 @@ public:
 
 	int _big_file_token_size;
 	int _big_header_file_size;
+	int _large_includes;
 
     /** @brief Is --debug given? */
     bool debug;
@@ -376,7 +377,11 @@ public:
 	/************************************************************************/
 	std::map<std::string, std::map<std::string, bool> > _openedChecks;
 
+	std::map<std::string, std::string> _checkSeverity;
+
 	bool IsCheckIdOpened(const char* szId, const char* szSubid) const;
+
+	std::string GetCheckSeverity(const std::string&  szSubid) const;
 	/**
 	* load project custom config
 	* try open directly and then abs path

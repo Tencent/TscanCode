@@ -26,6 +26,7 @@
 #include <string>
 #include <list>
 #include <set>
+#include <stack>
 #include "config.h"
 #include "config.h"
 #include "filedepend.h"
@@ -39,6 +40,35 @@ class ErrorLogger;
 class Settings;
 /// @addtogroup Core
 /// @{
+
+struct SPackPos
+{
+	int Line;
+	std::string Code;
+	std::string FileName;
+
+	SPackPos() : Line(0)
+	{
+
+	}
+};
+
+struct SPackInfo
+{
+
+	std::string PackSize;
+	std::string Identifier;
+	SPackPos Pos;
+	SPackPos PackPos;
+	SPackInfo(int line, const std::string& code, const std::string& filename)
+	{
+		Pos.Line = line;
+		Pos.Code = code;
+		Pos.FileName = filename;
+	}
+
+	static SPackInfo Default;
+};
 
 /**
  * @brief The tscancode preprocessor.
@@ -283,6 +313,8 @@ private:
     std::string file0;
 
 	std::string removeIfDefined(const std::string &str) const;
+
+	bool parsePragmaPack(const std::string& pack, std::stack<SPackInfo>& packStack, SPackInfo& temp);
 };
 
 /// @}

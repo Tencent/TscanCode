@@ -75,6 +75,7 @@ public:
 		checkBufferOverrun.checkStructVariable();
 
 		checkBufferOverrun.checkSelfAddedSubscript();
+		checkBufferOverrun.CheckMemcpyString();
 #ifdef TSCANCODE_RULE_OPEN
         //checkBufferOverrun.bufferOverrun();
         //checkBufferOverrun.bufferOverrun2();
@@ -123,6 +124,8 @@ public:
 
 	
 	void  checkSelfAddedSubscript();
+
+	void CheckMemcpyString();
 
 	void  SelfAddedSubscriptError(const Token *tok, const std::string &indexName);
 
@@ -264,7 +267,6 @@ private:
     void argumentSizeError(const Token *tok, const std::string &functionName, const std::string &varname);
 
     void valueFlowCheckArrayIndex(const Token * const tok, const ArrayInfo &arrayInfo);
-
 public:
     void getErrorMessages(ErrorLogger *errorLogger, const Settings *settings) const {
         CheckBufferOverrun c(0, settings, errorLogger);

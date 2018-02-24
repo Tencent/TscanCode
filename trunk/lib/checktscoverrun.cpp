@@ -155,6 +155,8 @@ void CheckTSCOverrun::checkIndexBeforeCheck()
 
 extern bool iscast(const Token *tok);
 
+
+
 void CheckTSCOverrun::checkIndexCheckDefect()
 {
 	const std::vector<const Scope *>& funcs = _tokenizer->getSymbolDatabase()->functionScopes;
@@ -239,12 +241,17 @@ void CheckTSCOverrun::checkIndexCheckDefect()
 				{
 					++layer1;
 				}
-				else if (elIndex.Expr.VarId == tok3->varId())
+				else if (CheckIndexTheSame(elIndex, tok3))
 				{
 					if (Token::Match(tok3->next(), " %op% %any%"))
 					{
 						const Token* tokOp = tok3->next();
 						const Token* tokNum = tok3->tokAt(2);
+
+						if (Token::Match(tokOp, "++|--"))
+						{
+							break;
+						}
 
 						if (tokOp->astOperand2() != tokNum)
 						{
@@ -370,7 +377,7 @@ void CheckTSCOverrun::checkIndexCheckDefect()
 
 						if (bOK)
 						{
-							IndexCheckDefectError(elIndex, tokCond);
+							IndexCheckDefectError(elIndex, elArray, d1, tokCond);
 						}
 
 						break;
@@ -378,6 +385,34 @@ void CheckTSCOverrun::checkIndexCheckDefect()
 				}
 			}
 		}
+	}
+}
+
+bool CheckTSCOverrun::CheckIndexTheSame(SExprLocation elIndex, const Token* tok)
+{
+	if (tok->varId() != 0)
+	{
+		return elIndex.Expr.VarId == tok->varId();
+	}
+	else
+	{
+		const Token* tmp = elIndex.LastToken();
+		const Token* end = elIndex.Begin->previous();
+		while (tmp != end)
+		{
+			if (tmp->str() == tok->str())
+			{
+				tmp = tmp->previous();
+				tok = tok->previous();
+
+				if (tmp && tok)
+				{
+					continue;
+				}
+			}
+			return false;
+		}
+		return true;
 	}
 }
 
@@ -560,7 +595,7 @@ void CheckTSCOverrun::StrncatError(const Token* tokVar)
 	reportError(tokVar, Severity::error, ErrorType::BufferOverrun, "bufferAccessOutOfBounds", ss.str(), ErrorLogger::GenWebIdentity(tokVar->astString()));
 }
 
-void CheckTSCOverrun::IndexCheckDefectError(const SExprLocation& elIndex, const Token* tokCond)
+void CheckTSCOverrun::IndexCheckDefectError(const SExprLocation& elIndex, const SExprLocation& elArray, gt::CField::Dimension d, const Token* tokCond)
 {
 	if (m_reportedError)
 	{
@@ -568,7 +603,7 @@ void CheckTSCOverrun::IndexCheckDefectError(const SExprLocation& elIndex, const 
 	}
     
 	std::stringstream ss;
-	ss << "Index [" << elIndex.ToTypeString() << "] may out of bound, as there is a index-check defect at line " << tokCond->linenr() << ".";
+	ss << "Array " << elArray.Expr.ExprStr << "[" << d.Output() << "] is accessed at index [" << elIndex.ToTypeString() << "] may out of bound, as the index range check defect at line " << tokCond->linenr() << " may be wrong, mind the boundary value.";
 	reportError(elIndex.TokTop, Severity::error, ErrorType::BufferOverrun, "arrayIndexCheckDefect", ss.str(), ErrorLogger::GenWebIdentity(elIndex.ToTypeString()));
 }
 

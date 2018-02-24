@@ -97,7 +97,7 @@ public:
         // Checks
 		checkOther.checkMemsetZeroBytes();
 		checkOther.checkNegativeBitwiseShift();
-		checkOther.checkDanglingpointer(); //from TSC1.0
+		checkOther.CheckDanglingPtr();
 		
 #ifdef TSCANCODE_RULE_OPEN
         checkOther.clarifyCalculation();
@@ -449,8 +449,7 @@ private:
 
 	/** @brief %Guard wild pointer*/
 	//from TSC1.0
-	void checkDanglingpointer();
-
+	void CheckDanglingPtr();
 	void duplicateIfError(const Token *tok1, const Token *tok2);
 
 	void udivError(const Token *tok/*, bool inconclusive*/);

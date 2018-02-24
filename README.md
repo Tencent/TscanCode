@@ -1,6 +1,6 @@
 # **TscanCode** 
 
-![Release version](https://img.shields.io/badge/version-2.11.27-blue.svg)
+![Release version](https://img.shields.io/badge/version-2.14.24-blue.svg)
 
 ## A fast and accurate static analysis solution for C/C++, C#, Lua codes
 
@@ -16,9 +16,9 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 * TscanCode is `easy to use`, It doesn't require strict compiling enviroment and one single command can make it work; 
 * TscanCode is `extensible`, you can implement your own checks with TscanCode.
 
-## Highlights in v2.11.27 (2017-12-01)
-* Add new check `CS_UnityMessgeSpellWrong`, check typo errors of Unity message functions;
-* Add new check `lua_VarSpellWrongError` and `lua_KeywordSpellWrongError`, check typo errors of Lua variable and keyword;
+## Highlights in v2.14.24 (2018-02-24)
+* `Rule Package` was released on GUI, easier for rule customization;
+* GUI supports `marking false-positive errors` now.
 
 For other changes please refer to [change log](CHANGELOG.md).
 
@@ -33,7 +33,7 @@ There are multiple compilation choices:
 
 ### Visual Studio
 
-Use the tscancode.sln file. The file is configured for Visual Studio 2015, but the platform toolset can be changed easily to older or newer versions. The solution contains platform targets for both x86 and x64.
+Use the tsancode.sln file. The file is configured for Visual Studio 2015, but the platform toolset can be changed easily to older or newer versions. The solution contains platform targets for both x86 and x64.
 
 Select option `Release` to build release version.
 

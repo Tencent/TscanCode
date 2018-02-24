@@ -1500,7 +1500,33 @@ void CheckTSCSuspicious::checkboolFuncReturn()
 		{
 			for ( const Token* tok=classsbegin; tok && tok != (*i)->classEnd; tok=tok->next() )
 			{
-				if (Token::Match(tok,"return %num% ;"))
+				// inner class
+				if (Token::Match(tok, "class|struct"))
+				{
+					const Token* tok2 = Token::findmatch(tok, "{|;");
+					if (tok2)
+					{
+						if (tok2->link())
+						{
+							tok = tok2->link();
+							continue;
+						}
+					}
+				}
+				// lambda expression
+				else if (Token::Match(tok, "= [") && tok->tokAt(1)->link())
+				{
+					const Token* tok2 = Token::findmatch(tok, "{|;");
+					if (tok2)
+					{
+						if (tok2->link())
+						{
+							tok = tok2->link();
+							continue;
+						}
+					}
+				}
+				else if (Token::Match(tok,"return %num% ;"))
 				{
 					if (tok->strAt(1) != "0" && tok->strAt(1) != "1")
 					{

@@ -50,6 +50,8 @@
 #define TSC_MAX					max
 #define TSC_MIN					min
 
+#define PATH_SEP	'\\'
+
 #else
 
 #define TSC_THREAD				pthread_t
@@ -61,6 +63,8 @@
 
 #define TSC_MAX					std::max
 #define TSC_MIN					std::min
+
+#define PATH_SEP	'/'
 
 #endif
 

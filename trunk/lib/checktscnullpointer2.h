@@ -919,6 +919,7 @@ public:
 			CheckTSCNullPointer2 CheckTSCNullPointer2(tokenizer, settings, errorLogger);
 			// Checks
 			CheckTSCNullPointer2.TSCNullPointerCheck2();
+			CheckTSCNullPointer2.checkMissingDerefOperator();
     }
 
 public:
@@ -933,6 +934,10 @@ private:
 
 	// the main check method
 	void TSCNullPointerCheck2();
+
+	// check for missingDerefOperator
+	void checkMissingDerefOperator();
+	void reportMissingDerefOperatorError(const SExprLocation& elAssign, const SExprLocation& elCheckNull);
 
 	const Token* HandleOneToken(const Token * tok);
 
@@ -997,7 +1002,7 @@ private:
 	//    and that A *a(p->a) is not simplified to A *a = p->a;
 	//return true if handled 
 	const Token* HandleAssign(const Token *tok);
-	void HandleAssign(const Token *tok, const SExprLocation &, const CExprValue& curPre);
+	void HandleAssign(const Token * const tok, const SExprLocation &, const CExprValue& curPre);
 
 	bool CheckIsLoopIndexCall(const Token* tokFuncTop);
 

@@ -579,7 +579,7 @@ void CheckClass::initializeVarList(const Function &func, std::list<const Functio
         }
 
         // Before a new statement there is "[{};()=[]"
-        if (! Token::Match(ftok, "[{};()=[]"))
+        if (! Token::Match(ftok, "[{};()=[]") && !ftok->isConstOp())
             continue;
 
         if (Token::simpleMatch(ftok, "( !"))
