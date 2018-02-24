@@ -600,10 +600,13 @@ const gt::CScope* CGlobalTokenizer::FindGtScopeByStringType(const Scope* currSco
 
 	std::size_t flag = 0;
 
-	while (stringType[flag] == "const" || stringType[flag] == "struct")
+	while ( flag < stringType.size() && (stringType[flag] == "const" || stringType[flag] == "struct"))
 		++flag;
 
-	
+	if (flag >= stringType.size())
+	{
+		return nullptr;
+	}
 
 	if (stringType[flag] == "::")
 	{
@@ -1890,45 +1893,84 @@ CGlobalStatisticData* CGlobalStatisticData::s_instance;
 
 FuncRetInfo FuncRetInfo::UnknownInfo;
 
-std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& CGlobalStatisticData::GetThreadData(void* pKey)
+std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& CGlobalStatisticData::GetFuncRetNullThreadData(void* pKey)
 {
 	TSC_LOCK_ENTER(&m_lock);
-	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& data = m_threadData[pKey];
+	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& data = m_threadData[pKey].FuncRetNullInfo;
 	TSC_LOCK_LEAVE(&m_lock);
 	return data;
 }
 
-std::map<const gt::CFunction*, FuncRetStatus>& CGlobalStatisticData::GetStatisticData()
+std::map<const gt::CFunction*, FuncRetStatus>& CGlobalStatisticData::GetFuncRetNullMergedData()
 {
-	return m_statisticData;
+	return m_mergedData.FuncRetNullInfo;
+}
+
+std::map<std::string, std::list<ArrayIndexInfo> >& CGlobalStatisticData::GetOutOfBoundsThreadData(void* pKey)
+{
+	TSC_LOCK_ENTER(&m_lock);
+	std::map<std::string, std::list<ArrayIndexInfo> >& data = m_threadData[pKey].OutOfBoundsInfo;
+	TSC_LOCK_LEAVE(&m_lock);
+	return data;
 }
 
 void CGlobalStatisticData::Merge(bool bDump)
 {
-	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > > tempData;
+	StatisticThreadData tempData;
+	MergeInternal(tempData, bDump);
+	HandleData(tempData, bDump);
+}
 
-	for (std::map<void*, std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > > >::iterator
+
+
+void CGlobalStatisticData::MergeInternal(StatisticThreadData& tempData, bool bDump)
+{
+	for (std::map<void*, StatisticThreadData >::iterator
 		I = m_threadData.begin(), E = m_threadData.end(); I != E; ++I)
 	{
-		for (std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >::iterator 
-			I2 = I->second.begin(), E2 = I->second.end(); I2 != E2; ++I2)
+		for (std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >::iterator
+			I2 = I->second.FuncRetNullInfo.begin(), E2 = I->second.FuncRetNullInfo.end(); I2 != E2; ++I2)
 		{
 			const std::string& fileName = I2->first;
 			std::map<const gt::CFunction*, std::list<FuncRetInfo> >& info = I2->second;
 
-			if (tempData.count(fileName) > 0)
+			if (info.empty())
 			{
 				continue;
 			}
 
-			tempData[fileName] = info;
+			if (tempData.FuncRetNullInfo.count(fileName) > 0)
+			{
+				continue;
+			}
+
+			tempData.FuncRetNullInfo[fileName] = info;
+		}
+
+		for (std::map<std::string, std::list<ArrayIndexInfo> >::iterator
+			I2 = I->second.OutOfBoundsInfo.begin(), E2 = I->second.OutOfBoundsInfo.end(); I2 != E2; ++I2)
+		{
+			const std::string& fileName = I2->first;
+			std::list<ArrayIndexInfo>& info = I2->second;
+
+			if (info.empty())
+			{
+				continue;
+			}
+
+			if (tempData.OutOfBoundsInfo.count(fileName) > 0)
+			{
+				continue;
+			}
+
+			tempData.OutOfBoundsInfo[fileName] = info;
 		}
 	}
 
 	if (bDump)
 	{
 		int index = 0;
-		for (std::map<void*, std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > > >::iterator
+		for (std::map<void*, StatisticThreadData >::iterator
 			I = m_threadData.begin(), E = m_threadData.end(); I != E; ++I)
 		{
 			std::stringstream ss;
@@ -1940,12 +1982,26 @@ void CGlobalStatisticData::Merge(bool bDump)
 		DumpThreadData(tempData, "merged");
 	}
 
-
-
 	m_threadData.clear();
+}
 
+void CGlobalStatisticData::HandleData(StatisticThreadData& tempData, bool bDump)
+{
+	HandleFuncRetNull(tempData);
+	HandleOutOfBound(tempData);
+
+	tempData.Clear();
+
+	if (bDump)
+	{
+		DumpMergedData();
+	}
+}
+
+void CGlobalStatisticData::HandleFuncRetNull(StatisticThreadData &tempData)
+{
 	for (std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >::iterator
-		I2 = tempData.begin(), E2 = tempData.end(); I2 != E2; ++I2)
+		I2 = tempData.FuncRetNullInfo.begin(), E2 = tempData.FuncRetNullInfo.end(); I2 != E2; ++I2)
 	{
 		const std::string& fileName = I2->first;
 		std::map<const gt::CFunction*, std::list<FuncRetInfo> >& info = I2->second;
@@ -1961,86 +2017,65 @@ void CGlobalStatisticData::Merge(bool bDump)
 
 				if (ret.Op == FuncRetInfo::Use)
 				{
-					if (m_statisticData[gtFunc].UsedCount < 5)
+					if (m_mergedData.FuncRetNullInfo[gtFunc].UsedCount < 5)
 					{
-						m_statisticData[gtFunc].UsedList.push_back(FuncRetStatus::ErrorMsg(fileName, ret.LineNo, ret.VarName));
+						m_mergedData.FuncRetNullInfo[gtFunc].UsedList.push_back(FuncRetStatus::ErrorMsg(fileName, ret.LineNo, ret.VarName));
 					}
-					++m_statisticData[gtFunc].UsedCount;
+					++m_mergedData.FuncRetNullInfo[gtFunc].UsedCount;
 
 				}
 				else if (ret.Op == FuncRetInfo::CheckNull)
 				{
-					++m_statisticData[gtFunc].CheckNullCount;
+					++m_mergedData.FuncRetNullInfo[gtFunc].CheckNullCount;
 				}
 			}
 		}
 	}
-
-	tempData.clear();
-
-	if (bDump)
-	{
-		Dump();
-	}
 }
 
-void CGlobalStatisticData::Dump()
+void CGlobalStatisticData::HandleOutOfBound(StatisticThreadData &tempData)
 {
-	std::ofstream ofs;
-	std::string sPath = CFileDependTable::GetProgramDirectory();
-	sPath += "log/statistic.log";
-	CFileDependTable::CreateLogDirectory();
-	ofs.open(Path::toNativeSeparators(sPath).c_str(), std::ios_base::trunc);
-
-	for (std::map<const gt::CFunction*, FuncRetStatus>::const_iterator I = m_statisticData.begin(), E = m_statisticData.end(); I != E; ++I)
+	for (std::map<std::string, std::list<ArrayIndexInfo> >::iterator
+		I2 = tempData.OutOfBoundsInfo.begin(), E2 = tempData.OutOfBoundsInfo.end(); I2 != E2; ++I2)
 	{
-		ofs << "[" << I->first->GetFuncStr() << "] CheckNull[" << I->second.CheckNullCount << "] Use[" << I->second.UsedCount << "]" << std::endl;
-	}
+		const std::string& fileName = I2->first;
+		std::list<ArrayIndexInfo>& info = I2->second;
 
-	ofs.close();
-
-}
-
-void CGlobalStatisticData::DumpThreadData(std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& data, const std::string& file_suffix)
-{
-	
-	std::ofstream ofs;
-	std::string sPath = CFileDependTable::GetProgramDirectory();
-	sPath += "log/statistic_" + file_suffix + ".log";
-	CFileDependTable::CreateLogDirectory();
-	ofs.open(Path::toNativeSeparators(sPath).c_str(), std::ios_base::trunc);
-
-	for (std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >::const_iterator I = data.begin(), E = data.end(); I != E; ++I)
-	{
-		ofs << I->first << std::endl;
-		for (std::map<const gt::CFunction*, std::list<FuncRetInfo> >::const_iterator I2 = I->second.begin(), E2 = I->second.end(); I2 != E2; ++I2)
+		for (std::list<ArrayIndexInfo>::iterator I3 = info.begin(), E3 = info.end(); I3 != E3; ++I3)
 		{
-			ofs << "\t[" << I2->first->GetFuncStr() << "]" << std::endl;
-			for (std::list<FuncRetInfo>::const_iterator I3 = I2->second.begin(), E3 = I2->second.end(); I3 != E3; ++I3)
-			{
-				std::string sOp;
-				if (I3->Op == FuncRetInfo::CheckNull)
-				{
-					sOp = "CheckNull";
-				}
-				else if (I3->Op == FuncRetInfo::Use)
-				{
-					sOp = "Use";
-				}
-				ofs << "\t\t[" << sOp << ", " << I3->LineNo << ", " << I3->VarName << "]" << std::endl;
-			}
+			ArrayIndexInfo& aii = *I3;
+
+			StatisticMergedData::Pos pos = { fileName, aii.BoundLine, aii.ArrayLine };
+			
+			m_mergedData.OutOfBoundsInfo[aii.ArrayStr][aii.BoundStr].push_back(pos);
 		}
 	}
+}
+
+void CGlobalStatisticData::DumpMergedData()
+{
+	m_mergedData.Dump();
+}
+
+void CGlobalStatisticData::DumpThreadData(const StatisticThreadData& data, const std::string& file_suffix)
+{
+	data.Dump(file_suffix);
 }
 
 void CGlobalStatisticData::ReportErrors(Settings& setting, std::set<std::string>& errorList)
 {
-	for(std::map<const gt::CFunction*, FuncRetStatus>::const_iterator I = m_statisticData.begin(), E = m_statisticData.end(); I != E; ++I)
+	ReportFuncRetNullErrors(setting, errorList);
+	ReportOutOfBoundsErrors(setting, errorList);
+}
+
+void CGlobalStatisticData::ReportFuncRetNullErrors(Settings& setting, std::set<std::string>& errorList)
+{
+	for (std::map<const gt::CFunction*, FuncRetStatus>::const_iterator I = m_mergedData.FuncRetNullInfo.begin(), E = m_mergedData.FuncRetNullInfo.end(); I != E; ++I)
 	{
 		const std::string& funcName = I->first->GetName();
 		const FuncRetStatus& status = I->second;
-		
-		if (status.UsedCount <=3 && status.CheckNullCount >= status.UsedCount * 5)
+
+		if (status.UsedCount <= 3 && status.CheckNullCount >= status.UsedCount * 5)
 		{
 			for (std::list<FuncRetStatus::ErrorMsg>::const_iterator I2 = status.UsedList.begin(), E2 = status.UsedList.end(); I2 != E2; ++I2)
 			{
@@ -2052,7 +2087,7 @@ void CGlobalStatisticData::ReportErrors(Settings& setting, std::set<std::string>
 				std::list<ErrorLogger::ErrorMessage::FileLocation> locList;
 				locList.push_back(loc);
 				ErrorLogger::ErrorMessage msg(locList, Severity::error, ss.str().c_str(), ErrorType::NullPointer, "funcRetNullStatistic", false);
-				
+
 				std::string id = funcName + "|" + I2->UsedVarName;
 				msg.SetWebIdentity(id);
 				msg.SetFuncInfo(I->first->GetFuncStr());
@@ -2079,6 +2114,133 @@ void CGlobalStatisticData::ReportErrors(Settings& setting, std::set<std::string>
 	}
 }
 
+bool AllUpperCase(const std::string& str)
+{
+	for (int i=0; i<str.length(); ++i)
+	{
+		char c = str[i];
+		if ((c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9'))
+		{
+
+		}
+		else
+			return false;
+	}
+	return true;
+}
+
+bool IsLikeMacro(std::string& str)
+{
+
+	std::size_t pos = str.find_last_of("::");
+
+
+	std::string last_token;
+	if (pos != std::string::npos)
+	{
+		str = str.substr(pos + 1);
+
+	}
+
+	return AllUpperCase(str);
+}
+
+
+void CGlobalStatisticData::ReportOutOfBoundsErrors(Settings& setting, std::set<std::string>& errorList)
+{
+	for (std::map<std::string, std::map<std::string, std::vector<StatisticMergedData::Pos> > >::const_iterator 
+		I = m_mergedData.OutOfBoundsInfo.begin(), E = m_mergedData.OutOfBoundsInfo.end(); I != E; ++I)
+	{
+		const std::string& arrayName = I->first;
+
+		if (I->second.size() >= 2)
+		{
+			std::vector<std::string> oneList;
+			std::vector<StatisticMergedData::Pos> oneListPos;
+			unsigned total_count = 0;
+			unsigned right_name_count = 0;
+			std::string rightName;
+			std::string wrongName;
+
+
+			for (std::map<std::string, std::vector<StatisticMergedData::Pos> >::const_iterator I2 = I->second.begin(), E2 = I->second.end(); I2 != E2; ++I2)
+			{
+				const std::string& boundary = I2->first;
+				const std::vector<StatisticMergedData::Pos>& poses = I2->second;
+
+				if (poses.size() == 1)
+				{
+					oneList.push_back(boundary);
+					oneListPos.push_back(poses.front());
+				}
+				else
+				{
+					if (poses.size() > right_name_count)
+					{
+						right_name_count = poses.size();
+						rightName = boundary;
+					}
+				}
+				total_count += poses.size();
+			}
+
+			if (oneList.size() == 1 && total_count >= 5)
+			{
+				// [array] and [array.size()]
+				std::string boundary_name = oneList.front();
+				std::string right_name = rightName;
+
+				if (boundary_name.find(arrayName)!= std::string::npos)
+				{
+					continue;
+				}
+
+				bool wrong_like_macro = IsLikeMacro(boundary_name);
+				bool right_like_macro = IsLikeMacro(right_name);
+
+				if (wrong_like_macro ^ right_like_macro || boundary_name == right_name)
+				{
+					continue;
+				}
+
+				std::stringstream ss;
+				ss << "The boundary expression [" << oneList.front() << "] may be not right for array [" << arrayName
+					<< "] at line [" << oneListPos.front().ArrayLine <<"], cause at least [" 
+					<< right_name_count << "] times [" << rightName << "] is used as the array's boundary.";
+
+
+				ErrorLogger::ErrorMessage::FileLocation loc(oneListPos.front().FilePath, oneListPos.front().BoundaryLine);
+				std::list<ErrorLogger::ErrorMessage::FileLocation> locList;
+				locList.push_back(loc);
+				ErrorLogger::ErrorMessage msg(locList, Severity::error, ss.str().c_str(), ErrorType::BufferOverrun, "OutOfBoundsStatistic", false);
+
+				std::string id = oneList.front() + "|" + arrayName;
+				msg.SetWebIdentity(id);
+				msg.SetFuncInfo("test");
+
+				std::string errmsg;
+				if (setting._xml)
+				{
+					if (setting.OpenCodeTrace)
+					{
+						errmsg = msg.toXML_codetrace(setting._verbose, setting._xml_version);
+					}
+					else
+					{
+						errmsg = msg.toXML(setting._verbose, setting._xml_version);
+					}
+
+				}
+				else
+					errmsg = msg.toString(setting._verbose);
+
+				errorList.insert(errmsg);
+			}
+		}
+		
+	}
+}
+
 CGlobalStatisticData* CGlobalStatisticData::Instance()
 {
 	if (nullptr == s_instance)
@@ -2096,6 +2258,106 @@ CGlobalStatisticData::CGlobalStatisticData()
 CGlobalStatisticData::~CGlobalStatisticData()
 {
 	TSC_LOCK_DELETE(&m_lock);
+}
+
+void StatisticThreadData::Dump(const std::string& file_suffix) const
+{
+	DumpFuncRetNull(file_suffix);
+	DumpOutOfBounds(file_suffix);
+}
+
+void StatisticThreadData::DumpFuncRetNull(const std::string& file_suffix) const
+{
+	std::ofstream ofs;
+	std::string sPath = CFileDependTable::GetProgramDirectory();
+	sPath += "log/stat_funcretnull_thread_" + file_suffix + ".log";
+	CFileDependTable::CreateLogDirectory();
+	ofs.open(Path::toNativeSeparators(sPath).c_str(), std::ios_base::trunc);
+
+	for (std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >::const_iterator I = FuncRetNullInfo.begin(), E = FuncRetNullInfo.end(); I != E; ++I)
+	{
+		ofs << I->first << std::endl;
+		for (std::map<const gt::CFunction*, std::list<FuncRetInfo> >::const_iterator I2 = I->second.begin(), E2 = I->second.end(); I2 != E2; ++I2)
+		{
+			ofs << "\t[" << I2->first->GetFuncStr() << "]" << std::endl;
+			for (std::list<FuncRetInfo>::const_iterator I3 = I2->second.begin(), E3 = I2->second.end(); I3 != E3; ++I3)
+			{
+				std::string sOp;
+				if (I3->Op == FuncRetInfo::CheckNull)
+				{
+					sOp = "CheckNull";
+				}
+				else if (I3->Op == FuncRetInfo::Use)
+				{
+					sOp = "Use";
+				}
+				ofs << "\t\t[" << sOp << ", " << I3->LineNo << ", " << I3->VarName << "]" << std::endl;
+			}
+		}
+	}
+}
+
+void StatisticThreadData::DumpOutOfBounds(const std::string& file_suffix) const
+{
+	std::ofstream ofs;
+	std::string sPath = CFileDependTable::GetProgramDirectory();
+	sPath += "log/stat_outofbounds_thread_" + file_suffix + ".log";
+	CFileDependTable::CreateLogDirectory();
+	ofs.open(Path::toNativeSeparators(sPath).c_str(), std::ios_base::trunc);
+
+	for (std::map<std::string, std::list<ArrayIndexInfo> >::const_iterator I = OutOfBoundsInfo.begin(), E = OutOfBoundsInfo.end(); I != E; ++I)
+	{
+		ofs << I->first << std::endl;
+		for (std::list<ArrayIndexInfo>::const_iterator I2 = I->second.begin(), E2 = I->second.end(); I2 != E2; ++I2)
+		{
+			ofs << "\t" << I2->ArrayStr << "|" << I2->ArrayType << "|" << I2->ArrayLine << ", " << I2->BoundStr << "|" << I2->BoundType << "|" << I2->BoundLine << std::endl;
+		}
+	}
+}
+
+void StatisticMergedData::Dump()
+{
+	DumpFuncRetNull();
+	DumpOutOfBounds();
+}
+
+void StatisticMergedData::DumpFuncRetNull()
+{
+	std::ofstream ofs;
+	std::string sPath = CFileDependTable::GetProgramDirectory();
+	sPath += "log/stat_funcretnull_merged.log";
+	CFileDependTable::CreateLogDirectory();
+	ofs.open(Path::toNativeSeparators(sPath).c_str(), std::ios_base::trunc);
+
+	for (std::map<const gt::CFunction*, FuncRetStatus>::const_iterator I = FuncRetNullInfo.begin(), E = FuncRetNullInfo.end(); I != E; ++I)
+	{
+		ofs << "[" << I->first->GetFuncStr() << "] CheckNull[" << I->second.CheckNullCount << "] Use[" << I->second.UsedCount << "]" << std::endl;
+	}
+
+	ofs.close();
+}
+
+
+void StatisticMergedData::DumpOutOfBounds()
+{
+	std::ofstream ofs;
+	std::string sPath = CFileDependTable::GetProgramDirectory();
+	sPath += "log/stat_outofbounds_merged.log";
+	CFileDependTable::CreateLogDirectory();
+	ofs.open(Path::toNativeSeparators(sPath).c_str(), std::ios_base::trunc);
+
+	for (std::map<std::string, std::map<std::string, std::vector<Pos> > >::const_iterator I = OutOfBoundsInfo.begin(), E = OutOfBoundsInfo.end(); I != E; ++I)
+	{
+		const std::string& arrayName = I->first;
+		ofs << arrayName << std::endl;
+		for (std::map<std::string, std::vector<Pos> >::const_iterator I2 = I->second.begin(), E2 = I->second.end(); I2 != E2; ++I2)
+		{
+			const std::string& boundaryName = I2->first;
+			ofs << "\t" << boundaryName << ", " << I2->second.size() << std::endl;
+		}
+	}
+
+	ofs.close();
 }
 
 #pragma endregion Global Statistic Data

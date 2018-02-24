@@ -10,7 +10,7 @@ namespace {
 void CheckStatistic::checkFuncRetNull()
 {
 	std::map<std::string, std::map<const gt::CFunction*, std::list<FuncRetInfo> > >& threadData 
-		= CGlobalStatisticData::Instance()->GetThreadData(_errorLogger);
+		= CGlobalStatisticData::Instance()->GetFuncRetNullThreadData(_errorLogger);
 
 	int curFileIndex = -1;
 	std::string curFile;
@@ -340,4 +340,252 @@ FuncRetInfo CheckStatistic::checkVarUsageAfterFuncReturn(const Token* tokVar, co
 	}
 	else
 		return FuncRetInfo::UnknownInfo;
+}
+
+void CheckStatistic::checkOutOfBounds()
+{
+	std::map<std::string, std::list<ArrayIndexInfo> >& threadData
+		= CGlobalStatisticData::Instance()->GetOutOfBoundsThreadData(_errorLogger);
+
+	int curFileIndex = -1;
+	std::string curFile;
+	std::list<ArrayIndexInfo>* infoList = NULL;
+
+	for (const Token* tok = _tokenizer->list.front(); tok; tok = tok->next())
+	{
+		if ((int)tok->fileIndex() != curFileIndex)
+		{
+			curFileIndex = tok->fileIndex();
+			curFile = _tokenizer->list.file(tok);
+
+			std::map<std::string, std::list<ArrayIndexInfo> >::iterator findFile = threadData.find(curFile);
+			if (findFile != threadData.end())
+			{
+				const Token* tok2 = tok;
+				while (tok2->next() && tok2->next()->fileIndex() == tok->fileIndex())
+				{
+					tok2 = tok2->next();
+				}
+				tok = tok2;
+				continue;
+			}
+
+			infoList = &threadData[curFile];
+			
+		}
+
+		if (tok->str() != "for")
+		{
+			continue;
+		}
+
+		SExprLocation tsIndex;
+		SExprLocation tsBoundary;
+
+		const Token* tokStart = NULL;
+
+		bool bOK = CheckForIsValid(tok, tsIndex, tsBoundary, tokStart);
+		if (bOK)
+		{
+
+			CheckForBody(tokStart, tsIndex, tsBoundary, infoList);
+		}
+	}
+}
+
+const bool CheckStatistic::CheckForIsValid(const Token* tokFor, SExprLocation& tsIndex, SExprLocation& tsBoundary, const Token*& tokStart)
+{
+	const Token* tokTop = tokFor->next();
+	if (!tokTop || tokTop->str() != "(" || !tokTop->link())
+	{
+		return false;
+	}
+
+	tokStart = tokTop->link()->next();
+	if (tokStart->str() != "{" || !tokStart->link())
+	{
+		return false;
+	}
+
+	const Token* firstSep = tokTop->astOperand2();
+	if (!firstSep || firstSep->str() != ";")
+	{
+		return false;
+	}
+
+	const Token* secondSep = firstSep->astOperand2();
+	if (!secondSep || secondSep->str() != ";")
+	{
+		return false;
+	}
+
+	const Token* firstCond = firstSep->astOperand1();
+	if (!firstCond || firstCond->str() != "=")
+	{
+		return false;
+	}
+
+	const Token* secondCond = secondSep->astOperand1();
+	if (!secondCond)
+	{
+		return false;
+	}
+
+	const Token* thirdCond = secondSep->astOperand2();
+	if (!thirdCond)
+	{
+		return false;
+	}
+
+	if (firstCond->str() != "=")
+	{
+		return false;
+	}
+
+	SExprLocation el11 = CreateSExprByExprTok(firstCond->astOperand1());
+	
+	if (el11.Empty() || el11.Expr.VarId == 0 || !firstCond->astOperand2() || firstCond->astOperand2()->str() != "0")
+	{
+		return false;
+	}
+
+	if (secondCond->str() != "<")
+	{
+		return false;
+	}
+
+	SExprLocation el21 = CreateSExprByExprTok(secondCond->astOperand1());
+	SExprLocation el22 = CreateSExprByExprTok(secondCond->astOperand2());
+
+	if (el11.Expr != el21.Expr || el22.Empty())
+	{
+		return false;
+	}
+
+	if (thirdCond->str() != "++")
+	{
+		return false;
+	}
+
+
+	SExprLocation el31 = CreateSExprByExprTok(thirdCond->astOperand1());
+	if (el31.Expr != el11.Expr)
+	{
+		return false;
+	}
+
+	tsIndex = el11;
+	tsBoundary = el22;
+
+	return true;
+
+}
+
+void CheckStatistic::CheckForBody(const Token* tokStart, const SExprLocation& tsIndex, const SExprLocation& tsBoundary, std::list<ArrayIndexInfo>* info)
+{
+	if (!info)
+	{
+		return;
+	}
+
+	if (tsBoundary.GetVariable() && (tsBoundary.GetVariable()->isLocal() || tsBoundary.GetVariable()->isArgument()))
+	{
+		return;
+	}
+
+	for (const Token* tok = tokStart, *tokEnd = tokStart->link(); tok && tok != tokEnd; tok = tok->next())
+	{
+		if (tok->str() != "[")
+		{
+			continue;
+		}
+
+		SExprLocation elArray = CreateSExprByExprTok(tok->astOperand1());
+		SExprLocation elIndex = CreateSExprByExprTok(tok->astOperand2());
+
+		if (elArray.Empty() || elIndex.Expr != tsIndex.Expr)
+		{
+			continue;
+		}
+
+		if (elArray.GetVariable() && (elArray.GetVariable()->isLocal() || elArray.GetVariable()->isArgument()))
+		{
+			continue;
+		}
+
+		const Token* tokFor = tokStart->previous()->link()->previous();
+		bool bRet = CheckBeforeFor(tokFor, tsBoundary, elArray);
+
+		if (!bRet)
+		{
+			return;
+		}
+
+
+		ArrayIndexInfo aii;
+		aii.ArrayStr = FormatVarString(elArray.Expr.ExprStr);
+		aii.ArrayLine = elArray.TokTop->linenr();
+		aii.BoundLine = tsBoundary.TokTop->linenr();
+		aii.BoundStr = FormatVarString(tsBoundary.Expr.ExprStr);
+
+		aii.ArrayType = GetTypeString(elArray);
+		aii.BoundType = GetTypeString(tsBoundary);
+
+		info->push_back(aii);
+	}
+}
+
+bool CheckStatistic::CheckBeforeFor(const Token* tokFor, const SExprLocation& tsBoundary, const SExprLocation& tsArray)
+{
+	const Scope* s = tokFor->GetFuncScope();
+	if (!s)
+	{
+		return false;
+	}
+	for (const Token* tok = tokFor->previous(); tok && tok != s->classStart; tok = tok->previous() )
+	{
+		if (tok->str() == tsBoundary.TokTop->str())
+		{
+			SExprLocation elB = CreateSExprByExprTok(tok);
+			if (elB.Expr == tsBoundary.Expr)
+			{
+				if (Token::Match(elB.TokTop->astParent(), "=|,|("))
+				{
+					return false;
+				}
+			}
+		}
+
+		if (tok->str() == tsArray.TokTop->str())
+		{
+			SExprLocation elA = CreateSExprByExprTok(tok);
+			if (elA.Expr == tsArray.Expr)
+			{
+				if (Token::Match(elA.TokTop->astParent(), "=|,|(|."))
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+std::string CheckStatistic::GetTypeString(const SExprLocation& el)
+{
+	std::string typeStr;
+	return typeStr;
+}
+
+std::string CheckStatistic::FormatVarString(const std::string& var)
+{
+	static std::string s_strThis = "this.";
+	std::size_t i = var.find(s_strThis);
+	if (i == 0)
+	{
+		return var.substr(s_strThis.length());
+	}
+
+	return var;
 }

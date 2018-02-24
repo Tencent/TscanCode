@@ -1798,18 +1798,9 @@ void CheckTSCNullPointer2::nullPointerError(const SExprLocation& sExprLoc, const
 		reportError(sExprLoc.Begin, Severity::error, ErrorType::NullPointer, "invalidDereferenceIterator", ss.str().c_str(),
 			ErrorLogger::GenWebIdentity(sExprLoc.Expr.ExprStr));
 	}
-	/* TODO uncheckedDynamicCast VS coverity
-	else if (ev.IsCondDynamic())
-	{
-		ss << "[" << sExprLoc.Expr.ExprStr << "] is assigned by dynamic_cast which doesn't have null check.";
-		reportError(sExprLoc.Begin, Severity::error, ErrorType::NullPointer, "uncheckedDynamicCast", ss.str().c_str(),
-			ErrorLogger::GenWebIdentity(sExprLoc.Expr.ExprStr));
-	}
-	*/
 	else if (ev.IsCondCheckNull())
 	{
-		//ss << "[" << sExprLoc.Expr.ExprStr << "] is dereferenced " << strDerefLoc << " after checking null at line " << ev.GetExprLoc().TokTop->linenr() << ", which implies that [ " << sExprLoc.Expr.ExprStr << " ] may be null dereferenced.";
-		ss << "Comparing [" << sExprLoc.Expr.ExprStr << "] to null at line " << ev.GetExprLoc().TokTop->linenr() << " implies that [" << sExprLoc.Expr.ExprStr << " ]  might be null.Dereferencing null pointer [" << sExprLoc.Expr.ExprStr << "].";
+		ss << "Comparing [" << sExprLoc.Expr.ExprStr << "] to null at line " << ev.GetExprLoc().TokTop->linenr() << " implies that [" << sExprLoc.Expr.ExprStr << " ] might be null.Dereferencing null pointer [" << sExprLoc.Expr.ExprStr << "].";
 		if (strstr(sExprLoc.Expr.ExprStr.c_str(), "("))
 		{
 			if (CheckIfDirectFuncNotRetNull(sExprLoc))
@@ -1838,7 +1829,6 @@ void CheckTSCNullPointer2::nullPointerError(const SExprLocation& sExprLoc, const
 	{
 		std::string strRetFrom;
 		FindValueReturnFrom(ev.GetExprLoc().TokTop, strRetFrom);//ignore TSC
-		//ss << "[" << sExprLoc.Expr.ExprStr << "] is assigned by [" << strRetFrom << "] at line " << ev.GetExprLoc().TokTop->linenr() << " which may be null.";
 		ss << "Dereferencing a null pointer [" << sExprLoc.Expr.ExprStr << "] which is assigned with null return value from [" << strRetFrom << "] at line " <<ev.GetExprLoc().TokTop->linenr() << ".";
 		if (strstr(sExprLoc.Expr.ExprStr.c_str(), "("))
 		{
@@ -2123,7 +2113,6 @@ void CheckTSCNullPointer2::TSCNullPointerCheck2()
 
 	CloseDumpFile();
 }
-
 
 void CheckTSCNullPointer2::HandleReturnToken(const Token * tok)
 {
@@ -2994,7 +2983,7 @@ bool CheckTSCNullPointer2::HandleRetParamRelation(const SExprLocation& exprLoc, 
 	return bHandled;
 }
 
-void CheckTSCNullPointer2::HandleAssign(const Token * tok, const SExprLocation& exprLoc, const CExprValue& curPre)
+void CheckTSCNullPointer2::HandleAssign(const Token * const tok, const SExprLocation& exprLoc, const CExprValue& curPre)
 {
 	bool handled = false;
 	const Token* tokValue = tok->astOperand2();
@@ -3002,6 +2991,35 @@ void CheckTSCNullPointer2::HandleAssign(const Token * tok, const SExprLocation& 
 	{
 		return;
 	}
+	//str = NULL;
+	//string str(NULL)
+	if (!handled && !tok->astOperand1()->isExpandedMacro()
+		&& ((tok->astOperand1()->variable()
+		&& Token::Match(tok->astOperand1()->variable()->typeEndToken(), "std| ::| string|wstring"))
+			|| Token::Match(tok->tokAt(-2), "wstring|string %any% (")
+			)
+		)
+	{
+		if (tok->astOperand2()->str() == "0")
+		{
+			reportError(tok, Severity::error, ErrorType::UserCustom, "nullToString",
+				"Passing nullptr or 0 to std::string may lead to crash or undefined behavior.",
+				ErrorLogger::GenWebIdentity(tok->previous()->str()));
+		}
+		else
+		{
+			SExprLocation rightLoc = CreateSExprByExprTok(tok->astOperand2());
+			CExprValue rightVal;
+			if (CanBeNull(rightLoc, rightVal) && (rightVal.IsCertainAndEqual() || rightVal.IsCondCheckNull()))
+			{
+				reportError(tok, Severity::error, ErrorType::UserCustom, "nullToString",
+					"[" + rightLoc.Expr.ExprStr + "] is possible to be nullptr. Passing nullptr to std::string may lead to crash or undefined behavior." ,
+					ErrorLogger::GenWebIdentity(tok->previous()->str()));
+			}
+		}
+		handled = true;
+	}
+
 	if (tokValue->values.size() == 1)
 	{
 		const ValueFlow::Value& value = tokValue->values.front();
@@ -3365,7 +3383,6 @@ const Token* CheckTSCNullPointer2::HandleAssign(const Token * tok)
 	const Token* tokEnd = nullptr;
 	if (tok->str() == "=")
 	{
-
 		tokEnd = tok->next();
 		while (tokEnd)
 		{
@@ -3820,6 +3837,13 @@ const Token* CheckTSCNullPointer2::HandleFuncParam(const Token* tok)
 		return tok;
 	}
 
+	// Func([=](flaot delta) mutable { xxx; }
+	if (Token::Match(tok, "( [ = ]"))
+	{
+		if (tok->link())
+			return tok->link();
+	}
+
 	const Token* tok1 = tok->astOperand1();
 	if (!tok1->isName() && tok1->str() != "." && tok1->str() != "::" && tok1->str() != "*")
 	{
@@ -3984,7 +4008,10 @@ const Token* CheckTSCNullPointer2::HandleFuncParam(const Token* tok)
 				//todo: consider more situations
 				//variable declaration must conform pattern 
 				//Type var(p0, p1, ...);
-				if (tokFunc->variable()->isPointer() && !Token::Match(tokFunc->previous(), ";|=|,|(|?|{|.|&&|%oror%|!"))
+				if ((tokFunc->variable()->isPointer() 
+					&& !Token::Match(tokFunc->previous(), ";|=|,|(|?|{|.|&&|%oror%|!"))
+					|| (Token::Match(tokFunc->previous(), "string|wstring") && (tokFunc->strAt(-2) != "::" || tokFunc->strAt(-3) == "std"))
+					)
 				{
 					return HandleAssign(tok);
 				}
@@ -7350,5 +7377,100 @@ void CheckTSCNullPointer2::checkNullDefectError(const SExprLocation& exprLoc)
 	{
 		return;
 	}
-	reportError(exprLoc.Begin, Severity::error, ErrorType::NullPointer, "checkNullDefect", "It's wrong way to check if [" + exprLoc.Expr.ExprStr+ "] is null." , ErrorLogger::GenWebIdentity(exprLoc.Expr.ExprStr));
+	reportError(exprLoc.Begin, Severity::error, ErrorType::NullPointer, "checkNullDefect", 
+		"It's wrong way to check if [" + exprLoc.Expr.ExprStr+ "] is null, this is usually caused by misusing && and ||, e.g. if(p != NULL || p->a == 42)" , ErrorLogger::GenWebIdentity(exprLoc.Expr.ExprStr));
+}
+
+void CheckTSCNullPointer2::checkMissingDerefOperator()
+{
+	if (!_settings->IsCheckIdOpened(ErrorType::ToString(ErrorType::NullPointer).c_str(), "missingDerefOperator"))
+	{
+		return;
+	}
+
+	for (std::vector<const Scope *>::const_iterator I = _tokenizer->getSymbolDatabase()->functionScopes.begin(),
+		E = _tokenizer->getSymbolDatabase()->functionScopes.end(); I != E; ++I)
+	{
+		const Scope* s = *I;
+		for (const Token* tok = s->classStart, *tokE = s->classEnd; tok && tok != tokE; tok = tok->next())
+		{
+			if (tok->str() != "=")
+			{
+				continue;
+			}
+
+			const Token* tokDeref = tok->astOperand1();
+			if (!Token::simpleMatch(tokDeref, "*"))
+			{
+				continue;
+			}
+
+			const Token* tokVar = tokDeref->astOperand1();
+			if (!tokVar)
+			{
+				continue;
+			}
+
+			SExprLocation elVar = CreateSExprByExprTok(tokVar);
+			if (elVar.Empty())
+			{
+				continue;
+			}
+
+			// go to the end of the assignment sentence
+			const Token* tok2 = Token::findsimplematch(tok, ";");
+			if (tok2)
+			{
+				for (; tok2 && tok2 != tokE; tok2 = tok2->next())
+				{
+					if (Token::Match(tok2, "}|return|break|continue|goto"))
+					{
+						break;
+					}
+
+					if (tok2->str() != elVar.TokTop->str())
+						continue;
+
+					SExprLocation el2 = CreateSExprByExprTok(tok2);
+					if (el2.Expr != elVar.Expr)
+					{
+						continue;
+					}
+
+					bool bCheckNull = false;
+					const Token* tokP2 = el2.TokTop->astParent();
+					if (tokP2 && tokP2->str() == "==")
+					{
+						bool bLeft = tokP2->astOperand1() == el2.TokTop;
+						const Token* tokValue = bLeft ? (tokP2->astOperand2()) : (tokP2->astOperand1());
+						if (tokValue && tokValue->str() == "0")
+						{
+							bCheckNull = true;
+						}
+					}
+
+					if (!bCheckNull)
+					{
+						break;
+					}
+					else
+					{
+						reportMissingDerefOperatorError(elVar, el2);
+					}
+					
+				}
+			}
+		}
+	}
+
+}
+
+void CheckTSCNullPointer2::reportMissingDerefOperatorError(const SExprLocation& elAssign, const SExprLocation& elCheckNull)
+{
+	std::stringstream ss;
+	ss << "Does [" << elCheckNull.Expr.ExprStr << "] missing dereference operator [*], cause at line [" << elAssign.TokTop->linenr()
+		<< "] [ * " << elAssign.Expr.ExprStr << " ] is assigned.";
+	reportError(elCheckNull.TokTop, Severity::error, ErrorType::NullPointer, "missingDerefOperator", ss.str().c_str(),
+		ErrorLogger::GenWebIdentity(elCheckNull.Expr.ExprStr));
+
 }

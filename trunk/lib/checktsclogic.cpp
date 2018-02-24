@@ -344,7 +344,8 @@ void CheckTSCLogic::checkNoFirstCase()
 			if(tok && !Token::Match(tok,"case") &&
 				//some lib uses switch case to implement yield
 				//see https://coolshell.cn/articles/10975.html
-				!(tok->str() == "for" && tok->isExpandedMacro())
+				!(tok->str() == "for" && tok->isExpandedMacro()) &&
+				tok->str() != "using"
 				)
 			{
 				if (tok->str().find("BOOST") == 0)
@@ -561,22 +562,11 @@ void CheckTSCLogic::CheckCompareDefectInFor()
 						unsigned sizeVar = GetStandardTypeSize(pVar->typeStartToken(), pVar->typeEndToken());
 						if (sizeVar == 0 || sizeVar >= 4)
 							continue;
-						//;i<= (unsigned char)(xx);i++  类型强转
-						if (Token::Match(tokInner, "%var% <|<= ("))
+						if (Token::Match(tokInner, "%var% <|<= "))
 						{
-							unsigned sizeVar2 = GetStandardTypeSize(tokInner->tokAt(3), tokInner->tokAt(2)->link()->previous());
-							if (sizeVar2 == 0)
-							{
+							// no need to handle the cast condition, which is defaut as right
+							if (tokInner->tokAt(2) && tokInner->tokAt(2)->isCast())
 								continue;
-							}
-							if (sizeVar != sizeVar2)
-							{
-								stringstream ss;
-								ss << "The type of " << pVar->name() << " doesn't match " << tokInner->tokAt(3)->str() << ", this may cause unexpected errors.";
-								reportError(tok, Severity::warning, ErrorType::Logic, "CompareDefectInFor", ss.str(), ErrorLogger::GenWebIdentity(pVar->name()));
-							}
-							continue;
-
 						}
 						tok2 = tokInner->next()->astOperand2();
 						if(!tok2)
@@ -817,56 +807,109 @@ void CheckTSCLogic::CheckReferenceParam()
 		return;
 	}
 
-	const SymbolDatabase * const symbolDatabase = _tokenizer->getSymbolDatabase();
 
+	std::list<Variable>::iterator itr;
+	std::list<std::string> templateTypes;//template names should not be too many;
+	std::list<std::string>::iterator endTempType = templateTypes.end();
+	const SymbolDatabase * const symbolDatabase = _tokenizer->getSymbolDatabase();
 	const std::size_t functions = symbolDatabase->functionScopes.size();
 	for (std::size_t i = 0; i < functions; ++i) {
 		const Scope * scope = symbolDatabase->functionScopes[i];
 		if (!scope || scope->function == 0 || !scope->function->hasBody())// We only look for functions with a body
 			continue;
-		std::list<Variable>::iterator itr;
-		vector<std::string> argname1;
+		templateTypes.clear();
+		if (Token::simpleMatch(scope->function->retDef, "template <"))
+		{
+			const Token *tTemp = scope->function->retDef->next()->next();
+			const Token *tEnd = scope->function->retDef->next()->link();
+			if (tEnd == nullptr)
+			{
+				tEnd = scope->function->tokenDef;
+			}
+			for (const Token *t = tTemp; t && t != tEnd; t = t->next())
+			{
+				if (Token::Match(t, "class|typename %name%"))
+				{
+					templateTypes.push_back(t->next()->str());
+					t = t->next();
+				}
+				else if (t->str() == "{" || t->str() == ";")
+				{
+					break;
+				}
+			}
+		}
 		for (itr = scope->function->argumentList.begin(); itr != scope->function->argumentList.end(); itr++)
 		{
-
-			const Token* typeStartTok = itr->typeStartToken();
-			const Token* typeEndTok = itr->typeEndToken();
-			//type dummy = 0
-			if (typeEndTok 
-				&& typeEndTok->next() 
-				&& typeEndTok->next()->isName() 
-				&& Token::Match(typeEndTok->next()->next(), "= %any%")
-				&& typeEndTok->next()->next()->next()->isLiteral()
-				&& !typeEndTok->next()->next()->next()->isString())
+			//empty struct
+			if (itr->typeScope() 
+				&& itr->typeScope()->classStart 
+				&& itr->typeScope()->classStart->next() == itr->typeScope()->classEnd)
 			{
 				continue;
 			}
-			if (Token::Match(typeStartTok, "union|enum|unique_ptr|shared_ptr|auto_ptr|smart_ptr|weak_ptr") || (typeStartTok->isStandardType() || _settings->library.podtype(typeStartTok->str())))
+
+			const Token* typeStartTok = itr->typeStartToken();
+			const Token* typeEndTok = itr->typeEndToken();
+		
+			//type dummy = 0
+			if (!typeEndTok 
+				|| (typeEndTok->next() 
+				&& typeEndTok->next()->isName() 
+				&& Token::Match(typeEndTok->next()->next(), "= %any%")
+				&& typeEndTok->next()->next()->next()->isLiteral()
+				&& !typeEndTok->next()->next()->next()->isString()))
+			{
+				continue;
+			}
+			//T<A> ar[]
+			if (Token::Match(typeEndTok->next(), "%name% ["))
 			{
 				continue;
 			}
 			
+			if (!templateTypes.empty() && endTempType != std::find(templateTypes.begin(), endTempType, typeEndTok->str()))
+			{
+				continue;
+			}
+
+			if (Token::Match(typeStartTok, "std| ::| union|enum|unique_ptr|shared_ptr|auto_ptr|smart_ptr|weak_ptr") 
+				|| (typeStartTok->isStandardType() || _settings->library.podtype(typeStartTok->str())))
+			{
+				continue;
+			}
+
 			string typeEndStr = typeEndTok->str();
 			if (typeEndTok->str() == ">" && typeEndTok->link())
 			{
 				typeEndStr = typeEndTok->link()->previous()->str();
 			}
-			
+
 			transform(typeEndStr.begin(), typeEndStr.end(), typeEndStr.begin(), ::tolower);
-			if (strstr(typeEndStr.c_str(), "HANDLE")||strstr(typeEndStr.c_str(), "$") || strstr(typeEndStr.c_str(), "8") || strstr(typeEndStr.c_str(), "16") || strstr(typeEndStr.c_str(), "32") || strstr(typeEndStr.c_str(), "64") || strstr(typeEndStr.c_str(), "short") || strstr(typeEndStr.c_str(), "word")  || strstr(typeEndStr.c_str(), "float") || strstr(typeEndStr.c_str(), "double") || strstr(typeEndStr.c_str(), "byte") || strstr(typeEndStr.c_str(), "char") || strstr(typeEndStr.c_str(), "int") || strstr(typeEndStr.c_str(), "long") || strncmp(typeEndStr.c_str(), "lp", strlen("lp")) == 0 || strncmp(typeEndStr.c_str(), "enm", strlen("enm")) == 0 || strncmp(typeEndStr.c_str(), "tagenm", strlen("tagenm")) == 0)
+			if (strstr(typeEndStr.c_str(), "HANDLE")||strstr(typeEndStr.c_str(), "$") 
+				|| strstr(typeEndStr.c_str(), "8") || strstr(typeEndStr.c_str(), "16") 
+				|| strstr(typeEndStr.c_str(), "32") || strstr(typeEndStr.c_str(), "64") 
+				|| strstr(typeEndStr.c_str(), "short") || strstr(typeEndStr.c_str(), "word")  
+				|| strstr(typeEndStr.c_str(), "float") || strstr(typeEndStr.c_str(), "double") 
+				|| strstr(typeEndStr.c_str(), "byte") || strstr(typeEndStr.c_str(), "char") 
+				|| strstr(typeEndStr.c_str(), "int") || strstr(typeEndStr.c_str(), "long") 
+				|| strncmp(typeEndStr.c_str(), "lp", strlen("lp")) == 0 
+				|| strncmp(typeEndStr.c_str(), "enm", strlen("enm")) == 0 
+				|| strncmp(typeEndStr.c_str(), "tagenm", strlen("tagenm")) == 0)
 			{
 				continue;
 			}
 	
-			if (Token::Match(typeEndTok, "const_iterator|iterator|reverse_iterator|const_reverse_iterator|*|&|(|shared_ptr|BUF_TYPE|ENV_TYPE|m3e_Sound_Handle|T1|T2|T3|T4|T5|FT_F26Dot6|FT_Error|lua_Number|lua_CFunction|size_type|long|tdr_longlong|tdr_ulonglong|tdr_wchar_t|tdr_date_t|tdr_time_t|tdr_datetime_t|tdr_ip_t|byte|typename|T|charType|__in_opt|__inout_opt|__out|__in|__in_ecount|ArrayIndex|apr_int32_t|HWND") || (typeStartTok->isStandardType() || _settings->library.podtype(typeStartTok->str())))
+			if (Token::Match(typeEndTok, "const_iterator|iterator|reverse_iterator|const_reverse_iterator|*|&|(|shared_ptr|BUF_TYPE|ENV_TYPE|m3e_Sound_Handle|T1|T2|T3|T4|T5|FT_F26Dot6|FT_Error|lua_Number|lua_CFunction|size_type|long|tdr_longlong|tdr_ulonglong|tdr_wchar_t|tdr_date_t|tdr_time_t|tdr_datetime_t|tdr_ip_t|byte|typename|T|charType|__in_opt|__inout_opt|__out|__in|__in_ecount|ArrayIndex|apr_int32_t|HWND") 
+				|| (typeStartTok->isStandardType() 
+				|| _settings->library.podtype(typeStartTok->str())))
 			{
 				continue;
 			}
-			std::set<std::string>::iterator iter;
-			iter = _settings->_NonReferenceType.find(typeEndStr);
-			if (iter != _settings->_NonReferenceType.end()) {
+			if (_settings->_NonReferenceType.find(typeEndStr) != _settings->_NonReferenceType.end()) {
 				continue;
 			}
+
 
 			if (typeEndTok->str() == ">" && !Token::Match(typeEndTok, "> &|*|."))
 			{

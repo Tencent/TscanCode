@@ -984,6 +984,35 @@ void TscanCode::reportErr(const ErrorLogger::ErrorMessage &msg)
 	if (!_settings.IsCheckIdOpened(ErrorType::ToString(msg._type).c_str(), msg._id.c_str()))
 		return;
 
+	const std::vector<std::string> ignored = _settings._pathToIgnore;
+	if (!ignored.empty())
+	{
+		for (std::vector<std::string>::const_iterator I = ignored.begin(), E = ignored.end(); I != E; ++I)
+		{
+			const std::string& path = *I;
+			const std::string& file = msg._callStack.back().getfile();
+			if (file.find(path) == 0)
+			{
+				if (file.length() == path.length())
+				{
+					return;
+				}
+				else 
+				{
+					if (*path.rbegin() == PATH_SEP)
+					{
+						return;
+					}
+					else if (file[path.length()] == PATH_SEP)
+					{
+						return;
+					}
+				}
+			}
+			
+		}
+	}
+
     if (!_settings.library.reportErrors(msg.file0))
         return;
 

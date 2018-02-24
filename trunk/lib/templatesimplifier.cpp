@@ -803,6 +803,7 @@ void TemplateSimplifier::expandTemplate(
                             --typeindentlevel;
                         tokenlist.addtoken(typetok, tok3->linenr(), tok3->fileIndex());
 						tokenlist.back()->originalName(tok3->str());
+						tokenlist.back()->isTemplateExpand(true);
                     }
                     continue;
                 }
@@ -1157,7 +1158,11 @@ bool TemplateSimplifier::simplifyCalculations(Token *_tokens)
                         result = (op1 < op2) ? "1" : "0";
                     else
                         result = (op1 > op2) ? "1" : "0";
-
+					//if template expaned xxx < 1 => 0
+					if (tok->isTemplateExpand() || tok->next()->next()->isTemplateExpand())
+					{
+						tok->isTemplateExpand(true);
+					}
                     tok->str(result);
                     tok->deleteNext(2);
                     ret = true;

@@ -268,7 +268,7 @@ std::string ErrorLogger::ErrorMessage::toXML(bool verbose, int version) const
 		}
 		printer.PushAttribute("id", ErrorType::ToString(_type).c_str());
 		printer.PushAttribute("subid", _id.c_str());
-		printer.PushAttribute("severity", Severity::toString(_severity).c_str());
+		printer.PushAttribute("severity", Settings::Instance()->GetCheckSeverity(_id.c_str()).c_str());
 		printer.PushAttribute("msg", fixInvalidChars(verbose ? _verboseMessage : _shortMessage).c_str());
 		printer.PushAttribute("web_identify", fixInvalidChars(_webIdentify).c_str());
 		printer.PushAttribute("func_info", fixInvalidChars(_funcinfo).c_str());
@@ -316,7 +316,7 @@ std::string ErrorLogger::ErrorMessage::toXML_codetrace(bool verbose, int version
 	
 	printer.PushAttribute("id", ErrorType::ToString(_type).c_str());
 	printer.PushAttribute("subid", _id.c_str());
-	printer.PushAttribute("severity", Severity::toString(_severity).c_str());
+	printer.PushAttribute("severity", Settings::Instance()->GetCheckSeverity(_id.c_str()).c_str());
 	printer.PushAttribute("msg", fixInvalidChars(verbose ? _verboseMessage : _shortMessage).c_str());
 	printer.PushAttribute("web_identify", fixInvalidChars(_webIdentify).c_str());
 	printer.PushAttribute("func_info", fixInvalidChars(_funcinfo).c_str());
@@ -377,12 +377,9 @@ std::string ErrorLogger::ErrorMessage::toString(bool verbose, const std::string 
         std::ostringstream text;
         if (!_callStack.empty())
             text << callStackToString(_callStack) << ": ";
-        if (_severity != Severity::none) {
-            text << '(' << Severity::toString(_severity);
-            if (_inconclusive)
-                text << ", inconclusive";
-            text << ") ";
-        }
+
+		text << "(" << Settings::Instance()->GetCheckSeverity(_id) << ") ";
+        
         text << (verbose ? _verboseMessage : _shortMessage);
         return text.str();
     }
@@ -396,7 +393,7 @@ std::string ErrorLogger::ErrorMessage::toString(bool verbose, const std::string 
         findAndReplace(result, "\\t", "\t");
 
         findAndReplace(result, "{id}", _id);
-        findAndReplace(result, "{severity}", Severity::toString(_severity));
+        findAndReplace(result, "{severity}", Settings::Instance()->GetCheckSeverity(_id));
         findAndReplace(result, "{message}", verbose ? _verboseMessage : _shortMessage);
         findAndReplace(result, "{callstack}", _callStack.empty() ? "" : callStackToString(_callStack));
         if (!_callStack.empty()) {

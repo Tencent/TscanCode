@@ -2334,7 +2334,7 @@ void CheckOther::checkDuplicateExpression()
     std::list<const Function*> constFunctions;
     const std::set<std::string> temp; // Can be used as dummy for isSameExpression()
     getConstFunctions(symbolDatabase, constFunctions);
-
+	const std::map<std::string, struct Library::PodType> &podTypes = _settings->library.getPodTypes();
    // for (scope = symbolDatabase->scopeList.begin(); scope != symbolDatabase->scopeList.end(); ++scope) {
         // only check functions
     //    if (scope->type != Scope::eFunction)
@@ -2347,7 +2347,19 @@ void CheckOther::checkDuplicateExpression()
 			    if (Token::Match(tok, "==|!=|-") && astIsFloat(tok->astOperand1(), false))//unknown return false
                     continue;
                 if (isSameExpression(_tokenizer->isCPP(), tok->astOperand1(), tok->astOperand2(), _settings->library.functionpure)) {
-                    if (isWithoutSideEffects(_tokenizer->isCPP(), tok->astOperand1())) {
+					if (tok->str() == "|"
+						&& tok->astParent() 
+						&& (tok->astParent()->isAssignmentOp()
+						 || tok->astParent()->isArithmeticalOp()
+							)
+						&& tok->astOperand1()->variable()
+						&& tok->astOperand1()->variable()->typeStartToken()
+						&& podTypes.count(tok->astOperand1()->variable()->typeStartToken()->str()) == 0
+						)
+					{
+						continue;
+					}
+					if (isWithoutSideEffects(_tokenizer->isCPP(), tok->astOperand1())) {
                         const bool assignment = tok->str() == "=";
 						if (assignment && warningEnabled)
 						{
@@ -2380,8 +2392,41 @@ void CheckOther::checkDuplicateExpression()
                                 // TODO: warn if variables are unchanged. See #5683
                                 // Probably the message should be changed to 'duplicate expressions X in condition or something like that'.
                                 ;//duplicateExpressionError(ast1->astOperand1(), tok->astOperand2(), tok->str());
-                            else if (styleEnabled && isSameExpression(_tokenizer->isCPP(), ast1->astOperand2(), tok->astOperand2(), _settings->library.functionpure) && isWithoutSideEffects(_tokenizer->isCPP(), ast1->astOperand2()))
-                                duplicateExpressionError(ast1->astOperand2(), tok->astOperand2(), tok->str());
+							else if (styleEnabled
+								&& isSameExpression(_tokenizer->isCPP(), ast1->astOperand2(), tok->astOperand2(), _settings->library.functionpure)
+								&& isWithoutSideEffects(_tokenizer->isCPP(), ast1->astOperand2()))
+							{
+								const Token *t = tok->astOperand2();
+								std::stack<const Token *> s;
+								s.push(t);
+								const Token *tFunc = nullptr;
+								while (!s.empty())
+								{
+									t = s.top();
+									s.pop();
+									if (t->str() == "(")
+									{
+										tFunc = t;
+										break;
+									}
+									if (t->astOperand1())
+									{
+										s.push(t->astOperand1());
+									}
+									if (t->astOperand2())
+									{
+										s.push(t->astOperand2());
+									}
+								}
+								if (tFunc
+									&& tFunc->astOperand1()
+									&& tFunc->astOperand1()->str() == "."
+									&& Token::Match(tFunc->astOperand1()->astOperand2(), "get|getline|read|readsome|putback|unget|good"))
+								{
+									break;
+								}
+								duplicateExpressionError(ast1->astOperand2(), tok->astOperand2(), tok->str());
+							}
                             if (!isConstExpression(ast1->astOperand2(), _settings->library.functionpure))
                                 break;
                             ast1 = ast1->astOperand1();
@@ -2609,6 +2654,19 @@ void CheckOther::unsignedLessThanZeroError(const Token *tok)
 	{
 		return;
 	}
+
+	// for condition: a <= 0
+	if (tok->tokAt(1) && tok->strAt(1) == "<=") {
+		reportError(tok, Severity::warning, ErrorType::Compute, "Unsignedlessthanzero", "This unsigned value [" + tok->str() + "] can't be less-than-zero, using == is enough.", ErrorLogger::GenWebIdentity(tok->str()));
+		return;
+	}
+	// for condition: 0 >= a
+	if (tok->tokAt(-1) && tok->strAt(-1) == ">=") {
+		reportError(tok, Severity::warning, ErrorType::Compute, "Unsignedlessthanzero", "This unsigned value [" + tok->str() + "] can't be less-than-zero, using == is enough.", ErrorLogger::GenWebIdentity(tok->str()));
+		return;
+	}
+
+	// for condition: a < 0 ||  0 > a 
 	reportError(tok, Severity::warning, ErrorType::Compute, "Unsignedlessthanzero", "This less-than-zero comparison of an unsigned value ["+tok->str()+"] is never true.", ErrorLogger::GenWebIdentity(tok->str()));
 }
 
@@ -3381,156 +3439,196 @@ void CheckOther::checkCocosdoublefree()
 	}
 }
 
-void CheckOther::checkDanglingpointer()
+const std::string ErrorErrorVarStr(std::map<unsigned int, const Token *>::iterator iterVar, bool checkLocal)
 {
-	const SymbolDatabase *symbolDatabase = _tokenizer->getSymbolDatabase();
-	for (std::list<Scope>::const_iterator scope = symbolDatabase->scopeList.begin(); scope != symbolDatabase->scopeList.end(); ++scope)
+
+	if (Token::Match(iterVar->second->astParent(), ".|::|["))
 	{
-		if (scope->type != Scope::eFunction)
+		const Token *t = iterVar->second->astParent();
+		while (Token::Match(t, ".|["))
 		{
-			continue;
+			t = t->astOperand1();
 		}
+		if (!t)
+		{
+			return emptyString;
+		}
+		if (!t->variable() && t->str() != "::")
+		{
+			return emptyString;
+		}
+		if (checkLocal && t->variable() && (t->variable()->isLocal() || t->variable()->isArgument()))
+		{
+			return emptyString;
+		}
+		//do not report iterator
+		if (t->variable() && Token::Match(t->variable()->typeEndToken(), "iterator|const_iterator"))
+		{
+			return emptyString;
+		}
+		return iterVar->second->astParent()->astString2();
+	}
+	if (iterVar->second->variable())
+	{
+		const Variable *var = iterVar->second->variable();
+		if (checkLocal && (var->isLocal() || var->isArgument()))
+		{
+			return emptyString;
+		}
+		return iterVar->second->str();
+	}
+	return emptyString;
+}
+
+
+static bool CheckPointerScope(const Token *tokDel, const Token *tokUse)
+{
+	if (!tokDel->scope() || !tokUse->scope())
+	{
+		return true;
+	}
+	if (tokDel->scope() == tokUse->scope())
+	{
+		return true;
+	}
+	const Scope *sDel = tokDel->scope();
+	const Scope *sUse = tokUse->scope();
+	while (sUse && sUse->GetScopeType() != Scope::eElse)
+	{
+		if (sUse->isFunction())
+		{
+			break;
+		}
+		sUse = sUse->nestedIn;
+	}
+	if (!sUse || (sUse->GetScopeType() != Scope::eElse && sUse->GetScopeType() != Scope::eFunction))
+	{
+		return false;
+	}
+	while (sDel && !(sDel->GetScopeType() == Scope::eIf && Token::simpleMatch(sDel->classEnd, "} else")))
+	{
+		if (sDel->isFunction())
+		{
+			break;
+		}
+		sDel = sDel->nestedIn;
+	}
+	if (!sDel || (sDel->GetScopeType() != Scope::eIf && sDel->GetScopeType() != Scope::eFunction))
+	{
+		return false;
+	}
+	if (sDel->classEnd && sDel->classEnd->next() == sUse->classDef)
+	{
+		return false;
+	}
+	return true;
+}
+
+void CheckOther::CheckDanglingPtr()
+{
+	const SymbolDatabase *const base = _tokenizer->getSymbolDatabase();
+	std::map<unsigned int, const Token *> delVar;
+	std::map<unsigned int, const Token *>::iterator iterVar;
+	std::map<unsigned int, const Token *>::iterator endVar = delVar.end();
+	for (std::size_t ii = 0, nSize = base->functionScopes.size(); ii < nSize; ++ii)
+	{
+		const Scope *scope = base->functionScopes[ii];
 		if (scope->function && scope->function->type == Function::eDestructor)
 		{
 			continue;
 		}
-		const Token* tok = scope->classDef;
-		const Token* tokFuncEnd = scope->classEnd;
-		for (; tok&&tok != scope->classEnd; tok = tok->next())
+		if (scope->className == "Destroy" || scope->className == "main")
 		{
-			if (Token::Match(tok, "delete") || Token::Match(tok, "delete [ ]"))
+			continue;
+		}
+		bool bHasReturn = false;
+		for (const Token *tok = scope->classStart, *end = scope->classEnd;
+			tok && tok != end; tok = tok->next())
+		{
+			if (tok->str() == "delete")
 			{
-				const Token *temp = NULL;
-				const Token *errortok = NULL;
-				if (Token::Match(tok, "delete") && tok->next())
+				if (tok->isExpandedMacro())
 				{
-					temp = tok->next();
-					errortok = tok->next();
+					continue;
 				}
-				if (Token::Match(tok, "delete [ ]") && tok->tokAt(3))
+				const Token *tDel = nullptr;
+				if (tok->astOperand1())
 				{
-					temp = tok->tokAt(3);
-					errortok = tok->tokAt(3);
+					tDel = tok->astOperand1();
+					if (tDel->str() == "." || tDel->str() == "::")
+					{
+						tDel = tDel->astOperand2();
+					}
 				}
-				std::string var_str1 = "";
-				std::string var_str2 = "";
-				std::string return_str = "";
-				std::string out_var_str = "";
-				std::string full_tok_str = "";
-				const Token *templink = NULL;
-
-				for (; temp&&temp != scope->classEnd&&temp->str() != ";"; temp = temp->next())
+				else if (tok->next())
 				{
-					if (temp->str() == "__var2764657343")  //Debug  20151218  sometimes Error report with this msg _var2764657343
+					tDel = tok->next();
+					if (Token::simpleMatch(tDel, "[ ]"))
 					{
-						continue;
+						tDel = tDel->next()->next();
 					}
-					if (temp->str() == "(" && temp->link() && temp->link()->next() && temp->link()->next()->str() == ";")
-					{
-						templink = temp->link();
-						var_str1 = var_str1 + "";
-					}
-					else if (temp == templink)
-					{
-						var_str1 = var_str1 + "";
-					}
-					else
-					{
-						var_str1 = var_str1 + temp->str() + " ";
-					}
-
 				}
-				bool is_check = true;
-				if (var_str1 != "")
+				if (tDel && Token::simpleMatch(tDel->next(), ";") && tDel->varId() > 0)
 				{
-					full_tok_str = var_str1;
-					out_var_str = var_str1 + "= NULL";
-					var_str2 = "( " + var_str1 + ") = NULL|null|0";
-					var_str1 = var_str1 + "= NULL|null|0";
-				}
-				std::string f = full_tok_str + "=";
-				for (; temp&&temp != scope->classEnd; temp = temp->next())
-				{
-					if (Token::Match(temp, "{"))
-					{
-						temp = temp->link();
-					}
-					if (f != ""&&Token::Match(temp, f.c_str()))
-					{
-						is_check = false;
-					}
-					if (var_str1 != "" && var_str2 != "" && (Token::Match(temp, var_str1.c_str()) || Token::Match(temp, var_str2.c_str())))
-					{
-						is_check = false;
-					}
-
-				}
-				if (is_check)
-				{
-					if (errortok&&errortok->astParent())
-					{
-						while (errortok)
-						{
-							// eg.delete gCLISTCtx->m_modulemap;漏报解决
-							if (errortok->astParent() == NULL || errortok->astParent()->str()=="delete")
-								break;
-							errortok = errortok->astParent();
-						}
-						errortok = errortok->astOperand2();
-					}
-					if (errortok&&errortok->variable() && errortok->variable()->isLocal())
-					{
-						std::string f1 = full_tok_str + "=";
-						std::string f2 = full_tok_str + "; " + full_tok_str + "=";
-						std::string r1 = "return " + full_tok_str + ";";
-						std::string r2 = "return ( " + full_tok_str + ") ;";
-						for (const Token* erroTemp = errortok->next(); erroTemp && erroTemp != tokFuncEnd; erroTemp = erroTemp->next())
-						{
-							//排除重新赋值的情况
-							if (Token::Match(erroTemp, "{") && !erroTemp->isExpandedMacro())
-							{
-								if (erroTemp->link() != NULL)
-								{
-									erroTemp = erroTemp->link();
-								}
-							}
-							if (Token::Match(erroTemp, f1.c_str()) && erroTemp->variable() && erroTemp->variable()->declarationId() == errortok->variable()->declarationId())
-							{
-								break;
-							}
-							if (erroTemp && CGlobalTokenizer::Instance()->CheckIfReturn(erroTemp) && (!Token::Match(erroTemp, r1.c_str()) || !Token::Match(erroTemp, r2.c_str())))
-							{
-								break;
-							}
-							if (full_tok_str != "" && Token::Match(erroTemp, full_tok_str.c_str()))
-							{
-								if (erroTemp->variable() && erroTemp->variable()->declarationId() == errortok->variable()->declarationId())
-								{
-									if (errortok->scope()->className != "Destroy")//not reportError in Destroy()
-									{
-
-										reportError(errortok, Severity::style, ErrorType::Suspicious, "Danglingpointer",
-											"maybe Dangling pointer, delete : forget " + out_var_str + "? ", ErrorLogger::GenWebIdentity(full_tok_str));
-									}
-								}
-							}
-						}
-					}
-					else if (errortok&&errortok->variable() && (errortok->variable()->isPublic() || errortok->variable()->isProtected() || errortok->variable()->isPrivate() || errortok->variable()->isGlobal()))
-					{
-						if (errortok->scope()->className != "Destroy")//not reportError in Destroy()
-						{
-
-							reportError(errortok, Severity::style, ErrorType::Suspicious, "Danglingpointer",
-								"maybe Dangling pointer, delete : forget " + out_var_str + "? ", ErrorLogger::GenWebIdentity(full_tok_str));
-						}
-					}
-
+					delVar[tDel->varId()] = tDel;
 				}
 			}
+			else if (tok->isAssignmentOp() && tok->astOperand1())
+			{
+				if (Token::Match(tok->astOperand1(), ".|::"))
+				{
+					const Token *t = tok->astOperand1()->astOperand2();
+					if (t && t->varId() > 0)
+					{
+						delVar.erase(t->varId());
+					}
+				}
+				else if (tok->astOperand1()->varId() > 0)
+				{
+					delVar.erase(tok->astOperand1()->varId());
+				}
+			}
+			else if (tok->variable() && (iterVar = delVar.find(tok->varId())) != endVar && tok->astParent())
+			{
+				if ((Token::simpleMatch(tok->astParent(), "[|*")
+					|| (tok->astParent()->str() == "." 
+						&& tok->astParent()->originalName() == "->"
+						&& tok->astUnderTokenLeft(tok->astParent())
+						)
+					)
+					&& CheckPointerScope(iterVar->second, tok)
+					)
+				{
+					const std::string errorVar = ErrorErrorVarStr(iterVar, bHasReturn);//if return meet, never report local var
+					if (!errorVar.empty())
+					{
+						reportError(iterVar->second, Severity::style, ErrorType::Suspicious, "Danglingpointer",
+							"Dangling pointer[" + errorVar + "] found. You forget to assign this var with nullptr after delete",
+							ErrorLogger::GenWebIdentity(errorVar));
+					}
+					delVar.erase(tok->varId());
+				}
+			}
+			//remove all deleted local var
+			else if (!bHasReturn && (tok->str() == "return" || CGlobalTokenizer::Instance()->CheckIfReturn(tok)))
+			{
+				bHasReturn = true;
+			}
+		}
+		for (iterVar = delVar.begin(); iterVar != endVar; ++iterVar)
+		{
+			const std::string errorVar = ErrorErrorVarStr(iterVar, true);
+			if (errorVar.empty())
+			{
+				continue;
+			}
+			reportError(iterVar->second, Severity::style, ErrorType::Suspicious, "Danglingpointer",
+				"Dangling pointer[" + errorVar + "] found. You forget to assign this var with nullptr after delete",
+				ErrorLogger::GenWebIdentity(errorVar));
 		}
 	}
 }
+
 
 void CheckOther::duplicateIfError(const Token *tok1, const Token *tok2)
 {
@@ -3748,7 +3846,7 @@ namespace {
 				_start = tok;
 			if (tok)
 			{
-				if (tok->str() == "0")
+				if (tok->str() == "0" || tok->str() == ".")
 				{
 					_expression << tok->originalName();
 				}
@@ -3787,7 +3885,8 @@ void CheckOther::checkExpressionRange(const std::list<const Function*> &constFun
 	std::string opName;
 	int level = 0;
 	for (const Token *tok = start->next(); tok && tok != end; tok = tok->next()) {
-		if (tok->isExpandedMacro() || (tok->isName() && (tok->originalName() != tok->str()) && (tok->originalName() != emptyString)))
+		if (tok->isExpandedMacro() 
+			|| (tok->isName() && (tok->originalName() != tok->str()) && (tok->originalName() != emptyString)))
 		{
 			return;
 		}
@@ -3868,6 +3967,11 @@ void CheckOther::checkExpressionRange(const std::list<const Function*> &constFun
 					flag = false;
 					break;
 				}
+				if (Token::Match(toktmp->next(), ". get|getline|read|readsome|putback|unget|good"))
+				{
+					flag = false;
+					break;
+				}
 				if (!IsPureFunc(toktmp))
 				{
 					flag = false;
@@ -3881,7 +3985,18 @@ void CheckOther::checkExpressionRange(const std::list<const Function*> &constFun
 				}
 				toktmp = toktmp->next();
 			}
-			if (flag )
+			if (flag && opName == "|" && expr.start && expr.start->next() && expr.start->next()->str() == "|")
+			{
+				const Token *t = expr.start->next()->astParent();
+				if (t && (t->isAssignmentOp() || t->isArithmeticalOp())
+					&& t->previous()->variable()
+					&& t->previous()->variable()->typeStartToken()
+					&& _settings->library.podtype(t->previous()->variable()->typeStartToken()->str()) == nullptr)
+				{
+					continue;
+				}
+			}
+			if (flag)
 			  duplicateExpressionError(expr.start, expr.start, opName);
 		}
 	}

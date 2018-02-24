@@ -359,6 +359,12 @@ public:
 	void isExpandedEnum(bool d) {
 		setFlag(fIsExpandedEnum, d);
 	}
+	bool isTemplateExpand() const {
+		return getFlag(fIsTemplateArg);
+	}
+	void isTemplateExpand(bool b) {
+		setFlag(fIsTemplateArg, b);
+	}
     bool isAttributeConstructor() const {
         return getFlag(fIsAttributeConstructor);
     }
@@ -846,6 +852,7 @@ private:
         fIsComplex              = (1 << 16),  // complex/_Complex type
 		fIsDynamicCast			= (1 << 17),
 		fIsExpandedEnum			= (1 << 18),
+		fIsTemplateArg          = (1 << 19) // if token is template expanded
     };
 
     unsigned int _flags;

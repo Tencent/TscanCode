@@ -1225,12 +1225,12 @@ void CheckBufferOverrun::checkGlobalAndLocalVariable()
                 var = tok->next()->variable();
                 nextTok = 8;
             } else if (Token::Match(tok, "[;{}] %var% = %str% ;") &&
-                       tok->next()->variable() &&
-                       tok->next()->variable()->isPointer()) {
-                size = 1 + int(tok->tokAt(3)->strValue().size());
-                type = "char";
-                var = tok->next()->variable();
-                nextTok = 4;
+				tok->next()->variable() &&
+				tok->next()->variable()->isPointer()) {
+				size = 1 + int(tok->tokAt(3)->strValue().size());
+				type = "char";
+				var = tok->next()->variable();
+				nextTok = 4;
             } else if (Token::Match(tok, "[*;{}] %var% = malloc|alloca ( %num% ) ;")) {
                 size = MathLib::toLongNumber(tok->strAt(5));
                 type = "char";   // minimum type, typesize=1
@@ -1480,7 +1480,7 @@ void CheckBufferOverrun::bufferOverrun2()
 			const ValueFlow::Value *value = index->getValueLE(-1LL, _settings);
 			if (value)
 			{
-				if (value->intvalue == -1 && index->isExpandedMacro() && !index->isNumber())
+				if (value->intvalue == -1 && !index->isExpandedMacro() && index->isName() && !index->isNumber())
 				{
 					negativeIndexError(index, *value);
 				}
@@ -2311,4 +2311,76 @@ void CheckBufferOverrun::SelfAddedSubscriptError(const Token *tok, const std::st
 {
 	reportError(tok, Severity::style, ErrorType::BufferOverrun, "IndexSelfIncrementError",
 		"Array index '" + indexName + "' is used after self-increment.", ErrorLogger::GenWebIdentity(indexName));
+}
+
+
+void CheckBufferOverrun::CheckMemcpyString()
+{
+	const SymbolDatabase * const symbolDatabase = _tokenizer->getSymbolDatabase();
+	std::map<const Variable *, long long> varValue;
+	std::map<const Variable *, long long>::iterator endVarValue = varValue.end();
+	std::map<const Variable *, long long>::iterator it;
+	for (std::size_t i = 0, functions = symbolDatabase->functionScopes.size(); i < functions; ++i)
+	{
+		const Scope * const scope = symbolDatabase->functionScopes[i];
+		for (const Token *tok = scope->classStart; tok && tok != scope->classEnd; tok = tok->next()) {
+			if (tok->isName() && tok->variable())
+			{
+				if (Token::Match(tok->previous(), "[;{}] %var% = %any%")
+					&& Token::Match(tok->variable()->typeStartToken(), "std| ::| string|wstring"))
+				{
+					if (tok->next()->astOperand2() && tok->next()->astOperand2()->isString())
+					{
+						varValue[tok->variable()] = tok->next()->astOperand2()->strValue().length();
+					}
+					else if (tok->next()->astOperand2() && tok->next()->astOperand2()->variable())
+					{
+						const Variable *var = tok->next()->astOperand2()->variable();
+						it = varValue.find(var);
+						if (it == endVarValue || it->second == -1)
+						{
+							varValue[tok->variable()] = -1;
+						}
+						else
+						{
+							varValue[tok->variable()] = it->second;
+						}
+					}
+					else {
+						varValue[tok->variable()] = -1;
+					}
+				}
+				else if (Token::Match(tok->previous(), "[,*&()]") || Token::simpleMatch(tok->next(), "."))
+				{
+					varValue[tok->variable()] = -1;
+				}
+			}
+			else if (Token::simpleMatch(tok, "memcpy ("))
+			{
+				const Token *arg = tok->next()->next();
+				if (!arg || !arg->variable())
+				{
+					continue;
+				}
+				const Token *argNext = arg->nextArgument();
+				if (!argNext 
+					|| !argNext->variable() 
+					|| !Token::simpleMatch(argNext->next(), ". c_str (") 
+					|| (it = varValue.find(argNext->variable())) == endVarValue 
+					|| it->second == -1)
+				{
+					continue;
+				}
+				const Token *argLast = argNext->nextArgument();
+				
+				if (argLast && argLast->isNumber()
+					&& Token::simpleMatch(argLast->next(), ")" )
+					&& MathLib::toLongNumber(argLast->str()) > it->second)
+				{
+					reportError(tok, Severity::error, ErrorType::UserCustom, "memcpystr",
+						"The third parameter is too large for memcpy. Perhaps strcpy is what you want.", ErrorLogger::GenWebIdentity(tok->str()));
+				}
+			}
+		}
+	}
 }

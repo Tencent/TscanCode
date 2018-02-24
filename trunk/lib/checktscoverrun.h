@@ -60,6 +60,8 @@ private:
 
 	void checkIndexCheckDefect();
 
+	bool CheckIndexTheSame(SExprLocation elIndex, const Token* tok);
+
 	void checkIndexPlusOneInForByScope(const Scope* scope);
 
 	void FuncRetLengthUsageError(const Token* tok, const std::string& func);
@@ -70,7 +72,7 @@ private:
 
 	void MemcpyError(const Token* tokFunc, const Token* tokVar, const Token* tokStr);
 
-	void IndexCheckDefectError(const SExprLocation& elIndex, const Token* tokCond);
+	void IndexCheckDefectError(const SExprLocation& elIndex, const SExprLocation& elArray, gt::CField::Dimension d, const Token* tokCond);
 
 	bool IsScopeReturn(const Token* tok);
 

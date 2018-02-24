@@ -2028,6 +2028,8 @@ namespace gt
 					{
 						params.push_back(tok);
 					}
+					//fread like function may init the first param
+					bool bFuncRead = std::string::npos != tokFunc->str().find("read") || std::string::npos != tokFunc->str().find("Read");
 					for (std::vector<const Token*>::iterator iter = params.begin(), end = params.end(); iter != end; ++iter)
 					{
 						const Token *t = nullptr;
@@ -2042,6 +2044,15 @@ namespace gt
 						{
 							t = (*iter)->astOperand1();
 							while (t->astOperand2())
+							{
+								t = t->astOperand2();
+							}
+						}
+						if (!t && bFuncRead && iter == params.begin())
+						{
+							bFuncRead = false;
+							t = *iter;
+							if (t->str() == ".")
 							{
 								t = t->astOperand2();
 							}
