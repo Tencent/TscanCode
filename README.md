@@ -16,9 +16,9 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 * TscanCode is `easy to use`, It doesn't require strict compiling enviroment and one single command can make it work; 
 * TscanCode is `extensible`, you can implement your own checks with TscanCode.
 
-## Highlights in v2.11.27 (2017-12-01)
-* Add new check `CS_UnityMessgeSpellWrong`, check typo errors of Unity message functions;
-* Add new check `lua_VarSpellWrongError` and `lua_KeywordSpellWrongError`, check typo errors of Lua variable and keyword;
+## Highlights in v2.14.24 (2018-02-24)
+* `Rule Package` was released on GUI, easier for rule customization;
+* GUI supports `marking false-positive errors` now.
 
 For other changes please refer to [change log](CHANGELOG.md).
 
