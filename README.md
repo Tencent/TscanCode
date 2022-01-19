@@ -6,7 +6,7 @@
 
 Tencent is pleased to support the open source community by making TscanCode available.
 
-Copyright (C) 2017 Tencent company and TscanCode Team. All rights reserved.
+Copyright (C) 2017-2022 Tencent company and TscanCode Team. All rights reserved.
 
 ## Introduction
 
@@ -16,6 +16,11 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 * TscanCode is `easy to use`, It doesn't require strict compiling enviroment and one single command can make it work; 
 * TscanCode is `extensible`, you can implement your own checks with TscanCode.
 
+## Highlights in v2.15.01 (2022-01-19)
+* lua5.4 support
+* a lot of lua update
+* support json format
+update will be pushed to github a few days letter
 ## Highlights in v2.14.24 (2018-02-24)
 * `Rule Package` was released on GUI, easier for rule customization;
 * GUI supports `marking false-positive errors` now.
