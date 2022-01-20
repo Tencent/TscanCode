@@ -18,7 +18,7 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 
 ## Highlights in v2.15.01 (2022-01-19)
 * lua5.4 support
-* a lot of bugfix and new feature
+* a lot of bugfixes and new features
 
 ## Highlights in v2.14.24 (2018-02-24)
 * `Rule Package` was released on GUI, easier for rule customization;
