@@ -1,5 +1,29 @@
 # Change Log
 All notable changes of this project will be documented here.
+## 2022-01-20
+* support lua5.4
+* enhanced support for require/_G
+* enhanced lua_cfg.xml
+* more smart logical reasoning, 
+`
+local function UninitVar_FP24(charactor)
+    local controller
+    if slua.isValid(charactor) then
+        controller = 1
+    end
+
+    local uBack
+    if slua.isValid(controller) then
+        uBack = 2
+    end
+
+    if not slua.isValid(uBack) then
+        return
+    end
+
+    return controller + 1 --no error
+end
+`
 
 ## 2.14.24 - 2018-02-24
 

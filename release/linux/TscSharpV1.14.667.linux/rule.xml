@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <code_trace isopen="1" desc="代码追踪"/>
+  <NullReference isopen="1">
+    <subid name="CS_checkNullDefect" isopen="1" severity="Critical" rule_name="if判空逻辑缺陷" desc="判空条件存在逻辑缺陷，比如：if(p!=null || p.a != null)"/>
+    <subid name="CS_explicitNullDereference" isopen="1" severity="Critical" rule_name="存在路径直接对空对象进行解引用" desc="存在可能的代码执行路径，使得变量为null时解引用"/>
+    <subid name="CS_dereferenceIfNull" isopen="1" severity="Critical" rule_name="C#判空对象为null时解引用" desc="判空对象为null时解引用"/>
+    <subid name="CS_dereferenceAfterNullCheck" isopen="1" severity="Serious" rule_name="C#对象先判空，再解引用，但此时判空已经失效" desc="对象先判空，再解引用，但此时判空已经失效"/>
+    <subid name="CS_dereferenceBeforeNullCheck" isopen="1" severity="Serious" rule_name="C#对象先解引用，再进行判空" desc="对象先解引用，再进行判空"/>
+    <subid name="CS_FuncRetNull" isopen="0" severity="Warning" rule_name="C#函数返回空引用" desc="函数可能返回空引用，未判空直接解引用"/>
+    <subid name="CS_funcDereferenceIfNull" isopen="1" severity="Critical" rule_name="C#函数返回值为null时解引用" desc="当函数返回值为null的时候解引用，一般为误写==造成"/>
+    <subid name="CS_arrayDereferenceIfNull" isopen="1" severity="Critical" rule_name="c#数组为null时解引用" desc="数组为null的时候，解引用。一般为误写 =="/>
+    <subid name="CS_funcDereferenceAfterNullCheck" isopen="0" severity="Serious" rule_name="函数返回的引用先判空再解引用，判空范围已失效" desc="函数返回的引用先判空，再解引用，但此时判空已经失效"/>
+    <subid name="CS_arrayDereferenceAfterNullCheck" isopen="0" severity="Serious" rule_name="数组先判空再解引用，判空范围已失效" desc="数组先判空，再解引用，但是判空范围已失效"/>
+    <subid name="CS_possibleDereferenceAfterNullCheck" isopen="0" severity="Serious" rule_name="可能存在先判空后解引用，但是解引用已不在判空范围内" desc="可能存在数组先判空，再解引用，但是判空范围已失效"/>
+    <subid name="CS_funcDereferenceBeforeNullCheck" isopen="0" severity="Serious" rule_name="C#函数返回的引用先解引用，再进行判空" desc="函数返回的引用先解引用，再判空。"/>
+    <subid name="CS_arrayDereferenceBeforeNullCheck" isopen="0" severity="Serious" rule_name="数组先解引用，再判空" desc="C#中数组先解引用，再判空。"/>
+    <subid name="CS_FuncPossibleRetNull" isopen="0" severity="Information" rule_name="C#函数可能返回空引用" desc="函数返回空引用"/>
+    <subid name="CS_funcFuncRetNull" isopen="0" severity="Warning" rule_name="函数返回值赋值另一函数的引用返回值， 该引用未判空情况下解引用" desc="函数存在返回NULL的分支，所以返回值可能为空，若将返回值赋给返回引用的函数，存在风险，应该先判空再使用。"/>
+    <subid name="CS_arrayFuncRetNull" isopen="0" severity="Warning" rule_name="函数返回值赋值数组， 该数组未判空情况下解引用" desc="函数存在返回NULL的分支，所以返回值可能为空，若将返回值赋给返回数组，存在风险，应该先判空再使用。"/>
+    <subid name="CS_possibleNullReference" isopen="0" severity="Information" rule_name="可能的空引用" desc="判空对象为null时解引用"/>
+    <subid name="CS_nullPointerArray" isopen="0" severity="Information" rule_name="使用了可能是null的数组元素" desc="数组的元素可能是null，并且被使用"/>
+    <subid name="CS_nullPointerArg" isopen="0" severity="Information" rule_name="函数的参数没有判断是否为null" desc="c#的函数参数没有进行是否null的判断"/>
+    <subid name="CS_nullPointerClass" isopen="0" severity="Information" rule_name="类成员变量没有判断空null" desc="C#类成员变量没有判断是否为null的情况下解引用"/>
+  </NullReference>
+  <Logic isopen="1">
+    <subid name="CS_StringFormat" isopen="1" severity="Serious" rule_name="C#StringFormat参数不匹配" desc="使用String.Format(),需要参数{}和传入参数个数不匹配"/>
+    <subid name="CS_XPath" isopen="0" severity="Warning" rule_name="C#使用的XPath表达式不合法" desc="使用的XPath表达式不合法"/>
+    <subid name="CS_DoubleNaN" isopen="1" severity="Warning" rule_name="C#使用NAN和Double直接比较" desc="使用NAN和Double类型直接进行==比较,无法准确判断相等"/>
+    <subid name="CS_DoubleAssignment" isopen="0" severity="Warning" rule_name="C#重复赋值" desc="对相同的表达式进行重复赋值，如a.b=a.b"/>
+    <subid name="CS_SuspicousSemicolon" isopen="1" severity="Warning" rule_name="C#可疑的分号使用" desc="可疑的分号使用,如if(); {}"/>
+    <subid name="CS_UselessArithmetic" isopen="0" severity="Information" rule_name="C#无效的算术运算" desc="无效的逻辑运算：如a=a*1;"/>
+    <subid name="CS_StringIndexOfError" isopen="0" severity="Serious" rule_name="C#StringIndexOf错误使用" desc="判断IndexOf/LastIndexOf()等结果应该用大于等于0,而非大于0"/>
+    <subid name="CS_DuplicateExpression" isopen="0" severity="Information" rule_name="C#重复表达式" desc="在表达两边使用了相同的表达式"/>
+    <subid name="CS_WrongVarInFor" isopen="0" severity="Warning" rule_name="C#循环控制变量使用错误" desc="循环体控制变量,没有变化,可能手误"/>
+    <subid name="CS_ConditionAlwaysTrue" isopen="1" severity="Serious" rule_name="C#表示总为True或者False" desc="逻辑表达式总为True或者False"/>
+    <subid name="CS_VirtualCallInConstructor" isopen="0" severity="Warning" rule_name="C#构造函数中使用虚函数" desc="警告:在类构造函数中使用虚函数,可能达不到虚函数效果.造成逻辑错误"/>
+    <subid name="CS_ThrowExceptionInConstructor" isopen="0" severity="Warning" rule_name="C#在构造或析构函数抛异常" desc="警告:不要在构造/析构函数中抛出异常"/>
+    <subid name="CS_DerivedClassNewKeyWord" isopen="0" severity="Information" rule_name="C#中,不正确使用或者缺少应有的New修饰符" desc="警告:如果在子类中隐藏基类的同名成员.需要使用new关键字申明,如果不是同名成员,不应该使用new申明"/>
+    <subid name="CS_BadRecursive" isopen="0" severity="Warning" rule_name="" desc="可能存在死循环的递归调用"/>
+    <subid name="CS_UnreleasedLock" isopen="1" severity="Warning" rule_name="C#存在没有释放的mutex对象" desc="存在没有释放的mutex对象"/>
+    <subid name="CS_WrongInitSeq" isopen="0" severity="Warning" rule_name="C#成员变量初始化顺序可能有错误" desc="成员变量初始化顺序可能有错误"/>
+    <subid name="CS_ModifyCollection" isopen="1" severity="Serious" rule_name="遍历过程中不应修改容器" desc="在枚举过程中改变枚举对象的内容会导致枚举类型失效"/>
+    <subid name="CS_CheckDuplicateBranchContent" isopen="0" severity="Information" rule_name="C#重复的分支内容" desc="if 和else中分支内容完全相同"/>
+    <subid name="CS_ResourceLeak" isopen="0" severity="Serious" rule_name="" desc="警告：资源泄露风险"/>
+    <subid name="CS_ArrayIndexOutOfBound" isopen="1" severity="Serious" rule_name="CS数组越界" desc="数组存在越界风险"/>
+    <subid name="CS_DividByZero" isopen="1" severity="Critical" rule_name="C#运算中明确的除以0" desc="确定的除0运算"/>
+    <subid name="CS_UnintentionalOverflow" isopen="1" severity="Serious" rule_name="表达式可能溢出，建议先做类型转换" desc="表达式可能溢出"/>
+    <subid name="CS_SuspiciousDividByZero" isopen="0" severity="Warning" rule_name="C#元算中可能除以0" desc="可疑的除0运算,非平台扫描默认应该为关闭"/>
+    <subid name="CS_DivideBy10000" isopen="0" severity="Information" rule_name="可能的除以10000错误" desc="除数为10000的场景，部分项目可能会关注"/>
+  </Logic>
+  <Unity isopen="1">
+    <subid name="CS_UnsafeConstructor" isopen="0" severity="Warning" rule_name="C#Mono子类不应该自己实现构造函数" desc="继承于MonoBehaviour的类不应该自己实现构造函数，特别是里面如果使用了find接口可能导致crash"/>
+    <subid name="CS_ArithmeticOverflow" isopen="0" severity="Information" rule_name="C#数值溢出" desc="将两个较小类型的数相乘得到较大类型的数，可能存在数值溢出"/>
+    <subid name="CS_InvalidMemberName" isopen="0" severity="Information" rule_name="unity项目使用了非法命名的成员变量" desc="unity项目中MonoBehaviour子类的成员变量不能命名为m_Name，否则会导致运行错误"/>
+    <subid name="CS_StructCheckNull" isopen="0" severity="Information" rule_name="对值类型变量进行冗余判空" desc="值类型变量不会为null,对值类型进行判空是冗余的"/>
+    <subid name="CS_UnityMessageSpellWrong" isopen="1" severity="Critical" rule_name="Unity消息函数拼写错误" desc="Unity项目中继承自MonoBehavior的对象通过反射来调用Message函数，一旦这些函数因为手误写错了，将导致不可预期的逻辑错误"/>
+  </Unity>
+</config>

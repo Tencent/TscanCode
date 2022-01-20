@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<def format="1">
+    <section name="CodeTrace" value="0" />
+    
+    <!-- path is not scanned -->
+    <!-- support */xxx -->
+    <section name="PathToIgnore">
+	  <!--path name="F:\testlua\test.lua"></path-->
+        <path name="*/mobdebug.lua"></path>
+    </section>
+    
+    <!-- path is scanned, but error ignored -->
+    <!-- files in these paths may contain variable defnitions, but the errors there should be ignored -->
+    <section name="IgnoreErrorWithinPath">
+        <!-- <path name="*\lua.lua"> </path> -->
+    </section>
+  
+    <section name="Checks">
+        <id name="logic" value="1">
+            <subid name="lua_AssignOrTrue"                          value="1" severity="Warning"       desc="local a = b or true;不管b是true还是false,a总是为true"/>
+            <subid name="lua_RenameLocalVariable"                   value="1" severity="Warning"           desc="重复定义了某个local var;这是不推荐的写法，可能出现了笔误"/>
+            <subid name="lua_RenameUnusedLocalVariable"             value="1" severity="Warning"       desc="一个变量还没有使用过，就被重新定义了，有一行可能是无用的或者出现笔误"/>
+            <subid name="lua_SingleFileGlobal"                      value="0" severity="Warning"              desc="这条规则不建议使用"/>
+            <subid name="lua_SingleScopeGlobal"                     value="0" severity="Warning"             desc="只在一个作用域使用的变量，建议使用local"/>
+            <subid name="lua_VarAssginByDifferentTypes"             value="1" severity="Information"    desc="变量同时被赋值多种类型，这是不推荐的写法"/>
+            <subid name="lua_RenameGlobalVariable"                  value="0" severity="Warning"          desc="这条规则已经废弃，不能使用"/>
+            <subid name="lua_VarTypeMixUsage"                       value="1" severity="Serious"               desc="一个变量被当做不同类型的变量使用，这里很可能出现了错误"/>
+            <subid name="lua_UnusedFunctionParam"                   value="1" severity="Information"       desc="函数的参数定义了却没有使用，有可能出现笔误"/>
+            <subid name="lua_UnusedForVariable"                     value="1" severity="Information"         desc="for循环变量定义了却没有使用，有可能出现笔误"/>
+            <subid name="lua_UnusedLocalVar"                        value="1" severity="Information"            desc="局部变量定义了却没有使用，有可能出现笔误"/>
+            <subid name="lua_UseVarIfNil"                           value="1" severity="Critical"                   desc="检测一个变量值为nil仍然使用，会导致程序异常中断"/>
+            <subid name="lua_UseVarAfterCheck"                      value="1" severity="Critical"         desc="前面代码判定变量是否为nil，后续代码没有检查直接使用"/>
+            <subid name="lua_UseVarBeforeCheck"                     value="1" severity="Critical"         desc="后面的代码判定是否为nil，前面存在代码没有检查"/>
+            <subid name="lua_RecursiveFunc"                         value="1" severity="Critical"         desc="出现了简单的递归调用。lua没有函数重载的概念，使用c++、c#转换的代码可能出现这种情况"/>
+            <subid name="lua_ArgumentMismatch"                      value="1" severity="Warning"         desc="调用函数时，传递的参数比函数要求的少"/>
+            <subid name="lua_ColonDotMix"                           value="1" severity="Warning"         desc="函数定义时使用冒号/点,但是调用时使用的是点/冒号, 这可能导致函数参数错位" />
+            <subid name="lua_VarSpellWrongError"                    value="1" severity="Critical"         desc="lua变量可能的手误错误，这类错误后果严重并且不易排查" />
+            <subid name="lua_KeywordSpellWrongError"                value="1" severity="Critical"         desc="lua关键字可能的手误错误，这类错误后果严重并且不易排查" />
+            <subid name="lua_VarDeclaredInSubScope"					value="1" severity="Critical"         desc="lua变量在作用域外使用，可能导致不可预期的错误" />
+            <subid name="lua_PreciseComparison"					    value="0" severity="Warning"         desc="因为浮点数的精度问题，浮点数用作==,!=运算可能得到预期之外的结果" />
+            <subid name="lua_moduloAlwaysTrueFalse"					value="0" severity="Warning"         desc="比如if(a % 10 == 10)这种场景，a对10取模的最大值只能是9" />
+            <subid name="lua_selfAssignment"					    value="1" severity="Warning"         desc="变量给自身赋值是无意义的" />
+            <subid name="lua_conditionAlwaysTrueFalse"				value="0" severity="Warning"         desc="错误的逻辑运算导致结果总是真或者假" />
+            <subid name="lua_redundantCondition"					value="0" severity="Warning"         desc="条件表达式重复，要么条件是无用的，要么出现了代码错误" />
+            <subid name="lua_duplicateIf"				          	value="0" severity="Warning"         desc="if判断中使用了相同的条件, 要么条件是冗余的，要么出现了代码错误" />
+            <subid name="lua_VarNilDefect"					        value="0" severity="Warning"         desc="if表达式判空缺陷,通常是or和and写反了,或者逻辑存在隐患" />
+            <subid name="lua_ZeroDivision"					        value="0" severity="Warning"         desc="使用除0结果的变量进行算术运算没有意义，可能存在风险" />
+            <subid name="lua_ZeroCfgDivision"					    value="1" severity="Warning"         desc="使用除0变量来自于外部配置，需要添加对应非0保护，可能存在风险" />
+            <subid name="lua_FormatArgMismatch"					    value="1" severity="Critical"        desc="string.format函数参数不匹配" />
+            <subid name="lua_DeadCode"                              value="1" severity="Warning"         desc="不可执行的代码段" />
+            <subid name="lua_RedundantArgument"                     value="1" severity="Warning"         desc="调用函数参数时传递了更多额外参数，可能是参数传错了" />
+            <subid name="lua_RedundantFormatArg"                    value="1" severity="Warning"         desc="格式化字符串函数，传递了多余的参数" />
+	        </id>                                                      
+        <id name="intercall" value="1">                            
+            <subid name="lua_LuaFuncMiss"                           value="1"                  severity="Critical"         desc="c#使用了未定义的lua函数"/>
+            <subid name="lua_LuaFuncRetNil"                         value="1"                  severity="Critical"         desc="c#使用了可能返回nil的lua函数的返回值"/>
+            <subid name="lua_UseObsolete"                           value="1"                  severity="Information"         desc="lua使用了Unity或者c#中标记为[Obsolete]的类或者方法"/>
+        </id>
+        <id name="uninit" value="1">
+            <subid name="lua_UninitVar"                             value="1"  severity="Critical"         desc="使用了未初始化变量"/>
+            <subid name="lua_UndeclaredVar"                         value="1"  severity="Critical"         desc="使用了未声明的变量。出现这种情况很可能出现了拼写错误"/>
+            <subid name="lua_UndeclaredArgument"                    value="1"  severity="Critical"         desc="未声明的变量用作函数参数"/>
+            <subid name="lua_UndeclaredTableValue"                  value="1"  severity="Critical"         desc="未声明的变量用作table的键值"/>
+            <subid name="lua_UndelaredVarAssign"                    value="1"  severity="Critical"         desc="未声明的变量用作等号右值"/>
+            <subid name="lua_PossibleUndeclaredVar"                 value="0"  severity="Information"      desc="可疑的未声明变量"/>
+            <subid name="lua_PossibleVarUseBeforeDeclare"           value="0"  severity="Information"      desc="变量先使用后声明。不建议开启"/>
+            <subid name="lua_PossibleAssignUninitVar"               value="0"  severity="Information"      desc="可以的未初始化化变量赋值"/>
+            <subid name="lua_FuncRetNil"                            value="1"  severity="Information"      desc="直接使用可能返回nil函数的返回值"/>
+            <subid name="lua_UninitMacroLikeVar"                    value="0"  severity="Information"      desc="未初始化的变量。这个变量很可能是c++中的宏"/>
+            <subid name="lua_PossibleUninitVarAsTableKey"           value="1"  severity="Information"      desc="可疑的未声明变量"/>
+            <subid name="lua_UndeclaredSubField"                    value="1"  severity="Warning"         desc="table的成员并没有在定义时声明,该规则只检查特定的问题"/>
+            <subid name="lua_SpellDicCheckError"                    value="0"  severity="Critical"         desc="未定义的变量存在明显的手误，请确认该变量是否有部分单词拼写错误"/>
+            <subid name="lua_ManglingCheckError"                    value="1"  severity="Critical"         desc="未定义的变量和作用域内定义的另一个变量相似，但是使用不同的命名法，可能笔误请确认"/>
+        </id>
+        <id name="syntax" value="1">
+            <subid name="lua_SyntaxError"                           value="1"                  severity="Critical"         desc="语法错误。只检测有限的语法错误"/>
+        </id>
+        <id name="custom" value="1">
+            <subid name="lua_AvoidGlobalVar"                        value="0"     severity="Warning"     desc="lua中使用全局变量可能导致不必要的冲突，也会影响性能，建议使用局部变量" />
+            <subid name="lua_UnusedForIndex"						value="0"     severity="Warning"     desc="for循环变量在循环体中没有被使用" />
+            <subid name="lua_5_3Abandoned5_0API"				    value="0"     severity="Critical"    desc="使用lua5.0中存在但是lua5.3中废弃的方法" />
+        </id>
+    </section>
+  
+  
+  <!--variable of the name or starting with the name will not be checked /-->
+  <!--start * is supported, e.g. xxx* and *yyy-->
+    <section name="initval">
+        <var name="CS" type="table" />
+        <var name="GDK" type="table" />
+        <var name="UnityEngine" type="table" />
+        <var name="ngx" type="table" />
+        <var name="Text" type="table" />
+        <var name="libtdrlua" type="table" />
+        <var name="System" type="table" />
+        <var name="winapi" type="table" />
+        <var name="wxLua" type="table" />
+        <var name="Candellight" type="table" />
+        <var name="lfs" type="table" />
+        <var name="cjson" type="table"/>
+        <var name="bit" type="table" /><!--older lua version support this-->
+        <var name="xlua" type="table" />
+        <var name="perf" type="table" />
+        <var name="Slua" type="table" />
+        <var name="Lplus" type="table" />
+        <var name="Linq" type="table" />
+        <var name="json" type="table" />
+        <var name="base64" type="table" />
+        <var name="import" type="function" />
+        <var name="Vector3" type="table" />
+        <var name="Vector4" type="table" />
+        <var name="Quaternion" type="table" />
+        <var name="_ENV" type="table" />
+    </section>
+  
+    <section name="extraRequire">
+    <!--path name="F:\csharp.lua" /-->
+    </section>
+    
+    <section name="IgnoreFileExtension">
+        <ext name=".pb.*" ></ext><!--pb.lua, pb.wlua etc. is ignored-->
+        <ext name="_pb.*" ></ext><!--pb.lua, pb.wlua etc. is ignored-->
+    </section>
+    <!-- ext must start with dot -->
+    <section name='luaExtension'>
+        <ext name='.lua'/>
+        <ext name='.wlua'/>
+        <ext name='.glua'/>
+        <ext name='.gluaw'/>
+        <ext name='.mlua'/>
+        <ext name='.clua'/>
+        <ext name='.lua.txt'/>
+    </section>
+    
+    <!--  enumABC but enumabc, enum_abc, g_abc, g_abc, g__abc will be ignored -->
+    <!--  this will not work for rule lua_OtherUndeclaredVar -->
+    <section name = "ignoreVarWithPrefix">
+        <prefix name="global"/>
+        <prefix name="G"/>
+        <prefix name="g_"/>
+        <prefix name="k"/>
+        <prefix name="enum"/>
+    </section>
+   
+    <!--lua system module, which is in system path-->
+    <section name = "luaSystemModule">
+        <module_file name="io.lua"/>
+        <module_file name="table.lua"/>
+        <module_file name="string.lua"/>
+        <module_file name="coroutine.lua"/>
+        <module_file name="debug.lua"/>
+        <module_file name="socket.lua"/>
+        <module_file name="math.lua"/>
+        <module_file name="lpeg.lua"/>
+        <module_file name="socket/core.lua"/>
+    </section>
+  
+    <!--if same names related to rule are reported -->
+    <section name="ruleFilter">
+        <rule name="Undeclared"  filter="8"/>
+        <rule name="ArgumentMismatch" filter="5" />
+    </section>
+    
+    <!--report string token match one of the pattern-->
+    <!--pattern uses ECMAScript syntax, http://www.cplusplus.com/reference/regex/ECMAScript/-->
+    <section name="stringMatchPattern">
+        <!-- <pattern name="a\d+" ignoreCase="true"/> -->
+    </section>
+    
+    <!-- functions that register a string as global variable, only arg=1 supported now. e.g. _class("abc", xxx) -->
+    <section name="globalVarRegister">
+        <entry name="_class" arg="1"></entry>
+    </section>
+  
+    <!-- warning, please do not change this, if you are not aware what you are doing -->
+    <section name="misc">
+        <entry name="ifAssign" filter="256" totalVar="4096"/>
+        <entry name="camelCaseLen" filter="24" /><!--camel name must start with capital letter unless it is longer than this filter-->
+        <entry name="extendedNaming" chars="" /> <!--other charactors to be used as variable name-->
+        <entry name="externalVar" min_prefix_len="3" min_var_count="5"/><!--to filter out external variable-->
+        <entry name="strictMode" on="0"/><!--use strict require-->
+        <!--some project may run too slow, then change these numbers to smaller ones-->
+        <entry name="performance"  MAX_REQUIRED_TIMES="8" MAX_ALLOWED_NESTED_SCOPE="196" MAX_TABLE_ROW_LINE="2048"/>
+    </section>
+</def>
