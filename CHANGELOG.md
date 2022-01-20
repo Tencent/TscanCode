@@ -5,7 +5,8 @@ All notable changes of this project will be documented here.
 * enhanced support for require/_G
 * enhanced lua_cfg.xml
 * more smart logical reasoning, 
-`local function UninitVar_FP24(charactor) 
+```
+local function UninitVar_FP24(charactor) 
     local controller 
     if slua.isValid(charactor) then 
         controller = 1 
@@ -21,7 +22,8 @@ All notable changes of this project will be documented here.
     end 
  
     return controller + 1 --no error 
-end `
+end
+```
 
 ## 2.14.24 - 2018-02-24
 
