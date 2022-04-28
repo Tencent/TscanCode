@@ -16,6 +16,9 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 * TscanCode is `easy to use`, It doesn't require strict compiling enviroment and one single command can make it work; 
 * TscanCode is `extensible`, you can implement your own checks with TscanCode.
 
+## Highlights in v2.15.02 (2022-04-28)
+* lua crash fix and more useful checkers
+
 ## Highlights in v2.15.01 (2022-01-19)
 * lua5.4 support
 * a lot of bugfixes and new features

@@ -36,20 +36,22 @@
             <subid name="lua_ColonDotMix"                           value="1" severity="Warning"         desc="函数定义时使用冒号/点,但是调用时使用的是点/冒号, 这可能导致函数参数错位" />
             <subid name="lua_VarSpellWrongError"                    value="1" severity="Critical"         desc="lua变量可能的手误错误，这类错误后果严重并且不易排查" />
             <subid name="lua_KeywordSpellWrongError"                value="1" severity="Critical"         desc="lua关键字可能的手误错误，这类错误后果严重并且不易排查" />
-            <subid name="lua_VarDeclaredInSubScope"					value="1" severity="Critical"         desc="lua变量在作用域外使用，可能导致不可预期的错误" />
-            <subid name="lua_PreciseComparison"					    value="0" severity="Warning"         desc="因为浮点数的精度问题，浮点数用作==,!=运算可能得到预期之外的结果" />
-            <subid name="lua_moduloAlwaysTrueFalse"					value="0" severity="Warning"         desc="比如if(a % 10 == 10)这种场景，a对10取模的最大值只能是9" />
-            <subid name="lua_selfAssignment"					    value="1" severity="Warning"         desc="变量给自身赋值是无意义的" />
-            <subid name="lua_conditionAlwaysTrueFalse"				value="0" severity="Warning"         desc="错误的逻辑运算导致结果总是真或者假" />
-            <subid name="lua_redundantCondition"					value="0" severity="Warning"         desc="条件表达式重复，要么条件是无用的，要么出现了代码错误" />
-            <subid name="lua_duplicateIf"				          	value="0" severity="Warning"         desc="if判断中使用了相同的条件, 要么条件是冗余的，要么出现了代码错误" />
-            <subid name="lua_VarNilDefect"					        value="0" severity="Warning"         desc="if表达式判空缺陷,通常是or和and写反了,或者逻辑存在隐患" />
-            <subid name="lua_ZeroDivision"					        value="0" severity="Warning"         desc="使用除0结果的变量进行算术运算没有意义，可能存在风险" />
-            <subid name="lua_ZeroCfgDivision"					    value="1" severity="Warning"         desc="使用除0变量来自于外部配置，需要添加对应非0保护，可能存在风险" />
-            <subid name="lua_FormatArgMismatch"					    value="1" severity="Critical"        desc="string.format函数参数不匹配" />
-            <subid name="lua_DeadCode"                              value="1" severity="Warning"         desc="不可执行的代码段" />
-            <subid name="lua_RedundantArgument"                     value="1" severity="Warning"         desc="调用函数参数时传递了更多额外参数，可能是参数传错了" />
-            <subid name="lua_RedundantFormatArg"                    value="1" severity="Warning"         desc="格式化字符串函数，传递了多余的参数" />
+            <subid name="lua_VarDeclaredInSubScope"                 value="1" severity="Critical"         desc="lua变量在作用域外使用，可能导致不可预期的错误" />
+            <subid name="lua_PreciseComparison"                     value="1" severity="Warning"          desc="因为浮点数的精度问题，浮点数用作==,!=运算可能得到预期之外的结果" />
+            <subid name="lua_moduloAlwaysTrueFalse"                 value="1" severity="Warning"          desc="比如if(a % 10 == 10)这种场景，a对10取模的最大值只能是9" />
+            <subid name="lua_selfAssignment"                        value="1" severity="Warning"          desc="变量给自身赋值是无意义的" />
+            <subid name="lua_conditionAlwaysTrueFalse"              value="1" severity="Warning"          desc="错误的逻辑运算导致结果总是真或者假" />
+            <subid name="lua_redundantCondition"                    value="1" severity="Warning"          desc="条件表达式重复，要么条件是无用的，要么出现了代码错误" />
+            <subid name="lua_duplicateIf"                           value="1" severity="Warning"          desc="if判断中使用了相同的条件, 要么条件是冗余的，要么出现了代码错误" />
+            <subid name="lua_VarNilDefect"                          value="1" severity="Warning"          desc="if表达式判空缺陷,通常是or和and写反了,或者逻辑存在隐患" />
+            <subid name="lua_ZeroDivision"                          value="1" severity="Warning"          desc="使用除0结果的变量进行算术运算没有意义，可能存在风险" />
+            <subid name="lua_ZeroCfgDivision"                       value="1" severity="Warning"          desc="使用除0变量来自于外部配置，需要添加对应非0保护，可能存在风险" />
+            <subid name="lua_FormatArgMismatch"                     value="1" severity="Critical"         desc="string.format函数参数不匹配" />
+            <subid name="lua_DeadCode"                              value="1" severity="Warning"          desc="不可执行的代码段" />
+            <subid name="lua_RedundantArgument"                     value="1" severity="Warning"          desc="调用函数参数时传递了更多额外参数，可能是参数传错了" />
+            <subid name="lua_RedundantFormatArg"                    value="1" severity="Warning"          desc="格式化字符串函数，传递了多余的参数" />
+            <subid name="lua_ModifyConstVar"                        value="1" severity="Warning"          desc="修改const变量" />
+            <subid name="lua_CmpGCObjectAddress"                    value="1" severity="Serious"          desc="比较GC对象的地址，比较总是不成立。if var == {} 总是不成立。" />
 	        </id>                                                      
         <id name="intercall" value="1">                            
             <subid name="lua_LuaFuncMiss"                           value="1"                  severity="Critical"         desc="c#使用了未定义的lua函数"/>
@@ -79,6 +81,14 @@
             <subid name="lua_AvoidGlobalVar"                        value="0"     severity="Warning"     desc="lua中使用全局变量可能导致不必要的冲突，也会影响性能，建议使用局部变量" />
             <subid name="lua_UnusedForIndex"						value="0"     severity="Warning"     desc="for循环变量在循环体中没有被使用" />
             <subid name="lua_5_3Abandoned5_0API"				    value="0"     severity="Critical"    desc="使用lua5.0中存在但是lua5.3中废弃的方法" />
+            <subid name="lua_MultipleMagicStrInFuncion"             value="0"     severity="Warning"     desc="同一个函数内，出现多次相同或者不同的magic string"/>
+            <subid name="lua_MagicStrInMultipleFuncion"             value="0"     severity="Warning"     desc="同一个magic string在不同函数内多次出现"/>
+            <subid name="lua_MultipleMagicNumInFuncion"             value="0"     severity="Warning"     desc="同一个函数内，出现多次相同或者不同的magic number"/>
+            <subid name="lua_MagicNumInMultipleFuncion"             value="0"     severity="Warning"     desc="同一个magic number在不同函数内多次出现"/>
+            <subid name="lua_MultiAccessToSameMember"               value="0"     severity="Warning"     desc="重复访问同一个table成员，建议定义local变量，以减少访问成员变量的次数，从而提高性能"/>
+        <id name="standard" value="1">
+            <subid name="lua_SpaceNearBinaryOperator"               value="0"     severity="Information"  desc="二元运算符前后应该有空格，包括赋值运算符，点运算符除外"/>
+            <subid name="lua_SpaceAfterComma"                       value="0"     severity="Information"  desc="逗号后面应该有空格，换行tab认为是空格"/>
         </id>
     </section>
   
@@ -111,6 +121,7 @@
         <var name="Vector4" type="table" />
         <var name="Quaternion" type="table" />
         <var name="_ENV" type="table" />
+        <var name="slua" type="table" />
     </section>
   
     <section name="extraRequire">
@@ -157,6 +168,7 @@
   
     <!--if same names related to rule are reported -->
     <section name="ruleFilter">
+        <!-- uninit var fillter num is half of that of undeclared var -->
         <rule name="Undeclared"  filter="8"/>
         <rule name="ArgumentMismatch" filter="5" />
     </section>
@@ -180,6 +192,10 @@
         <entry name="externalVar" min_prefix_len="3" min_var_count="5"/><!--to filter out external variable-->
         <entry name="strictMode" on="0"/><!--use strict require-->
         <!--some project may run too slow, then change these numbers to smaller ones-->
-        <entry name="performance"  MAX_REQUIRED_TIMES="8" MAX_ALLOWED_NESTED_SCOPE="196" MAX_TABLE_ROW_LINE="2048"/>
+        <entry name="performance"  MAX_REQUIRED_TIMES="8" MAX_ALLOWED_NESTED_SCOPE="196" MAX_TABLE_ROW_LINE="8192"/>
+        <entry name="magicstr" filterOneFunc="2" filterMultiFunc="2"/>
+        <entry name="magicnum" filterOneFunc="2" filterMultiFunc="2"/>
+        <!-- literal table values will be removed, only first maxValuesToKeep values will be keeped 0~65535-->
+        <entry name="table" maxValuesToKeep="32"/>
     </section>
 </def>

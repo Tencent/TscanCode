@@ -1,5 +1,8 @@
 # Change Log
 All notable changes of this project will be documented here.
+## 2022-04-28
+* one crash fix and false positive issues fixes
+* more checkers opened to public, see lua/cfg/lua_cfg.xml for detail
 ## 2022-01-20
 * support lua5.4
 * enhanced support for require/_G
