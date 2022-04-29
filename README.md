@@ -1,6 +1,6 @@
 # **TscanCode** 
 
-![Release version](https://img.shields.io/badge/version-2.14.24-blue.svg)
+![Release version](https://img.shields.io/badge/version-2.15.02-blue.svg)
 
 ## A fast and accurate static analysis solution for C/C++, C#, Lua codes
 
