@@ -29,7 +29,7 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 
 For other changes please refer to [change log](CHANGELOG.md).
 
-QQ group:
+QQ group:  
 ![TscanCode交流群群二维码](https://user-images.githubusercontent.com/2759146/165882694-5318874d-fb3d-4974-8b14-02c6beed6ffb.png)
 
 
