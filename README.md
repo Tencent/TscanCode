@@ -29,6 +29,10 @@ TscanCode is devoted to help programmers to find out code defects at the very be
 
 For other changes please refer to [change log](CHANGELOG.md).
 
+QQ group:
+![TscanCode交流群群二维码](https://user-images.githubusercontent.com/2759146/165882694-5318874d-fb3d-4974-8b14-02c6beed6ffb.png)
+
+
 ## Compiling
 
 Any C++11 compiler should work. For compilers with partial C++11 support it may work. If your compiler has the C++11 features that are available in Visual Studio 2015 then it will work. If nullptr is not supported by your compiler then this can be emulated using the header lib/cxx11emu.h.
