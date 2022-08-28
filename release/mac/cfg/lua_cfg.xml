@@ -86,6 +86,7 @@
             <subid name="lua_MultipleMagicNumInFuncion"             value="0"     severity="Warning"     desc="同一个函数内，出现多次相同或者不同的magic number"/>
             <subid name="lua_MagicNumInMultipleFuncion"             value="0"     severity="Warning"     desc="同一个magic number在不同函数内多次出现"/>
             <subid name="lua_MultiAccessToSameMember"               value="0"     severity="Warning"     desc="重复访问同一个table成员，建议定义local变量，以减少访问成员变量的次数，从而提高性能"/>
+        </id>
         <id name="standard" value="1">
             <subid name="lua_SpaceNearBinaryOperator"               value="0"     severity="Information"  desc="二元运算符前后应该有空格，包括赋值运算符，点运算符除外"/>
             <subid name="lua_SpaceAfterComma"                       value="0"     severity="Information"  desc="逗号后面应该有空格，换行tab认为是空格"/>
