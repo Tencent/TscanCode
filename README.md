@@ -31,8 +31,9 @@ For other changes please refer to [change log](CHANGELOG.md).
 
 QQ group1(已满):  
 ![TscanCode交流群群二维码](https://user-images.githubusercontent.com/2759146/165882694-5318874d-fb3d-4974-8b14-02c6beed6ffb.png)
-QQ group1:  
-![911ed4dfb05c0793895e8ad76d6105e2](https://github.com/Tencent/TscanCode/assets/2759146/6b919693-c89d-4680-8390-5ad9c6378561)
+QQ group1:
+![QQ图片20231225162750](https://github.com/Tencent/TscanCode/assets/2759146/a252c632-1462-49c1-80c7-e44c3d1880b9)
+
 
 
 ## Compiling
