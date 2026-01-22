@@ -2411,7 +2411,6 @@ namespace gt
 		bool bHasError;
 		bool bIfThenRet;
 		bool bUnderIf;
-		bool bUnknownIf;
 		bool bStrictIf;
 		bool bStrictElse;
 	};

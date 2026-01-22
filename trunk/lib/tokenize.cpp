@@ -2358,6 +2358,9 @@ void Tokenizer::simplifyTypedef2_expandTypedefs(std::unordered_map<const Token*,
 				}
 				if (pEntry->TypeStart->str() == "struct" && Token::Match(tok2, "%name% ::"))
 					pEntry->TypeStart = pEntry->TypeStart->next();
+				(void)inTemplate;
+				(void)inOperator;
+				(void)structRemoved;
 
 				// start substituting at the typedef name by replacing it with the type
 				std::string orgname = tok2->str();
@@ -2521,10 +2524,8 @@ bool Tokenizer::simplifyTypedef2_expandTypedef_global(Token*& tok)
 
 void Tokenizer::simplifyTypedef2_eraseTypedefs(std::unordered_map<const Token*, STypedefEntry>& allTypedefs)
 {
-	int index = 0;
 	for (std::unordered_map<const Token*, STypedefEntry>::iterator I = allTypedefs.begin(), E = allTypedefs.end(); I != E; ++I)
 	{
-		index++;
 		Token* tokTypedef = I->second.TypeDef;
 		deleteInvalidTypedef(tokTypedef);//ignore TSC
 	}
@@ -6495,7 +6496,6 @@ void Tokenizer::simplifyVarDecl(Token * tokBegin, Token * tokEnd, bool only_k_r_
 			continue;
 
 		bool isconst = false;
-		bool isstatic = false;
 		Token *tok2 = type0;
 		unsigned int typelen = 1;
 
@@ -6513,9 +6513,6 @@ void Tokenizer::simplifyVarDecl(Token * tokBegin, Token * tokEnd, bool only_k_r_
 
 			if (tok2->str() == "const")
 				isconst = true;
-
-			else if (tok2->str() == "static")
-				isstatic = true;
 
 			else if (Token::Match(tok2, "%type% :: %type%")) {
 				tok2 = tok2->next();
@@ -9010,7 +9007,6 @@ bool Tokenizer::simplifyEnum2_substituteEnums(std::list<TSCEnumerator>& enumList
 
 		validEnums.push_back(&(*I));
 
-		int level = 0;
 		std::stack<std::set<std::string> > shadowId;  // duplicate ids in inner scope
 		bool simplify = false;
 		const EnumValue *ev = nullptr;
@@ -9020,10 +9016,6 @@ bool Tokenizer::simplifyEnum2_substituteEnums(std::list<TSCEnumerator>& enumList
 		{
 			if (tok2->str() == "}")
 			{
-				--level;
-				//if (level < 0)
-					//inScope = false;
-
 				if (!shadowId.empty())
 					shadowId.pop();
 			}
@@ -9046,8 +9038,6 @@ bool Tokenizer::simplifyEnum2_substituteEnums(std::list<TSCEnumerator>& enumList
 				else
 				{
 					// Not a duplicate enum..
-					++level;
-
 					std::set<std::string> shadowVars = shadowId.empty() ? std::set<std::string>() : shadowId.top();
 					// are there shadow arguments?
 					if (Token::simpleMatch(tok2->previous(), ") {") || Token::simpleMatch(tok2->tokAt(-2), ") const {")) {

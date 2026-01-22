@@ -339,7 +339,7 @@ std::string ErrorLogger::ErrorMessage::toXML_codetrace(bool verbose, int version
 				startline = 1;
 			endline = 10 + fline;
 			char sline[20];
-			sprintf(sline, "%d", i);
+			snprintf(sline, sizeof(sline), "%d", i);
 			if (i >= startline && i <= endline)
 			{
 				content += string(sline) + ": " + strTextLine + "\n";

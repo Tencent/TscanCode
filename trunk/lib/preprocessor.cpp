@@ -1919,12 +1919,6 @@ std::string Preprocessor::getcode(const std::string &filedata, const std::string
         if (_settings.terminated())
             return "";
 
-		if (line.compare(0, 7, "#pragma") == 0)
-		{
-			int i = 0;
-			++i;
-		}
-
         if (line.compare(0, 11, "#pragma asm") == 0) {
             ret << "\n";
             bool found_end = false;

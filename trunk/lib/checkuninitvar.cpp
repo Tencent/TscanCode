@@ -1286,7 +1286,7 @@ void CheckUninitVar::ReportUninitStructError(const std::string& str, const Token
 			{
 				if (!tokCaller->isExpandedMacro())
 				{
-					sprintf(szBuf, "%u", iterErr->second.begin()->second->linenr());
+					snprintf(szBuf, eBufLen, "%u", iterErr->second.begin()->second->linenr());
 					reportError(tokCaller,
 						Severity::error, ErrorType::Uninit,
 						(bPossible ? "PossibleUninitStruct" : "UninitStruct"),

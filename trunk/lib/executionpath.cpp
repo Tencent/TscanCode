@@ -134,7 +134,7 @@ void ExecutionPath::checkScope(const Token *tok, std::list<ExecutionPath *> &che
     if (!tok || tok->str() == "}" || checks.empty())
         return;
 
-    const std::auto_ptr<ExecutionPath> check(checks.front()->copy());
+    std::unique_ptr<ExecutionPath> check(checks.front()->copy());
 
     for (; tok; tok = tok->next()) {
         // might be a noreturn function..

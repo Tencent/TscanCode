@@ -3894,7 +3894,6 @@ const Token* CheckTSCNullPointer2::HandleFuncParam(const Token* tok)
 		{
 			if (tokFunc->isName())
 			{
-				bool bDefFound = false;
 				const gt::CFunction *gtFunc = CGlobalTokenizer::Instance()->FindFunctionData(tokFunc);
 				if (gtFunc)
 				{
@@ -3930,7 +3929,6 @@ const Token* CheckTSCNullPointer2::HandleFuncParam(const Token* tok)
 					{
 						return tok;
 					}
-					bDefFound = true;
 				}
 
 				std::set<gt::SVarEntry> derefedVar;
@@ -4250,7 +4248,6 @@ bool CheckTSCNullPointer2::ExtractCondFromToken(const Token* tok, CCompoundExpr*
 			if (tok1 && tok2)
 			{
 				const ValueFlow::Value* value = nullptr;
-				const Token* tokValue = nullptr;
 				const Token* tokExpr = nullptr;
 
 				if (tok1->values.size() == 1)
@@ -4260,8 +4257,6 @@ bool CheckTSCNullPointer2::ExtractCondFromToken(const Token* tok, CCompoundExpr*
 					if (value->isKnown() && !value->tokvalue)
 					{
 						tokExpr = tok2;
-						tokValue = tok1;
-
 						if (sComp == "<")
 						{
 							sComp = ">";
@@ -4289,7 +4284,6 @@ bool CheckTSCNullPointer2::ExtractCondFromToken(const Token* tok, CCompoundExpr*
 						if (value->isKnown() && !value->tokvalue)
 						{
 							tokExpr = tok1;
-							tokValue = tok2;
 						}
 					}
 				}

@@ -229,7 +229,7 @@ void CheckTSCInvalidVarArgs::CheckVarArgs_new()
 void CheckTSCInvalidVarArgs::ReportErrorParamDismatch(const Token *tok, const string& funcName/*, bool inconclusive*/ /*= false*/)
 {
 	char szMsg[0x100] = {0};
-	sprintf(szMsg, "The count of parameters mismatches the format string in %s", funcName.c_str());
+	snprintf(szMsg, sizeof(szMsg), "The count of parameters mismatches the format string in %s", funcName.c_str());
 	
 	reportError(tok, Severity::error, ErrorType::Logic, "InvalidVarArgs", szMsg, ErrorLogger::GenWebIdentity((funcName)));
 }
@@ -253,7 +253,6 @@ void CheckTSCInvalidVarArgs::CheckScope(const Token *tokBegin, const Token *tokE
 	}
 
 	bool bUsed = false;
-	bool bBlankStr = false;
 	while(!useStack.empty())
 	{
 		std::string useType = useStack.top();
@@ -269,7 +268,6 @@ void CheckTSCInvalidVarArgs::CheckScope(const Token *tokBegin, const Token *tokE
 
 			if (pTokBack && pTokBack->tokType() == Token::eString)
 			{
-				bBlankStr = true;
 				strFormatted = pTokBack->str();
 				break;
 			}

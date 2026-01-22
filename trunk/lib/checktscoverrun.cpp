@@ -301,7 +301,6 @@ void CheckTSCOverrun::checkIndexCheckDefect()
 						}
 
 						bool bOK = false;
-						bool bRet = false;
 						if (tokCond->str() == "if" && layer1 == 0 && layer2 > 0)
 						{
 							if (tokOp->str() == ">")
@@ -338,7 +337,7 @@ void CheckTSCOverrun::checkIndexCheckDefect()
 
 							if (bOK)
 							{
-								bRet = IsScopeReturn(tokCond);
+								IsScopeReturn(tokCond);
 							}
 						}
 						else if ((tokCond->str() == "if" && layer1 > 0) || (tokCond->str() == "for" && layer1 > 0))
@@ -370,8 +369,6 @@ void CheckTSCOverrun::checkIndexCheckDefect()
 									}
 								}
 							}
-
-							bRet = bOK;
 
 						}
 

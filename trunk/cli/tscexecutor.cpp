@@ -318,7 +318,8 @@ static void print_stacktrace(FILE* f, bool demangling, int maxdepth)
 #endif
 }
 
-static const size_t MYSTACKSIZE = 16 * 1024 + SIGSTKSZ; // wild guess about a reasonable buffer
+// static const size_t MYSTACKSIZE = 16 * 1024 + SIGSTKSZ; // wild guess about a reasonable buffer
+static const size_t MYSTACKSIZE = 16 * 1024 + 131072; // wild guess about a reasonable buffer
 static char mytstack[MYSTACKSIZE]; // alternative stack for signal handler
 static bool bStackBelowHeap = false; // lame attempt to locate heap vs. stack address space
 

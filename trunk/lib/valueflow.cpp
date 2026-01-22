@@ -455,7 +455,7 @@ static void setTokenValue(Token* tok, const ValueFlow::Value &value)
                     (value1->varId == value2->varId && value1->varvalue == value2->varvalue && !value1->tokvalue && !value2->tokvalue)) {
                     ValueFlow::Value result(0);
                     result.condition = value1->condition ? value1->condition : value2->condition;
-                    result.inconclusive = value1->inconclusive | value2->inconclusive;
+                    result.inconclusive = value1->inconclusive || value2->inconclusive;
                     result.varId = (value1->varId != 0U) ? value1->varId : value2->varId;
                     result.varvalue = (result.varId == value1->varId) ? value1->intvalue : value2->intvalue;
                     if (value1->valueKind == value2->valueKind)
@@ -571,7 +571,7 @@ static void setTokenValue(Token* tok, const ValueFlow::Value &value)
                     (value1->varId == value2->varId && value1->varvalue == value2->varvalue)) {
                     ValueFlow::Value result(0);
                     result.condition = value1->condition ? value1->condition : value2->condition;
-                    result.inconclusive = value1->inconclusive | value2->inconclusive;
+                    result.inconclusive = value1->inconclusive || value2->inconclusive;
                     result.varId = (value1->varId != 0U) ? value1->varId : value2->varId;
                     result.varvalue = (result.varId == value1->varId) ? value1->intvalue : value2->intvalue;
                     if (value1->valueKind == value2->valueKind)

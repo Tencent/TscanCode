@@ -30,6 +30,7 @@
 #include "path.h"
 #include "globalmacros.h"
 #include "checktscinvalidvarargs.h"
+#include <cstdint>
 
 #define MAXERRORCNT 30
 #define AUTOFILTER_SUBID "FuncPossibleRetNULL|FuncRetNULL|dereferenceAfterCheck|dereferenceBeforeCheck|possibleNullDereferenced|nullpointerarg|nullpointerclass"
@@ -199,8 +200,6 @@ unsigned int __stdcall TscThreadExecutor::threadProc(void *args)
 void* TscThreadExecutor::threadProc(void *args)
 #endif
 {
-    unsigned int result = 0;
-
     TscThreadExecutor *threadExecutor = static_cast<TscThreadExecutor*>(args);
     TSC_LOCK_ENTER(&threadExecutor->_fileSync);
 
@@ -237,7 +236,7 @@ void* TscThreadExecutor::threadProc(void *args)
 			}
 			else {
 				pGlobalData->RecoredExportClass(false);
-				result += fileChecker.check(file, fileContent->second);
+				fileChecker.check(file, fileContent->second);
 			}
 		}
 		else {
@@ -247,7 +246,7 @@ void* TscThreadExecutor::threadProc(void *args)
 			}
 			else {
 				pGlobalData->RecoredExportClass(false);
-				result += fileChecker.check(file);
+				fileChecker.check(file);
 			}
 		}
 

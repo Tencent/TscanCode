@@ -681,7 +681,7 @@ namespace gt
 		CField(const std::string& name, unsigned flags, AccessControl ac, Type::NeedInitialization init)
 			: m_name(name), m_access(ac), m_flags(flags), m_gtType(nullptr), m_needInit(init)
 		{
-			
+			(void)m_access;
 		}
 		const std::string& GetName() const
 		{
