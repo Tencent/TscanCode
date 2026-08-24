@@ -781,6 +781,10 @@ int CheckUninitVar::isVariableUsage(const Token *vartok, bool pointer, Alloc all
         return (var && var->typeStartToken()->isStandardType());
     }
 
+    const Token *parent = vartok->astParent();
+    if (alloc == NO_ALLOC && Token::simpleMatch(parent, "?") && parent->astOperand1() == vartok)
+        return true;
+
     if (alloc == NO_ALLOC && vartok->next() && vartok->next()->isOp() && !vartok->next()->isAssignmentOp())
         return true;
 
